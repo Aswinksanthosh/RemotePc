@@ -1,0 +1,17 @@
+# For a Raspberry Pi or another Linux box that stays on and starts your PCs (see docs/START-FROM-OFF.md).
+# Copy to /etc/systemd/system/remortstartpc.service, change "pi" and the folder to yours, then:
+#   sudo systemctl daemon-reload && sudo systemctl enable --now remortstartpc
+[Unit]
+Description=Remote Start PC helper
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+ExecStart=/usr/bin/node /home/pi/RemortStartPc/bin/remote.mjs
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

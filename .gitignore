@@ -1,0 +1,6 @@
+node_modules/
+*.log
+*.tmp
+.DS_Store
+# files the tests or the program could create by accident
+c:/

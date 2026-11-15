@@ -1,0 +1,17 @@
+{
+  "name": "remortstartpc",
+  "version": "0.1.0",
+  "description": "Start and control your Windows PC from your phone. One-tap installer, QR code pairing, no accounts, no cloud.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "repository": "github:Aswinksanthosh/RemortStartPc",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node bin/remote.mjs",
+    "test": "node --test",
+    "demo": "node bin/demo.mjs"
+  }
+}

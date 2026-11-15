@@ -1,0 +1,5 @@
+* text=auto
+# Batch files are stored with Windows line endings on purpose (the GitHub zip download does not convert them).
+*.cmd -text
+*.png binary
+*.ico binary

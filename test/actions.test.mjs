@@ -1,0 +1,234 @@
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { ACTIONS, APP_CANDIDATES, cleanModel, createActions, knownButtons, knownCustomApps } from '../src/actions.mjs'
+import { tempDir, writeTree } from './helpers.mjs'
+
+const decode = (args) => Buffer.from(args.at(-1), 'base64').toString('utf16le')
+
+const VDF = `"users"\n{\n"76561198000000001"\n{\n"AccountName" "alpha_login"\n"PersonaName" "Alpha"\n"RememberPassword" "1"\n"MostRecent" "1"\n}\n"76561198000000002"\n{\n"AccountName" "beta_login"\n"PersonaName" "Beta"\n"RememberPassword" "1"\n"MostRecent" "0"\n}\n}`
+const manifest = (id, name) => `"AppState" { "appid" "${id}" "name" "${name}" }`
+
+function lab(t, { platform = 'win32', ps = {}, extra = {} } = {}) {
+  const home = tempDir(t)
+  const steam = join(tempDir(t), 'Steam')
+  writeTree(steam, {
+    'steam.exe': '',
+    'config/loginusers.vdf': VDF,
+    'steamapps/appmanifest_730.acf': manifest(730, 'Counter-Strike 2'),
+    'steamapps/appmanifest_1145360.acf': manifest(1145360, 'Hades'),
+    'appcache/librarycache/730_header.jpg': 'JPEGDATA',
+    'config/avatarcache/76561198000000001.png': 'PNGDATA',
+  })
+  const files = { buttons: join(home, 'buttons.json'), apps: join(home, 'apps.json'), games: join(home, 'games.json'), switchLog: join(home, 'switch.log') }
+  const calls = []
+  const launched = []
+  const spawned = []
+  let steamRunning = true
+  const run = async (file, args) => {
+    calls.push([file, ...args])
+    if (file === 'reg.exe' && args[0] === 'query') {
+      if (args.includes('SteamPath')) return `    SteamPath    REG_SZ    ${steam}\n`
+      if (args.includes('ActiveUser')) return '    ActiveUser    REG_DWORD    0x1\n'
+      if (args.includes('RunningAppID')) return '    RunningAppID    REG_DWORD    0x2da\n'
+    }
+    if (file === 'tasklist.exe') return steamRunning ? 'steam.exe  1234 Console 1 90,000 K' : 'INFO: No tasks are running'
+    if (file.endsWith('steam.exe') && args[0] === '-shutdown') {
+      steamRunning = false
+      return ''
+    }
+    if (file === 'powershell.exe') {
+      const script = decode(args)
+      for (const [needle, answer] of Object.entries(ps)) if (script.includes(needle)) return typeof answer === 'function' ? answer(script) : answer
+      if (script.includes('Get-StartApps | ForEach-Object')) return 'Discord\nSpotify\nSome Other App\n'
+      if (script.includes('Win32_ComputerSystem')) return 'ASUSTeK COMPUTER INC.|ROG Strix G16_G614JV\n'
+      return ''
+    }
+    return ''
+  }
+  const actions = createActions({
+    files,
+    version: '0.1.0',
+    run,
+    launch: async (x) => launched.push(x),
+    spawnFn: (...a) => {
+      spawned.push(a)
+      return { once: (ev, cb) => (ev === 'spawn' ? setImmediate(cb) : undefined), unref() {} }
+    },
+    sleep: async () => {},
+    platform,
+    readdir: readdirSync,
+    uptimeFn: () => 3 * 3600 + 120,
+    hostname: () => 'TEST-PC',
+    update: async () => 'Updated.',
+    ...extra,
+  })
+  return { actions, calls, launched, spawned, files, steam, home }
+}
+
+test('Steam and games: only games from the PC list can be started', async (t) => {
+  const { actions, launched } = lab(t)
+  assert.equal(await actions.run('steam_open'), 'Opening Steam.')
+  assert.equal(await actions.run('steam_bigpicture'), 'Opening Big Picture.')
+  assert.match(await actions.run('steam_game', 'Hades'), /Starting Hades/)
+  assert.match(await actions.run('steam_game', 'counter-strike 2'), /Starting Counter-Strike 2/)
+  assert.deepEqual(launched, ['steam://open/main', 'steam://open/bigpicture', 'steam://rungameid/1145360', 'steam://rungameid/730'])
+  for (const bad of ['Unknown game', '730', '730 & calc', '../x', '', undefined]) await assert.rejects(actions.run('steam_game', bad), /not in the list/, String(bad))
+  assert.equal(launched.length, 4)
+})
+
+test('games.json adds games Steam does not list', async (t) => {
+  const { actions, launched, files } = lab(t)
+  writeFileSync(files.games, JSON.stringify({ 'My Emulator': 999 }))
+  await actions.run('steam_game', 'my emulator')
+  assert.deepEqual(launched, ['steam://rungameid/999'])
+})
+
+test('close game reports what closed and what refused', async (t) => {
+  const a = lab(t, { ps: { steamapps: 'PUBG\nlauncher\n!launcher\n' } })
+  assert.equal(await a.actions.run('close_game'), 'Closed: PUBG. Could not close: launcher (protected or still saving). Close it in the game.')
+  const b = lab(t, { ps: { steamapps: '' } })
+  assert.equal(await b.actions.run('close_game'), 'No Steam game is running.')
+})
+
+test('power buttons run the right Windows commands', async (t) => {
+  const { actions, calls } = lab(t)
+  await actions.run('lock')
+  await actions.run('restart')
+  await actions.run('shutdown')
+  await actions.run('shutdown_cancel')
+  assert.deepEqual(calls[0], ['rundll32.exe', 'user32.dll,LockWorkStation'])
+  assert.deepEqual(calls[1].slice(0, 4), ['shutdown.exe', '/r', '/t', '10'])
+  assert.deepEqual(calls[2].slice(0, 4), ['shutdown.exe', '/s', '/t', '15'])
+  assert.deepEqual(calls[3], ['shutdown.exe', '/a'])
+  await actions.run('sleep')
+  assert.match(decode(calls.at(-1)), /SetSuspendState/)
+  await actions.run('screen_off')
+  assert.match(decode(calls.at(-1)), /0xF170/)
+})
+
+test('cancel with nothing waiting gives a plain error', async (t) => {
+  const { actions } = lab(t, { extra: { run: async (file) => { if (file === 'shutdown.exe') throw new Error('x'); return '' } } })
+  await assert.rejects(actions.run('shutdown_cancel'), /no turn off or restart waiting/)
+})
+
+test('media keys press the right key the right number of times', async (t) => {
+  const { actions, calls } = lab(t)
+  assert.equal(await actions.run('volume_up'), 'Volume up.')
+  assert.match(decode(calls.at(-1)), /1\.\.5 .*keybd_event\(175,/s)
+  await actions.run('mute')
+  assert.match(decode(calls.at(-1)), /1\.\.1 .*keybd_event\(173,/s)
+})
+
+test('everything refuses cleanly on a system that is not Windows', async (t) => {
+  const { actions } = lab(t, { platform: 'linux' })
+  for (const a of ['steam_open', 'lock', 'restart', 'shutdown', 'sleep', 'screen_off', 'volume_up', 'close_game', 'app']) {
+    await assert.rejects(actions.run(a, 'x'), /Windows only/, a)
+  }
+  const info = await actions.info()
+  assert.equal(info.steam, null)
+  assert.deepEqual(info.games, [])
+})
+
+test('an unknown action is refused, and the allow-list is what the page can ask for', async (t) => {
+  const { actions } = lab(t)
+  await assert.rejects(actions.run('format_c'), /Unknown action/)
+  assert.ok(ACTIONS.includes('shutdown') && !ACTIONS.includes('wake') && !ACTIONS.includes('run'))
+})
+
+test('apps: only installed apps from the list, plus your own', async (t) => {
+  const { actions, calls, files } = lab(t)
+  writeFileSync(files.apps, JSON.stringify({ 'My Editor': 'Visual Studio Code', Discord: 'Fake', '': 'x', long: 'y'.repeat(100) }))
+  const info = await actions.info()
+  assert.deepEqual(info.apps, ['Discord', 'Spotify', 'My Editor'])
+  const ps = (script) => (script.includes('Start-Process explorer.exe') ? 'Discord' : '')
+  const lab2 = lab(t, { ps: { 'Start-Process explorer.exe': ps } })
+  assert.match(await lab2.actions.run('app', 'discord'), /Opening Discord/)
+  assert.match(decode(lab2.calls.at(-1)), /\$_\.Name -like \$n/)
+  await assert.rejects(lab2.actions.run('app', 'powershell'), /Unknown app/)
+  await assert.rejects(lab2.actions.run('app', "x'; calc; '"), /Unknown app/)
+  assert.ok(calls.length > 0)
+})
+
+test('app names with quotes cannot change the script', async (t) => {
+  const { actions, calls, files } = lab(t, { ps: { 'Start-Process explorer.exe': '' } })
+  writeFileSync(files.apps, JSON.stringify({ evil: "x'; Remove-Item C:\\ -Recurse; '" }))
+  await assert.rejects(actions.run('app', 'evil'), /not found in the Start menu/)
+  const script = decode(calls.at(-1))
+  assert.ok(script.includes("$n = 'x''; Remove-Item C:\\ -Recurse; '''"), script)
+})
+
+test('your own buttons run by name only', async (t) => {
+  const { actions, spawned, files } = lab(t)
+  writeFileSync(files.buttons, JSON.stringify({ 'My Tests': { command: 'npm test', cwd: '' }, 'bad\nname': { command: 'x' }, nocmd: {}, sneaky: { command: 'a\r\nb' } }))
+  assert.deepEqual(Object.keys(knownButtons(files.buttons)), ['my tests'])
+  assert.equal(await actions.run('button', 'MY TESTS'), 'Started: my tests.')
+  assert.deepEqual(spawned[0].slice(0, 2), ['cmd.exe', ['/d', '/s', '/c', '"npm test"']])
+  await assert.rejects(actions.run('button', 'format c:'), /not in buttons.json/)
+  assert.equal(spawned.length, 1)
+})
+
+test('custom apps file ignores odd entries', (t) => {
+  const { files } = lab(t)
+  writeFileSync(files.apps, JSON.stringify({ ok: 'App', 'a\u0001b': 'x', big: 'z'.repeat(70) }))
+  assert.deepEqual(Object.keys(knownCustomApps(files.apps)), ['ok'])
+  assert.deepEqual(knownCustomApps(join(files.apps, 'missing')), {})
+})
+
+test('switching Steam account follows the steps, in the background, and logs them', async (t) => {
+  const { actions, calls, spawned, files, steam } = lab(t)
+  const msg = await actions.run('steam_switch', '76561198000000002')
+  assert.match(msg, /Switching Steam to Beta/)
+  await actions.settled()
+  const flat = calls.map((c) => c.join(' '))
+  assert.ok(flat.some((c) => c.endsWith('-shutdown')))
+  assert.ok(flat.some((c) => /reg\.exe add .*AutoLoginUser.* \/d beta_login/.test(c)))
+  assert.ok(flat.some((c) => /RememberPassword/.test(c)))
+  assert.match(readFileSync(join(steam, 'config', 'loginusers.vdf'), 'utf8'), /"76561198000000002"\s*\{[^}]*"MostRecent"\s+"1"/)
+  assert.ok(readFileSync(join(steam, 'config', 'loginusers.vdf.rsp-backup'), 'utf8').includes('alpha_login'))
+  assert.equal(spawned.length, 1)
+  assert.match(readFileSync(files.switchLog, 'utf8'), /steam started: done/)
+})
+
+test('switching is refused for an account the PC does not stay signed in to, or the current one', async (t) => {
+  const { actions, spawned } = lab(t)
+  await assert.rejects(actions.run('steam_switch', '76561198999999999'), /not an account/)
+  await assert.rejects(actions.run('steam_switch', 'alpha_login'), /not an account/)
+  assert.match(await actions.run('steam_switch', '76561198000000001'), /already signed in/)
+  assert.equal(spawned.length, 0)
+})
+
+test('info gives the page everything: name, model, games, steam, apps, buttons', async (t) => {
+  const { actions, files } = lab(t)
+  writeFileSync(files.buttons, JSON.stringify({ build: 'npm run build' }))
+  const info = await actions.info()
+  assert.equal(info.name, 'TEST-PC')
+  assert.equal(info.model, 'ROG Strix G16')
+  assert.equal(info.version, '0.1.0')
+  assert.deepEqual(info.games, ['Counter-Strike 2', 'Hades'])
+  assert.deepEqual(info.gameArt, ['Counter-Strike 2'])
+  assert.deepEqual(info.buttons, ['build'])
+  assert.deepEqual(info.steam, { user: 'Alpha', playing: 'Counter-Strike 2', id: '76561198000000001', avatar: true, accounts: [{ id: '76561198000000001', name: 'Alpha' }, { id: '76561198000000002', name: 'Beta' }] })
+  assert.equal(JSON.stringify(info).includes('alpha_login'), false, 'login names never leave the PC')
+})
+
+test('pictures: game art and the Steam avatar are read from Steam, only for known names', async (t) => {
+  const { actions } = lab(t)
+  assert.deepEqual(await actions.gameArt('Counter-Strike 2'), { type: 'image/jpeg', bytes: Buffer.from('JPEGDATA') })
+  assert.equal(await actions.gameArt('Hades'), null)
+  assert.equal(await actions.gameArt('../../Windows/win.ini'), null)
+  assert.deepEqual(await actions.avatar(), { type: 'image/png', bytes: Buffer.from('PNGDATA') })
+})
+
+test('status joins what it can read, and update is passed through', async (t) => {
+  const { actions } = lab(t, { ps: { Win32_Battery: '80|2\n' } })
+  assert.equal(await actions.run('status'), 'Battery 80% (plugged in) · Up 3h 2m')
+  assert.equal(await actions.run('update'), 'Updated.')
+})
+
+test('cleanModel tidies the model name', () => {
+  assert.equal(cleanModel('ASUSTeK COMPUTER INC.|ROG Strix G614JV_G614JV'), 'ROG Strix G614JV')
+  assert.equal(cleanModel(''), '')
+  assert.ok(APP_CANDIDATES.length > 5)
+})
