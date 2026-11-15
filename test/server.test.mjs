@@ -163,3 +163,15 @@ test('a helper (no actions) only starts other PCs', async (t) => {
   assert.deepEqual(woke, ['Desk'])
   assert.equal((await post('/api/avatar')).status, 204)
 })
+
+test('if reading the PC details fails, the page still opens with the buttons', async (t) => {
+  const { post } = await lab(t, {
+    actions: { info: async () => { throw new Error('registry unreadable') }, run: async () => 'ok', avatar: async () => null, gameArt: async () => null },
+  })
+  const origError = console.error
+  console.error = () => {}
+  t.after(() => { console.error = origError })
+  const r = await post('/api/state')
+  assert.equal(r.status, 200)
+  assert.equal((await r.json()).pc.control, true)
+})

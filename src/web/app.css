@@ -86,6 +86,7 @@ p{margin:6px 0}
 .msg.show{opacity:1;transform:none}
 .msg.err{color:#ffc1b6;border-color:rgba(255,140,120,.5);background:rgba(20,6,4,.95)}
 .banner{position:fixed;left:0;right:0;bottom:0;z-index:65;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:#3a2a08;color:#ffd9a0;text-align:center;font-size:.9rem}
+.loading{padding-top:30vh;text-align:center;color:#9db1be}
 .pair{padding-top:8vh;display:flex;flex-direction:column;gap:14px}
 .pair ol{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px}
 .pair .hint{color:#9db1be;font-size:.88rem}

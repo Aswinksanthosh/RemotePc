@@ -9,7 +9,7 @@
 
 ## What you need
 
-- A **Windows 10 or 11 PC** (a laptop or a desktop)
+- A **Windows 10 or 11 PC** (a laptop or a desktop), and you signed in with an account that is an **administrator** (the normal case on your own PC)
 - An **iPhone or Android phone**
 - About **5 minutes**
 

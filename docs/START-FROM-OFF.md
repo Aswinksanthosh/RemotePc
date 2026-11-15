@@ -43,7 +43,7 @@ Wake-on-LAN sends a special "magic packet" over your **home network**. It only t
    ```
 
    (Name, the MAC address, and the PC's own remote page address. The last part is optional: it only adds an **Open** button next to **Start**.)
-5. **On the phone**, open the **helper's** page, then **Other PCs**, then **Start** next to your PC. Give it up to a minute, then tap **Open**.
+5. **On the phone**, open the **helper's** page, then **Other PCs**, then **Start** next to your PC. Give it up to a minute, then tap **Open**. (The first time, your phone has to be paired with that PC too: run **Pair-Phone** on it and scan its code. Each PC has its own pairing.)
 
 **Free test before you build anything.** Turn the PC off. From your phone, on the **same Wi-Fi as the PC**, use any free "Wake on LAN" app from the app store with the MAC address. If that wakes the PC, steps 1 to 5 will work. If it does not, the PC or its BIOS cannot do it, and no software can fix that: use Option 1 or 4.
 

@@ -148,7 +148,13 @@ export async function startServer({
       const body = await readBody(req)
 
       if (path === '/api/state') {
-        const info = actions ? await actions.info() : { name: '' }
+        // If reading the PC's details fails, the page still opens with the buttons (and the problem is in the log).
+        const info = actions
+          ? await actions.info().catch((err) => {
+              console.error('[remote] could not read the PC details:', err)
+              return { name: '' }
+            })
+          : { name: '' }
         const list = others()
         const pcs = await Promise.all(
           Object.entries(list).map(async ([key, d]) => ({
