@@ -71,7 +71,7 @@ export async function startApp({
   const actions =
     platform === 'win32'
       ? createActions({
-          files: { buttons: paths.buttons, apps: paths.apps, games: paths.games, switchLog: paths.switchLog },
+          files: { buttons: paths.buttons, apps: paths.apps, games: paths.games, switchLog: paths.switchLog, mode: paths.mode },
           version,
           update,
           restart: () => {

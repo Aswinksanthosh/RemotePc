@@ -34,7 +34,7 @@ test('the key is only ever sent in a header, never in the address of an API call
 
 test('every button of the page maps to an action the server knows', async () => {
   const { ACTIONS } = await import('../src/actions.mjs')
-  const used = new Set([...js.matchAll(/(?:run|act)\('([a-z_]+)'/g)].map((m) => m[1]))
+  const used = new Set([...js.matchAll(/(?:run|act)\('([a-z_]+)'[,)]/g)].map((m) => m[1]))
   for (const a of used) assert.ok(ACTIONS.includes(a) || ['wake', 'forget_phone'].includes(a), `${a} is not an action`)
   assert.ok(used.size >= 15, `found ${used.size} actions in the page`)
 })

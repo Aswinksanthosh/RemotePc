@@ -18,13 +18,16 @@ const { key } = auth.add('Demo phone')
 const port = Number(process.argv[2]) || 8799
 
 const info = {
-  name: 'DESKTOP-DEMO',
+  name: process.env.DEMO_NAME ?? 'ROG',
   model: process.env.DEMO_MODEL ?? 'ROG Strix G16',
   version: '0.1.0',
   games: ['Counter-Strike 2', 'Hades', 'Portal 2', 'PUBG: BATTLEGROUNDS'],
   gameArt: [],
   buttons: ['my tests', 'open code'],
-  apps: ['Discord', 'Spotify', 'Chrome'],
+  mode: 'balanced',
+  headphones: ['OnePlus Buds Pro', 'AirPods Pro'],
+  outputs: ['Speakers (Realtek Audio)', 'OnePlus Buds Pro Stereo', 'Monitor (HDMI)'],
+  apps: ['Discord', 'Spotify', 'Chrome', 'Epic Games', 'OBS Studio', 'Claude'],
   steam: { user: 'DemoPlayer', playing: '', id: '76561198000000001', avatar: false, accounts: [{ id: '76561198000000001', name: 'DemoPlayer' }, { id: '76561198000000002', name: 'Second Account' }] },
 }
 const actions = {
@@ -42,7 +45,7 @@ await startServer({
   auth,
   actions,
   config: { accent: process.env.DEMO_ACCENT ?? '' },
-  others: () => ({ 'living room': { label: 'Living room', mac: 'AA:BB:CC:DD:EE:FF', page: 'http://127.0.0.1:1' } }),
+  others: () => (process.env.DEMO_ONE_PC ? {} : { tuf: { label: 'TUF', mac: 'AA:BB:CC:DD:EE:FF', page: 'http://127.0.0.1:1' } }),
   wake: async () => {},
   probe: async () => false,
   webDir: join(here, '..', 'src', 'web'),

@@ -39,6 +39,8 @@ The README holds the whole install step by step (2026-11-17; `docs/TUTORIAL.md` 
 
 PIN (2026-11-17, owner request): the installer asks for a PIN (4 to 8 digits, typed twice, weak ones like 0000/1234 refused, no default); phones type it after pairing, session 12 h (`pinHours`); `Set-PIN.cmd` changes or removes it; stored as a salted scrypt hash in `pin.json`. Never hard-code a default PIN.
 
+UI redesign (2026-11-17, owner request): organised cards with line icons (Quick actions, Steam, Media, **Bluetooth devices**, **Sound output**, **Power mode**, Apps, My buttons, System with Other PCs / Paired phones). **Switch bar** at the bottom appears only when `pcs.json` lists other PCs that have a `page` (owner has two laptops; friends with one PC never see it). Power mode actions (`mode_saver|balanced|gaming`, powercfg overlay) ported from Jarvis. `scripts/make-preview.mjs` builds a single HTML file with pretend data to look at the page without a PC. Still to port from Jarvis: Steam Big Picture at startup, temperature limiter (needs sensor check on the devices first), ROG/TUF drawn look.
+
 ## To do / ideas
 
 - Run through the checklist above on a real Windows PC and a clean user; fix what breaks. Put real findings in this file.

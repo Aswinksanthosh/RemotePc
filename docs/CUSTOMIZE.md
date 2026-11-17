@@ -52,6 +52,16 @@ PCs you can **Start** (Wake-on-LAN) and **Open** from the page. Easiest to add w
 
 `mac` (to start it) and `page` (to open its own remote page) are both optional, but you need at least one. `broadcast` (like `"192.168.1.255"`) is optional and only needed if starting does not work. See [START-FROM-OFF.md](START-FROM-OFF.md).
 
+## Two laptops, one button each (the switch bar)
+
+If you own two PCs that both run this, the page can show a bar at the bottom with one button per PC. Tapping the other one opens **its own** page (each PC keeps its own pairing and PIN). On each PC, list the other one in `pcs.json` with its page address (its Tailscale address, port 8791):
+
+```json
+{ "TUF": { "page": "http://100.101.102.103:8791" } }
+```
+
+Do the same on the other PC, listing the first. With **no** other PCs listed, the bar never appears, so a single-PC setup stays clean.
+
 ## Settings (`config.json`)
 
 The program reads it when it starts, so sign out of Windows and back in (or restart the PC) after changing it.

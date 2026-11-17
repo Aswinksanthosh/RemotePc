@@ -11,7 +11,7 @@ let fails = 0
 let needPin = false
 let unlock = ''
 const opened = new Set()
-const picked = { game: '', app: '', bt: '', out: '' }
+const picked = { game: '', out: '' }
 const avatars = {}
 const arts = {}
 
@@ -294,30 +294,75 @@ function slideMenu(trigger, getItems) {
   return trigger
 }
 
-function powerIcon() {
+// Small line icons, drawn here (no pictures to download).
+const ICONS = {
+  power: ['M12 3v8', 'M6.6 6.6a8 8 0 1 0 10.8 0'],
+  lock: ['M5 11h14v9H5z', 'M8 11V8a4 4 0 0 1 8 0v3'],
+  screen: ['M3 5h18v11H3z', 'M9 20h6', 'M12 16v4'],
+  moon: ['M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z'],
+  restart: ['M20 12a8 8 0 1 1-2.5-5.8', 'M20 4v5h-5'],
+  stop: ['M6 6l12 12', 'M18 6L6 18'],
+  play: ['M8 5l11 7-11 7z'],
+  prev: ['M6 5v14', 'M18 5l-9 7 9 7z'],
+  next: ['M18 5v14', 'M6 5l9 7-9 7z'],
+  voldown: ['M4 9h4l5-4v14l-5-4H4z', 'M16 10a3 3 0 0 1 0 4'],
+  volup: ['M4 9h4l5-4v14l-5-4H4z', 'M16 10a3 3 0 0 1 0 4', 'M18.5 7.5a7 7 0 0 1 0 9'],
+  mute: ['M4 9h4l5-4v14l-5-4H4z', 'M16 9l5 6', 'M21 9l-5 6'],
+  bluetooth: ['M7 7l10 10-5 4V3l5 4L7 17'],
+  speaker: ['M5 10v4h3l5 4V6L8 10z', 'M16 9.5a4 4 0 0 1 0 5'],
+  leaf: ['M5 19c0-8 4-14 15-14 0 10-6 14-14 14z', 'M5 19l7-7'],
+  balance: ['M12 4v16', 'M6 20h12', 'M5 8h14', 'M5 8l-3 7a3.5 3.5 0 0 0 6 0z', 'M19 8l-3 7a3.5 3.5 0 0 0 6 0z'],
+  bolt: ['M13 2L4 14h7l-1 8 9-12h-7z'],
+  gamepad: ['M6 9h12a4 4 0 0 1 4 4v2a3 3 0 0 1-5 2l-1-2H8l-1 2a3 3 0 0 1-5-2v-2a4 4 0 0 1 4-4z', 'M8 11v3', 'M6.5 12.5h3'],
+  grid: ['M4 4h6v6H4z', 'M14 4h6v6h-6z', 'M4 14h6v6H4z', 'M14 14h6v6h-6z'],
+  terminal: ['M4 5h16v14H4z', 'M7 10l3 2-3 2', 'M12 15h5'],
+  phone: ['M8 3h8v18H8z', 'M11 18h2'],
+  laptop: ['M5 6h14v9H5z', 'M3 19h18'],
+  pulse: ['M3 12h4l2-6 4 12 2-6h4'],
+  wrench: ['M14.5 6.5a4 4 0 0 0-5 5L4 17l3 3 5.5-5.5a4 4 0 0 0 5-5l-2.5 2.5-2-2z'],
+  user: ['M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', 'M4 20a8 8 0 0 1 16 0'],
+}
+function icon(name) {
   const ns = 'http:' + '//www.w3.org/2000/svg'
   const svg = document.createElementNS(ns, 'svg')
   svg.setAttribute('viewBox', '0 0 24 24')
   svg.setAttribute('aria-hidden', 'true')
-  for (const d of ['M12 3v8', 'M6.6 6.6a8 8 0 1 0 10.8 0']) {
+  svg.setAttribute('class', 'i')
+  for (const d of ICONS[name] || []) {
     const p = document.createElementNS(ns, 'path')
     p.setAttribute('d', d)
     svg.append(p)
   }
+  if (name === 'play') svg.firstChild.setAttribute('fill', 'currentColor')
   return svg
 }
 
-function acc(id, title, kids) {
+// A big square button with an icon above its label. Same hold-to-confirm rules as btn().
+function tile(name, label, fn, opts) {
+  const o = opts || {}
+  const b = btn(label, fn, o.disabled, o.sure, 'tile' + (o.cls ? ' ' + o.cls : ''))
+  b.textContent = ''
+  b.append(icon(name), el('span', '', label))
+  return b
+}
+
+function section(iconName, title, hint) {
+  const h = el('div', 'sec-h')
+  h.append(icon(iconName), el('span', '', title))
+  if (hint) h.append(el('small', '', hint))
+  return h
+}
+
+function acc(id, title, content, iconName) {
   const d = el('div', 'acc' + (opened.has(id) ? ' open' : ''))
   const h = el('button', 'acc-h')
   h.type = 'button'
+  if (iconName) h.append(icon(iconName))
   h.append(el('span', '', title), el('span', 'chev'))
   h.setAttribute('aria-expanded', opened.has(id) ? 'true' : 'false')
   const b = el('div', 'acc-b')
   const inner = el('div', 'acc-in')
-  const r = el('div', 'row')
-  r.append(...kids)
-  inner.append(r)
+  inner.append(content)
   b.append(inner)
   h.addEventListener('click', () => {
     const o = d.classList.toggle('open')
@@ -525,6 +570,12 @@ function unreachableScreen() {
   app.append(box)
 }
 
+function rowOf(...kids) {
+  const r = el('div', 'row')
+  r.append(...kids)
+  return r
+}
+
 function render() {
   const pc = data.pc
   const app = $('app')
@@ -534,7 +585,8 @@ function render() {
   const helper = !pc.control
   const run = (action, arg) => () => act(action, arg)
 
-  const hero = el('div', 'hero on')
+  // -- top: name, status, power menu ----------------------------------------------------
+  const top = el('div', 'top on')
   const txt = el('div', 'txt')
   txt.append(el('h1', '', pc.name))
   const chip = el('div', 'chip')
@@ -542,13 +594,13 @@ function render() {
   txt.append(chip)
   const bits = [pc.model, data.version ? 'version ' + data.version : ''].filter(Boolean).join('  ·  ')
   if (bits) txt.append(el('div', 'model', bits))
-  hero.append(txt)
+  top.append(txt)
   if (!helper) {
     const pwr = el('button', 'b pwr')
     pwr.type = 'button'
     pwr.title = 'Power: hold and slide, or tap'
     pwr.setAttribute('aria-label', 'Power menu')
-    pwr.append(powerIcon())
+    pwr.append(icon('power'))
     slideMenu(pwr, () => [
       { label: 'Lock', run: run('lock') },
       { label: 'Screen off', run: run('screen_off') },
@@ -557,21 +609,33 @@ function render() {
       { label: 'Restart', hint: 'comes back by itself', run: () => confirmBox('Restart the PC?', 'It restarts in 10 seconds and comes back by itself.', 'Restart', run('restart'), true) },
       { label: 'Turn off', hint: 'stays off until started', danger: true, run: () => confirmBox('Turn off the PC?', 'It turns off in 15 seconds and stays off until you start it again.', 'Turn off', run('shutdown'), true) },
     ])
-    hero.append(pwr)
+    top.append(pwr)
   }
-  p.append(hero)
+  p.append(top)
 
   if (!helper) {
-    const quick = el('div', 'glass row')
-    quick.append(btn('Lock', run('lock')), btn('Screen off', run('screen_off')))
+    // -- quick actions -------------------------------------------------------------------
+    const quick = el('div', 'card')
+    quick.append(section('power', 'Quick actions'))
+    const g = el('div', 'grid3')
+    g.append(
+      tile('lock', 'Lock', run('lock')),
+      tile('screen', 'Screen off', run('screen_off')),
+      tile('moon', 'Sleep', run('sleep'), { sure: 'Sleep the PC?' }),
+      tile('restart', 'Restart', run('restart'), { sure: 'Restart the PC?' }),
+      tile('power', 'Turn off', run('shutdown'), { sure: 'Turn off the PC?', cls: 'dangerous' }),
+      tile('stop', 'Cancel off', run('shutdown_cancel')),
+    )
+    quick.append(g)
     p.append(quick)
 
+    // -- steam ---------------------------------------------------------------------------
     const games = pc.games || []
     const st = pc.steam
     if (st || games.length) {
       if (!games.includes(picked.game)) picked.game = games[0] || ''
       const steam = el('div', 'steam')
-      steam.append(el('h3', '', 'STEAM'))
+      steam.append(section('gamepad', 'Steam'))
       const head = el('div', 'sh')
       const t = el('div', 'txt')
       if (st && st.user) {
@@ -606,88 +670,174 @@ function render() {
       ban.append(img, gdd)
       ensureGameArt(img, picked.game, (pc.gameArt || []).includes(picked.game))
       steam.append(ban)
-      const r1 = el('div', 'row')
-      r1.append(btn('Open Steam', run('steam_open')), btn('Big Picture', run('steam_bigpicture')))
-      const r2 = el('div', 'row')
-      r2.append(btn('Start game', () => act('steam_game', picked.game), !games.length, undefined, 'go'), btn('Close game', run('close_game'), false, 'Close the running game?'))
-      steam.append(r1, r2)
+      steam.append(rowOf(btn('Start game', () => act('steam_game', picked.game), !games.length, undefined, 'go'), btn('Close game', run('close_game'), false, 'Close the running game?')))
+      steam.append(rowOf(btn('Open Steam', run('steam_open')), btn('Big Picture', run('steam_bigpicture'))))
       p.append(steam)
     }
 
-    const more = el('div', 'glass')
-    const parts = [
-      acc('media', 'Media', [btn('Prev', run('media_prev')), btn('Play / pause', run('media_playpause')), btn('Next', run('media_next')), btn('Vol -', run('volume_down')), btn('Mute', run('mute')), btn('Vol +', run('volume_up'))]),
-    ]
-    const outs = pc.outputs || []
+    // -- media ---------------------------------------------------------------------------
+    const media = el('div', 'card')
+    media.append(section('play', 'Media'))
+    const tr = el('div', 'transport')
+    const mk = (name, action, cls, label) => {
+      const b = btn(label, run(action), false, undefined, cls)
+      b.textContent = ''
+      b.append(icon(name))
+      return b
+    }
+    tr.append(mk('prev', 'media_prev', '', 'Previous'), mk('play', 'media_playpause', 'go main', 'Play or pause'), mk('next', 'media_next', '', 'Next'))
+    media.append(tr)
+    const vol = el('div', 'vol')
+    vol.append(tile('voldown', 'Vol -', run('volume_down'), { cls: 'small' }), tile('mute', 'Mute', run('mute'), { cls: 'small' }), tile('volup', 'Vol +', run('volume_up'), { cls: 'small' }))
+    media.append(vol)
+    p.append(media)
+
+    // -- bluetooth devices -----------------------------------------------------------------
     const heads = pc.headphones || []
+    const bt = el('div', 'card')
+    bt.append(section('bluetooth', 'Bluetooth devices', heads.length ? 'paired with this PC' : ''))
+    if (!heads.length) bt.append(el('div', 'empty', 'No paired Bluetooth devices found. Pair your earbuds with this PC in Windows first.'))
+    else {
+      const list = el('div', 'list')
+      for (const name of heads) {
+        const item = el('div', 'item stack')
+        const ic = el('div', 'ic')
+        ic.append(icon('bluetooth'))
+        item.append(ic, el('div', 'nm', name))
+        const acts = el('div', 'acts')
+        acts.append(btn('Connect', () => act('bt_connect', name), false, undefined, 'go'), btn('Disconnect', () => act('bt_disconnect', name)))
+        item.append(acts)
+        list.append(item)
+      }
+      bt.append(list)
+      bt.append(el('div', 'note', 'Earbuds must be in range and not busy with another device. Disconnect frees them for your phone.'))
+    }
+    p.append(bt)
+
+    // -- sound output ----------------------------------------------------------------------
+    const outs = pc.outputs || []
+    const snd = el('div', 'card')
+    snd.append(section('speaker', 'Sound output', 'where sound plays'))
+    if (!outs.length) snd.append(el('div', 'empty', 'No sound outputs found.'))
+    else {
+      const list = el('div', 'list')
+      for (const name of outs) {
+        const o = el('button', 'opt' + (picked.out === name ? ' on' : ''))
+        o.type = 'button'
+        const ic = el('span', 'ic')
+        ic.append(icon(/blue|buds|pods|head/i.test(name) ? 'bluetooth' : 'speaker'))
+        o.append(ic, el('span', 'nm', name), el('span', 'tick'))
+        o.addEventListener('click', () => {
+          picked.out = name
+          for (const x of list.children) x.classList.toggle('on', x === o)
+          act('audio_set', name)
+        })
+        list.append(o)
+      }
+      snd.append(list)
+      snd.append(el('div', 'note', 'Bluetooth earbuds appear here once they are connected.'))
+    }
+    p.append(snd)
+
+    // -- power mode ------------------------------------------------------------------------
+    const mode = el('div', 'card')
+    mode.append(section('bolt', 'Power mode', 'Windows'))
+    const seg = el('div', 'seg')
+    for (const [k, label, ic] of [['saver', 'Efficiency', 'leaf'], ['balanced', 'Balanced', 'balance'], ['gaming', 'Performance', 'bolt']]) {
+      seg.append(tile(ic, label, run('mode_' + k), { cls: pc.mode === k ? 'on' : '' }))
+    }
+    mode.append(seg)
+    mode.append(el('div', 'note', 'Efficiency for downloads, Performance for games.'))
+    p.append(mode)
+
+    // -- apps and your own buttons ---------------------------------------------------------
     const apps = pc.apps || []
     if (apps.length) {
-      if (!apps.includes(picked.app)) picked.app = apps[0]
-      const wrap = el('div', 'appmenu')
-      wrap.append(dropdown(apps, picked.app, (v) => {
-        picked.app = v
-      }), btn('Open', () => act('app', picked.app), false, undefined, 'go'))
-      parts.push(acc('apps', 'Open apps', [wrap]))
+      const card = el('div', 'card')
+      card.append(section('grid', 'Apps'))
+      const g2 = el('div', 'apps')
+      for (const name of apps) {
+        const b = btn(name, () => act('app', name), false, undefined, 'tile')
+        b.textContent = ''
+        b.append(el('div', 'letter', name.charAt(0).toUpperCase()), el('span', '', name))
+        g2.append(b)
+      }
+      card.append(g2)
+      p.append(card)
     }
-    if (heads.length) {
-      if (!heads.includes(picked.bt)) picked.bt = heads[0]
-      const wrap = el('div', 'appmenu')
-      wrap.append(
-        dropdown(heads, picked.bt, (v) => {
-          picked.bt = v
-        }),
-        btn('Connect', () => act('bt_connect', picked.bt), false, undefined, 'go'),
-        btn('Disconnect', () => act('bt_disconnect', picked.bt)),
-      )
-      parts.push(acc('bt', 'Headphones', [wrap]))
+    if ((pc.buttons || []).length) {
+      const card = el('div', 'card')
+      card.append(section('terminal', 'My buttons', 'hold to run'))
+      const g2 = el('div', 'grid2')
+      for (const name of pc.buttons) g2.append(tile('terminal', name, () => act('button', name), { sure: 'Run "' + name + '"?', cls: 'small' }))
+      card.append(g2)
+      p.append(card)
     }
-    if (outs.length) {
-      if (!outs.includes(picked.out)) picked.out = outs[0]
-      const wrap = el('div', 'appmenu')
-      wrap.append(dropdown(outs, picked.out, (v) => {
-        picked.out = v
-      }), btn('Switch', () => act('audio_set', picked.out), false, undefined, 'go'))
-      parts.push(acc('out', 'Audio output', [wrap]))
-    }
-    if ((pc.buttons || []).length) parts.push(acc('mine', 'My buttons', pc.buttons.map((b) => btn(b, () => act('button', b), false, 'Run "' + b + '"?'))))
-    more.append(...parts)
-    p.append(more)
   }
 
-  const bottom = el('div', 'glass')
-  const sys = []
-  if (!helper) sys.push(btn('Status', run('status')), btn('Restart remote', run('restart_remote'), false, 'Restart the remote on this PC?'), btn('Update', run('update'), false, 'Update this app and restart it?'))
-  const phones = data.phones || []
-  const phoneKids = phones.length
-    ? phones.map((ph) => {
-        const item = el('div', 'item')
-        item.append(el('span', 'nm', ph.label + (ph.current ? ' (this phone)' : '')))
-        item.append(btn('Forget', () => act('forget_phone', ph.id), false, 'Forget ' + ph.label + '?'))
-        return item
-      })
-    : []
-  phoneKids.push(el('div', 'note', 'To add another phone, double-click Pair-Phone on the PC and scan its QR code.'))
-  const others = data.others || []
-  const kids = []
-  for (const o of others) {
-    const item = el('div', 'item')
-    item.append(el('span', 'nm', o.name + (o.online === true ? ' · on' : o.online === false ? ' · not answering' : '')))
-    if (o.canWake) item.append(btn('Start', () => act('wake', undefined, { pc: o.key }), false, undefined, 'go'))
-    if (o.page) {
-      const open = btn('Open', () => {
-        location.href = o.page
-      })
-      item.append(open)
-    }
-    kids.push(item)
+  // -- system, other PCs, phones -----------------------------------------------------------
+  const sys = el('div', 'card')
+  sys.append(section('wrench', 'System'))
+  const parts = []
+  if (!helper) {
+    const g = el('div', 'grid3')
+    g.append(tile('pulse', 'Status', run('status'), { cls: 'small' }), tile('restart', 'Restart remote', run('restart_remote'), { sure: 'Restart the remote on this PC?', cls: 'small' }), tile('bolt', 'Update', run('update'), { sure: 'Update this app and restart it?', cls: 'small' }))
+    sys.append(g)
   }
-  const sections = []
-  if (others.length) sections.push(acc('others', 'Other PCs', kids))
-  if (sys.length) sections.push(acc('sys', 'System', sys))
-  sections.push(acc('phones', 'Paired phones', phoneKids))
-  bottom.append(...sections)
-  p.append(bottom)
+  const others = data.others || []
+  if (others.length) {
+    const list = el('div', 'list')
+    for (const o of others) {
+      const item = el('div', 'item')
+      const ic = el('div', 'ic')
+      ic.append(icon('laptop'))
+      const nm = el('div', 'nm', o.name)
+      nm.append(el('small', '', o.online === true ? 'on' : o.online === false ? 'not answering' : ''))
+      item.append(ic, nm)
+      const acts = el('div', 'acts')
+      if (o.canWake) acts.append(btn('Start', () => act('wake', undefined, { pc: o.key }), false, undefined, 'go'))
+      if (o.page) acts.append(btn('Open', () => { location.href = o.page }))
+      item.append(acts)
+      list.append(item)
+    }
+    parts.push(acc('others', 'Other PCs', list, 'laptop'))
+  }
+  const phones = data.phones || []
+  const plist = el('div', 'list')
+  for (const ph of phones) {
+    const item = el('div', 'item')
+    const ic = el('div', 'ic')
+    ic.append(icon('phone'))
+    item.append(ic, el('div', 'nm', ph.label + (ph.current ? ' (this phone)' : '')))
+    const acts = el('div', 'acts')
+    acts.append(btn('Forget', () => act('forget_phone', ph.id), false, 'Forget ' + ph.label + '?'))
+    item.append(acts)
+    plist.append(item)
+  }
+  plist.append(el('div', 'note', 'To add another phone, double-click Pair-Phone on the PC and scan its QR code.'))
+  parts.push(acc('phones', 'Paired phones', plist, 'phone'))
+  for (const x of parts) sys.append(x)
+  p.append(sys)
   app.append(p)
+
+  // -- the switch bar: only when other PCs have a page of their own (your friend, with one PC, never sees it) --
+  const nav = $('nav')
+  const withPage = others.filter((o) => o.page)
+  nav.textContent = ''
+  nav.hidden = !withPage.length
+  document.body.classList.toggle('has-nav', withPage.length > 0)
+  if (withPage.length) {
+    const me = btn(pc.name, () => {}, false, undefined, 'on')
+    me.textContent = ''
+    me.append(icon('laptop'), el('span', '', pc.name))
+    nav.append(me)
+    for (const o of withPage) {
+      const b = btn(o.name, () => { location.href = o.page }, false, undefined, '')
+      b.textContent = ''
+      b.append(icon('laptop'), el('span', '', o.name))
+      nav.append(b)
+    }
+  }
 }
 
 async function refresh() {

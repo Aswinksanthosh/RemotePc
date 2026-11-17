@@ -81,6 +81,9 @@ export const ACTIONS = [
   'status',
   'update',
   'restart_remote',
+  'mode_saver',
+  'mode_balanced',
+  'mode_gaming',
   'bt_connect',
   'bt_disconnect',
   'audio_set',
@@ -245,6 +248,13 @@ public static class RspAudio {
 
 const BATTERY = String.raw`$b = Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue | Select-Object -First 1
 if ($b) { "$($b.EstimatedChargeRemaining)|$($b.BatteryStatus)" }`
+
+/** Windows power modes (the "Power mode" slider). The overlay is the Windows 11 slider; the plan is the older fallback. */
+const MODES = {
+  saver: { name: 'Efficiency', overlay: 'OVERLAY_SCHEME_MIN', plan: 'a1841308-3541-4fab-bc81-f71556f20b4a' },
+  balanced: { name: 'Balanced', overlay: 'OVERLAY_SCHEME_NONE', plan: '381b4222-f694-41f0-9685-ff5bb260df2e' },
+  gaming: { name: 'Performance', overlay: 'OVERLAY_SCHEME_MAX', plan: '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c' },
+}
 
 const START_NAMES = String.raw`Get-StartApps | ForEach-Object { $_.Name }`
 
@@ -459,6 +469,38 @@ export function createActions({
 
   const buttons = () => knownButtons(files.buttons, readText)
 
+  // The page shows which power mode was chosen last (Windows does not tell us the slider position simply).
+  const readMode = () => {
+    try {
+      const m = readText(files.mode).trim()
+      return Object.hasOwn(MODES, m) ? m : ''
+    } catch {
+      return ''
+    }
+  }
+  async function setMode(mode) {
+    winOnly()
+    const m = MODES[mode]
+    try {
+      await run('powercfg.exe', ['/overlaysetactive', m.overlay])
+    } catch {
+      try {
+        await run('powercfg.exe', ['/setactive', m.plan])
+      } catch {
+        // "High performance" is hidden on some PCs; make a copy of it and use that.
+        const copy = mode === 'gaming' ? /([0-9a-f]{8}-[0-9a-f-]{27})/i.exec(await run('powercfg.exe', ['/duplicatescheme', m.plan]).catch(() => ''))?.[1] : null
+        if (!copy) throw new Error('Windows would not change the power mode on this PC.')
+        await run('powercfg.exe', ['/setactive', copy])
+      }
+    }
+    try {
+      writeAtomic(files.mode, mode)
+    } catch {
+      // Only the highlight on the page is lost.
+    }
+    return `${m.name} power mode.`
+  }
+
   // Paired Bluetooth devices and active playback devices, looked up from Windows and cached briefly.
   const listLines = (script, max) =>
     ps(script, { timeout: 15_000 }).then(
@@ -542,6 +584,10 @@ export function createActions({
         return update()
       case 'restart_remote':
         return restart()
+      case 'mode_saver':
+      case 'mode_balanced':
+      case 'mode_gaming':
+        return setMode(action.slice(5))
       case 'bt_connect':
       case 'bt_disconnect': {
         const connect = action === 'bt_connect'
@@ -654,6 +700,7 @@ export function createActions({
         games: games.map((g) => g.name),
         gameArt: await artList(),
         buttons: Object.keys(buttons()),
+        mode: readMode(),
         headphones: await listHeadphones(),
         outputs: await listOutputs(),
         apps: [...(await appChoices()).values()].map((c) => c.label),
