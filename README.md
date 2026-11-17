@@ -29,7 +29,7 @@ A **Windows 10 or 11 PC** (signed in as an administrator), an **iPhone or Androi
 
 5. Click **Yes** when Windows asks. Wait a few minutes while it installs.
 6. A browser page opens for **Tailscale**: sign in with the **same Google account** as on the phone. No page? Open the link the installer prints (it starts with `https://login.tailscale.com`).
-7. When the installer asks, **choose a PIN** (4 to 8 digits, typed twice; `0000` and `1234` are refused). A **QR code** appears: leave it there.
+7. When the installer asks, **choose a PIN** (4 to 8 digits, typed twice; `0000` and `1234` are refused). **If you type nothing and just press Enter, there is no PIN at all** (the installer warns you). A **QR code** appears: leave it there.
 
 **On the phone again**
 

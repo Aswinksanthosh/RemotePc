@@ -79,7 +79,9 @@ test('state has this PC, the other PCs and the paired phones', async (t) => {
   assert.equal(s.pc.name, 'PC1')
   assert.equal(s.pc.control, true)
   assert.deepEqual(s.others.map((o) => [o.key, o.canWake, o.online]), [['desk', true, true], ['nomac', false, null]])
-  assert.deepEqual(s.phones, [{ id, label: 'Test phone', current: true }])
+  assert.equal(s.phones.length, 1)
+  assert.deepEqual([s.phones[0].id, s.phones[0].label, s.phones[0].current, s.phones[0].connected], [id, 'Test phone', true, true], 'the phone asking is connected now')
+  assert.ok(s.phones[0].lastSeen > 0)
   assert.equal(s.version, '9.9')
 })
 

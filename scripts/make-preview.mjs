@@ -34,7 +34,7 @@ window.fetch = function (url, opts) {
     var pc = JSON.parse(JSON.stringify(previewPcs[previewSelf]))
     pc.mode = previewModes[previewSelf]
     var other = previewSelf === 'ROG' ? 'TUF' : 'ROG'
-    return json({ pc: pc, version: '0.1.0', phones: [{ id: 'a', label: 'My phone', current: true }],
+    return json({ pc: pc, version: '0.1.0', phones: [{ id: 'a', label: 'My phone', current: true, connected: true, lastSeen: Date.now() }, { id: 'b', label: 'Partner phone', current: false, connected: true, lastSeen: Date.now() - 40000 }, { id: 'c', label: 'Old tablet', current: false, connected: false, lastSeen: Date.now() - 5 * 3600 * 1000 }],
       others: previewOne ? [] : [{ key: other, name: other, canWake: true, page: 'https://example.invalid/' + other, online: true, order: previewPcs[other].order }] })
   }
   if (String(url).indexOf('/api/do') >= 0) {

@@ -71,3 +71,25 @@ test('labels are cleaned and the number of phones is limited', (t) => {
   for (let i = 0; i < 28; i++) auth.add(`p${i}`)
   assert.throws(() => auth.add('one too many'), /Too many/)
 })
+
+test('the list says which phones are connected now and when each was last seen', (t) => {
+  let now = 1_800_000_000_000
+  const file = join(tempDir(t), 'phones.json')
+  const auth = createAuth({ file, now: () => now })
+  const a = auth.add('A')
+  const b = auth.add('B')
+  assert.deepEqual(auth.list().map((p) => [p.label, p.connected, p.lastSeen]), [['A', false, 0], ['B', false, 0]])
+  auth.verify('1.1.1.1', a.key)
+  assert.deepEqual(auth.list().map((p) => [p.label, p.connected]), [['A', true], ['B', false]])
+  now += 60_000
+  assert.equal(auth.list()[0].connected, true)
+  now += 90_000
+  assert.equal(auth.list()[0].connected, false, 'two minutes of silence: no longer connected')
+  assert.ok(auth.list()[0].lastSeen > 0)
+  // Remembered after a restart of the program.
+  const again = createAuth({ file, now: () => now })
+  assert.ok(again.list().find((p) => p.label === 'A').lastSeen > 0)
+  assert.equal(again.list().find((p) => p.label === 'A').connected, false)
+  assert.equal(again.list().find((p) => p.label === 'B').lastSeen, 0)
+  assert.ok(b)
+})

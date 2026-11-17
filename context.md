@@ -45,6 +45,8 @@ Themes + swipe (2026-11-17, owner request): three looks (neon pink/rounded/glow,
 
 Settings page (2026-11-17, owner request): `/settings` (`src/web/settings.html|js`, shared helpers in `common.js`), opened by the gear on the main page. Autosaving controls: start with Windows (schtasks enable/disable), Steam Big Picture at startup + wait, power mode at startup, name, starting theme, order, PIN change/remove (current PIN checked), PIN hours, allow home Wi-Fi (needs restart). Backend: `src/settings.mjs` (whitelist `EDITABLE` + `applySettingsPatch` in `config.mjs`, running config updated live), `src/startup.mjs` (once per boot, `startup.json`). The Jarvis-version Steam-at-startup (`JARVIS_STEAM_AT_START`) is separate. Not yet done in RemotePc: temperature limiter (needs the sensor check first).
 
+Page order (2026-11-17, owner request: he mostly uses games and audio, rarely power): swipe card, Steam, Sound output, Bluetooth devices, Media, Power mode, Apps, My buttons, Theme, **Phones** (who is connected now, last seen), System, **Power** (lock, screen off, sleep, restart, turn off) last. Phones "connected" = talked to this PC in the last 2 minutes (`auth.list()`, `lastSeen` also saved to phones.json at most every 10 min). Installer PIN prompt now says that pressing Enter with nothing typed means NO PIN, and warns.
+
 ## To do / ideas
 
 - Run through the checklist above on a real Windows PC and a clean user; fix what breaks. Put real findings in this file.

@@ -21,6 +21,7 @@ const fingerprint = (key) => createHash('sha256').update(String(key)).digest()
 
 export function createAuth({ file, now = Date.now }) {
   const fails = new Map() // ip -> { count, first, lockedUntil }
+  const seen = new Map() // phone id -> when it last talked to this PC (this run)
   let cache = { stamp: '', list: [] }
 
   function load() {
@@ -65,6 +66,16 @@ export function createAuth({ file, now = Date.now }) {
         return { error: 'This phone is not paired. Open the pairing link from the PC again.', status: 401 }
       }
       fails.delete(ip)
+      seen.set(found.id, t)
+      // Remembered across restarts, but written at most every ten minutes per phone.
+      const before = Date.parse(found.lastSeen ?? '') || 0
+      if (t - before > 10 * 60 * 1000) {
+        try {
+          save(load().map((p) => (p.id === found.id ? { ...p, lastSeen: new Date(t).toISOString() } : p)))
+        } catch {
+          // Only the "last seen" time is lost.
+        }
+      }
       return { ok: true, id: found.id, label: found.label }
     },
     /** Pairs a new phone. Returns the key ONCE; only its fingerprint is kept. */
@@ -79,7 +90,12 @@ export function createAuth({ file, now = Date.now }) {
       save(list)
       return { key, id, label: clean }
     },
-    list: () => load().map(({ id, label, created }) => ({ id, label, created })),
+    /** Paired phones. `lastSeen` is milliseconds (0 = never); `connected` means it talked to this PC in the last two minutes. */
+    list: () =>
+      load().map(({ id, label, created, lastSeen }) => {
+        const last = Math.max(seen.get(id) ?? 0, Date.parse(lastSeen ?? '') || 0)
+        return { id, label, created, lastSeen: last, connected: last > 0 && now() - last < 120_000 }
+      }),
     forget(id) {
       const before = load()
       const after = before.filter((p) => p.id !== id)

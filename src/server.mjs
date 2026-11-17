@@ -202,7 +202,7 @@ export async function startServer({
         return json(res, 200, {
           pc: actions ? { ...info, name: config.name || info.name || 'This PC', accent: config.accent ?? '', theme: config.theme ?? '', order: config.order ?? 0, control: true } : { name: config.name || 'Helper', accent: config.accent ?? '', theme: config.theme ?? '', order: config.order ?? 0, control: false },
           others: pcs,
-          phones: auth.list().map((p) => ({ id: p.id, label: p.label, current: p.id === who.id })),
+          phones: auth.list().map((p) => ({ id: p.id, label: p.label, current: p.id === who.id, lastSeen: p.lastSeen, connected: p.connected })),
           version,
         })
       }

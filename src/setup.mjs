@@ -103,11 +103,15 @@ export async function setupPin({ pin, ask, ui, env = {} }) {
   ui.blank()
   ui.say('  Choose a PIN. The phone asks for it every time it opens the remote, so a stranger holding your unlocked phone cannot use it.')
   ui.say('  4 to 8 digits. Pick something you can remember (not 0000 or 1234).')
+  ui.say('  If you type NOTHING and just press Enter, there is NO PIN and no password at all.')
   for (let attempt = 0; attempt < 6; attempt++) {
-    const first = (await ask(had ? '  New PIN (or press Enter to keep your current PIN): ' : '  Choose a PIN (or press Enter to skip, not recommended): ')).trim()
+    const first = (await ask(had ? '  New PIN (or press Enter to keep your current PIN): ' : '  Choose a PIN (press Enter without typing anything = NO PIN, not recommended): ')).trim()
     if (!first) {
       if (had) ui.ok('Your current PIN stays.')
-      else ui.warn('No PIN set. Double-click Set-PIN later to add one.')
+      else {
+        ui.warn('WARNING: no PIN is set. Anyone who gets hold of your unlocked paired phone, or of the pairing link, can control this PC (lock it, restart it, turn it off).')
+        ui.warn('You can add a PIN any time: double-click Set-PIN in the Start menu.')
+      }
       return
     }
     if (!validPin(first)) {

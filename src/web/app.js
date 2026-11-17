@@ -532,6 +532,16 @@ function unreachableScreen() {
   app.append(box)
 }
 
+function ago(ms) {
+  const s = Math.max(0, Math.round((Date.now() - ms) / 1000))
+  if (s < 90) return 'just now'
+  const m = Math.round(s / 60)
+  if (m < 60) return m + ' min ago'
+  const h = Math.round(m / 60)
+  if (h < 48) return h + ' h ago'
+  return Math.round(h / 24) + ' days ago'
+}
+
 function rowOf(...kids) {
   const r = el('div', 'row')
   r.append(...kids)
@@ -585,11 +595,14 @@ function render() {
     top.append(pwr)
   }
   p.append(top)
+  if (!helper && order.length > 1) p.append(pagerCard(order, order.findIndex((x) => x.self)))
+  let powerCard = null
+  let mediaCard = null
 
   if (!helper) {
-    // -- quick actions -------------------------------------------------------------------
+    // -- power and lock (shown last: used the least) -------------------------------------------------------------------
     const quick = el('div', 'card')
-    quick.append(section('power', 'Quick actions'))
+    quick.append(section('power', 'Power'))
     const g = el('div', 'grid3')
     g.append(
       tile('lock', 'Lock', run('lock')),
@@ -600,8 +613,7 @@ function render() {
       tile('stop', 'Cancel off', run('shutdown_cancel')),
     )
     quick.append(g)
-    p.append(quick)
-    if (order.length > 1) p.append(pagerCard(order, order.findIndex((x) => x.self)))
+    powerCard = quick
 
     // -- steam ---------------------------------------------------------------------------
     const games = pc.games || []
@@ -664,7 +676,7 @@ function render() {
     const vol = el('div', 'vol')
     vol.append(tile('voldown', 'Vol -', run('volume_down'), { cls: 'small' }), tile('mute', 'Mute', run('mute'), { cls: 'small' }), tile('volup', 'Vol +', run('volume_up'), { cls: 'small' }))
     media.append(vol)
-    p.append(media)
+    mediaCard = media
 
     // -- bluetooth devices -----------------------------------------------------------------
     const heads = pc.headphones || []
@@ -686,7 +698,7 @@ function render() {
       bt.append(list)
       bt.append(el('div', 'note', 'Earbuds must be in range and not busy with another device. Disconnect frees them for your phone.'))
     }
-    p.append(bt)
+    const btCard = bt
 
     // -- sound output ----------------------------------------------------------------------
     const outs = pc.outputs || []
@@ -712,6 +724,9 @@ function render() {
       snd.append(el('div', 'note', 'Bluetooth earbuds appear here once they are connected.'))
     }
     p.append(snd)
+    p.append(btCard)
+
+    p.append(mediaCard)
 
     // -- power mode ------------------------------------------------------------------------
     const mode = el('div', 'card')
@@ -779,21 +794,29 @@ function render() {
     parts.push(acc('others', 'Other PCs', list, 'laptop'))
   }
   const phones = data.phones || []
+  const pcard = el('div', 'card')
+  const nowOn = phones.filter((x) => x.connected).length
+  pcard.append(section('phone', 'Phones', nowOn + ' connected now'))
   const plist = el('div', 'list')
   for (const ph of phones) {
     const item = el('div', 'item')
     const ic = el('div', 'ic')
     ic.append(icon('phone'))
-    item.append(ic, el('div', 'nm', ph.label + (ph.current ? ' (this phone)' : '')))
+    const nm = el('div', 'nm', ph.label + (ph.current ? ' (this phone)' : ''))
+    const st = el('small', ph.connected ? 'live' : '', ph.connected ? 'connected now' : ph.lastSeen ? 'last seen ' + ago(ph.lastSeen) : 'not seen yet')
+    nm.append(st)
+    item.append(ic, nm)
     const acts = el('div', 'acts')
     acts.append(btn('Forget', () => act('forget_phone', ph.id), false, 'Forget ' + ph.label + '?'))
     item.append(acts)
     plist.append(item)
   }
-  plist.append(el('div', 'note', 'To add another phone, double-click Pair-Phone on the PC and scan its QR code.'))
-  parts.push(acc('phones', 'Paired phones', plist, 'phone'))
+  plist.append(el('div', 'note', 'To add another phone, double-click Pair-Phone on the PC and scan its QR code. Phones count as connected while the page is open.'))
+  pcard.append(plist)
+  p.append(pcard)
   for (const x of parts) sys.append(x)
-  p.append(sys)
+  if (!helper || parts.length) p.append(sys)
+  if (powerCard) p.append(powerCard)
   app.append(p)
 
   // First page after a hand-over from another PC: start in its look and slide in, while the colours settle into this PC's look.
