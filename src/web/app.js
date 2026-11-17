@@ -9,7 +9,7 @@ let lastSig = ''
 let offline = false
 let fails = 0
 const opened = new Set()
-const picked = { game: '', app: '' }
+const picked = { game: '', app: '', bt: '', out: '' }
 const avatars = {}
 const arts = {}
 
@@ -557,6 +557,8 @@ function render() {
     const parts = [
       acc('media', 'Media', [btn('Prev', run('media_prev')), btn('Play / pause', run('media_playpause')), btn('Next', run('media_next')), btn('Vol -', run('volume_down')), btn('Mute', run('mute')), btn('Vol +', run('volume_up'))]),
     ]
+    const outs = pc.outputs || []
+    const heads = pc.headphones || []
     const apps = pc.apps || []
     if (apps.length) {
       if (!apps.includes(picked.app)) picked.app = apps[0]
@@ -566,6 +568,26 @@ function render() {
       }), btn('Open', () => act('app', picked.app), false, undefined, 'go'))
       parts.push(acc('apps', 'Open apps', [wrap]))
     }
+    if (heads.length) {
+      if (!heads.includes(picked.bt)) picked.bt = heads[0]
+      const wrap = el('div', 'appmenu')
+      wrap.append(
+        dropdown(heads, picked.bt, (v) => {
+          picked.bt = v
+        }),
+        btn('Connect', () => act('bt_connect', picked.bt), false, undefined, 'go'),
+        btn('Disconnect', () => act('bt_disconnect', picked.bt)),
+      )
+      parts.push(acc('bt', 'Headphones', [wrap]))
+    }
+    if (outs.length) {
+      if (!outs.includes(picked.out)) picked.out = outs[0]
+      const wrap = el('div', 'appmenu')
+      wrap.append(dropdown(outs, picked.out, (v) => {
+        picked.out = v
+      }), btn('Switch', () => act('audio_set', picked.out), false, undefined, 'go'))
+      parts.push(acc('out', 'Audio output', [wrap]))
+    }
     if ((pc.buttons || []).length) parts.push(acc('mine', 'My buttons', pc.buttons.map((b) => btn(b, () => act('button', b), false, 'Run "' + b + '"?'))))
     more.append(...parts)
     p.append(more)
@@ -573,7 +595,7 @@ function render() {
 
   const bottom = el('div', 'glass')
   const sys = []
-  if (!helper) sys.push(btn('Status', run('status')), btn('Update', run('update'), false, 'Update this app and restart it?'))
+  if (!helper) sys.push(btn('Status', run('status')), btn('Restart remote', run('restart_remote'), false, 'Restart the remote on this PC?'), btn('Update', run('update'), false, 'Update this app and restart it?'))
   const phones = data.phones || []
   const phoneKids = phones.length
     ? phones.map((ph) => {

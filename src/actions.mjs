@@ -80,6 +80,10 @@ export const ACTIONS = [
   'button',
   'status',
   'update',
+  'restart_remote',
+  'bt_connect',
+  'bt_disconnect',
+  'audio_set',
   ...Object.keys(KEYS),
 ]
 
@@ -168,6 +172,77 @@ if ($g.Count) {
   $g | Where-Object { Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue } | ForEach-Object { '!' + [IO.Path]::GetFileNameWithoutExtension($_.Name) } | Sort-Object -Unique
 }`
 
+// Bluetooth headphones. Paired devices are listed from Windows; connecting or disconnecting asks Windows to
+// switch the audio services (music, calls) of ONE device, found by its exact name. Nothing else is touched.
+const BT_LIST = String.raw`Get-PnpDevice -Class Bluetooth -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -match '^BTHENUM\\DEV_' -and $_.FriendlyName } | ForEach-Object { $_.FriendlyName } | Sort-Object -Unique`
+
+const btScript = (name, connect) => String.raw`$name = ${psQuote(name)}
+$connect = ${connect ? '$true' : '$false'}
+$dev = Get-PnpDevice -Class Bluetooth -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -match '^BTHENUM\\DEV_' -and $_.FriendlyName -eq $name } | Select-Object -First 1
+if (-not $dev) { 'notfound'; exit }
+$hex = [regex]::Match($dev.InstanceId, 'DEV_([0-9A-Fa-f]{12})').Groups[1].Value
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class RspBt {
+  [StructLayout(LayoutKind.Sequential)] public struct ST { public ushort a, b, c, d, e, f, g, h; }
+  [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+  public struct DEV { public uint size; public ulong addr; public uint cod; public int conn; public int rem; public int auth; public ST seen; public ST used; [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 248)] public string name; }
+  [DllImport("bthprops.cpl", SetLastError = true)] static extern uint BluetoothSetServiceState(IntPtr radio, ref DEV d, ref Guid g, uint flags);
+  public static string Run(ulong address, bool connect) {
+    DEV d = new DEV(); d.size = (uint)Marshal.SizeOf(typeof(DEV)); d.addr = address;
+    string[] ids = { "0000110b-0000-1000-8000-00805f9b34fb", "0000111e-0000-1000-8000-00805f9b34fb", "00001108-0000-1000-8000-00805f9b34fb" };
+    uint ok = 1; uint last = 0;
+    foreach (string id in ids) {
+      Guid g = new Guid(id);
+      if (connect) { BluetoothSetServiceState(IntPtr.Zero, ref d, ref g, 0); System.Threading.Thread.Sleep(300); }
+      last = BluetoothSetServiceState(IntPtr.Zero, ref d, ref g, connect ? 1u : 0u);
+      if (last == 0) ok = 0;
+    }
+    return ok == 0 ? "ok" : "fail:" + last;
+  }
+}
+'@
+[RspBt]::Run([Convert]::ToUInt64($hex, 16), $connect)`
+
+// Audio output (the "default speaker"). Active playback devices are listed from Windows; switching sets the default
+// for ONE device found by its exact name, for apps, media and calls.
+const AUDIO_LIST = String.raw`Get-PnpDevice -Class AudioEndpoint -Status OK -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -match '\{0\.0\.0\.00000000\}' -and $_.FriendlyName } | ForEach-Object { $_.FriendlyName } | Sort-Object -Unique`
+
+const audioScript = (name) => String.raw`$name = ${psQuote(name)}
+$dev = Get-PnpDevice -Class AudioEndpoint -Status OK -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -match '\{0\.0\.0\.00000000\}' -and $_.FriendlyName -eq $name } | Select-Object -First 1
+if (-not $dev) { 'notfound'; exit }
+$id = $dev.InstanceId -replace '^SWD\\MMDEVAPI\\', ''
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+[Guid("f8679f50-850a-41cf-9c72-430f290290c8"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IRspPolicyConfig {
+  [PreserveSig] int GetMixFormat([MarshalAs(UnmanagedType.LPWStr)] string n, IntPtr f);
+  [PreserveSig] int GetDeviceFormat([MarshalAs(UnmanagedType.LPWStr)] string n, int d, IntPtr f);
+  [PreserveSig] int ResetDeviceFormat([MarshalAs(UnmanagedType.LPWStr)] string n);
+  [PreserveSig] int SetDeviceFormat([MarshalAs(UnmanagedType.LPWStr)] string n, IntPtr a, IntPtr b);
+  [PreserveSig] int GetProcessingPeriod([MarshalAs(UnmanagedType.LPWStr)] string n, int d, IntPtr a, IntPtr b);
+  [PreserveSig] int SetProcessingPeriod([MarshalAs(UnmanagedType.LPWStr)] string n, IntPtr a);
+  [PreserveSig] int GetShareMode([MarshalAs(UnmanagedType.LPWStr)] string n, IntPtr a);
+  [PreserveSig] int SetShareMode([MarshalAs(UnmanagedType.LPWStr)] string n, IntPtr a);
+  [PreserveSig] int GetPropertyValue([MarshalAs(UnmanagedType.LPWStr)] string n, IntPtr k, IntPtr v);
+  [PreserveSig] int SetPropertyValue([MarshalAs(UnmanagedType.LPWStr)] string n, IntPtr k, IntPtr v);
+  [PreserveSig] int SetDefaultEndpoint([MarshalAs(UnmanagedType.LPWStr)] string n, int role);
+  [PreserveSig] int SetEndpointVisibility([MarshalAs(UnmanagedType.LPWStr)] string n, int v);
+}
+[ComImport, Guid("870af99c-171d-4f9e-af0d-e63df40c2bc9")] class RspPolicyConfigClient { }
+public static class RspAudio {
+  public static string Set(string id) {
+    IRspPolicyConfig p = (IRspPolicyConfig)new RspPolicyConfigClient();
+    int last = 0;
+    for (int role = 0; role < 3; role++) { last = p.SetDefaultEndpoint(id, role); if (last != 0) return "fail:" + last; }
+    return "ok";
+  }
+}
+'@
+[RspAudio]::Set($id)`
+
 const BATTERY = String.raw`$b = Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue | Select-Object -First 1
 if ($b) { "$($b.EstimatedChargeRemaining)|$($b.BatteryStatus)" }`
 
@@ -210,6 +285,9 @@ const memo = (ttl, fn, now = Date.now) => {
 export function createActions({
   files,
   version = '',
+  restart = () => {
+    throw new Error('Restarting is not available here.')
+  },
   update = async () => {
     throw new Error('Updating is not available here.')
   },
@@ -381,6 +459,23 @@ export function createActions({
 
   const buttons = () => knownButtons(files.buttons, readText)
 
+  // Paired Bluetooth devices and active playback devices, looked up from Windows and cached briefly.
+  const listLines = (script, max) =>
+    ps(script, { timeout: 15_000 }).then(
+      // eslint-disable-next-line no-control-regex -- control characters are removed on purpose
+      (o) => o.split(/\r?\n/).map((l) => l.trim()).filter((l) => l && l.length <= max && !/[\u0000-\u001f]/.test(l)).slice(0, 20),
+      () => [],
+    )
+  const listHeadphones = memo(60_000, () => (platform === 'win32' ? listLines(BT_LIST, 40) : []), now)
+  const outCache = { at: -Infinity, value: [] }
+  async function listOutputs() {
+    if (platform !== 'win32') return []
+    if (now() - outCache.at < 15_000) return outCache.value
+    outCache.value = await listLines(AUDIO_LIST, 80)
+    outCache.at = now()
+    return outCache.value
+  }
+
   // -- the actions --------------------------------------------------------------------
 
   async function perform(action, arg) {
@@ -445,6 +540,25 @@ export function createActions({
         return statusText()
       case 'update':
         return update()
+      case 'restart_remote':
+        return restart()
+      case 'bt_connect':
+      case 'bt_disconnect': {
+        const connect = action === 'bt_connect'
+        const name = (await listHeadphones()).find((n) => n.toLowerCase() === String(arg ?? '').toLowerCase().trim())
+        if (!name) throw new Error('That device is not paired with this PC.')
+        const out = (await ps(btScript(name, connect), { timeout: 30_000 })).trim().split(/\r?\n/).at(-1)
+        if (out === 'ok') return connect ? `Connecting ${name}. Open its case or take it out if it does not connect in 10 seconds. It must not be busy with another device.` : `${name} disconnected from this PC. It is free for your phone or another device now.`
+        throw new Error(out === 'notfound' ? 'Windows no longer lists that device.' : 'Windows refused (are the earphones in range and awake?).')
+      }
+      case 'audio_set': {
+        const name = (await listOutputs()).find((n) => n.toLowerCase() === String(arg ?? '').toLowerCase().trim())
+        if (!name) throw new Error('That audio output is not available on this PC right now.')
+        const out = (await ps(audioScript(name), { timeout: 30_000 })).trim().split(/\r?\n/).at(-1)
+        if (out !== 'ok') throw new Error(out === 'notfound' ? 'Windows no longer lists that output.' : 'Windows refused to switch the audio output.')
+        outCache.at = -Infinity
+        return `Sound now plays on ${name}.`
+      }
       case 'app': {
         winOnly()
         const choice = (await appChoices()).get(String(arg ?? '').toLowerCase().trim())
@@ -540,6 +654,8 @@ export function createActions({
         games: games.map((g) => g.name),
         gameArt: await artList(),
         buttons: Object.keys(buttons()),
+        headphones: await listHeadphones(),
+        outputs: await listOutputs(),
         apps: [...(await appChoices()).values()].map((c) => c.label),
         steam: steam ? { user: steam.user, playing: steam.playing, id: steam.id, avatar: Boolean(steam.id && steam.path), accounts: steam.accounts.map(({ id, name }) => ({ id, name })) } : null,
       }
@@ -573,5 +689,9 @@ export const POWERSHELL_SNIPPETS = {
   battery: BATTERY,
   startNames: START_NAMES,
   startApp: startAppScript("Some 'App'", false),
+  btList: BT_LIST,
+  btConnect: btScript('Some Buds', true),
+  audioList: AUDIO_LIST,
+  audioSet: audioScript('Some Speakers'),
   model: MODEL,
 }

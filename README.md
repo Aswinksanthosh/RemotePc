@@ -58,9 +58,11 @@ Open the **camera**, point it at the QR code on the PC, tap the link that appear
 | Lock / Screen off | Locks the PC / turns the screen off (move the mouse to bring it back) |
 | Steam | Open Steam, Big Picture, pick one of your installed games and start it, close the running game, switch Steam account |
 | Media | Previous, play/pause, next, volume up/down, mute |
+| Headphones | Connect or disconnect a paired Bluetooth device (earbuds) on this PC, so it is free for your phone or another PC |
+| Audio output | Choose where the sound plays (speakers, headphones, monitor) |
 | Open apps | Discord, Spotify, Epic, Chrome, and more, if they are installed. You can add your own |
 | My buttons | Your own buttons that run a command you wrote (optional, see [docs/CUSTOMIZE.md](docs/CUSTOMIZE.md)) |
-| System | PC status (battery, graphics card, uptime) and one-tap **Update** |
+| System | PC status (battery, graphics card, uptime) and one-tap **Update** and **Restart remote** |
 
 Risky buttons (Turn off, Restart, Close game, ...) must be **held** for a moment, or ask "are you sure?". Nothing you type on the phone is ever run as a command: the phone can only press buttons that exist.
 

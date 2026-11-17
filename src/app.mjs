@@ -73,6 +73,11 @@ export async function startApp({
           files: { buttons: paths.buttons, apps: paths.apps, games: paths.games, switchLog: paths.switchLog },
           version,
           update,
+          restart: () => {
+            // The launcher starts the program again as soon as this one exits.
+            setTimeout(() => exit(RESTART_CODE), 1500)
+            return 'Restarting the remote: reload this page in about 15 seconds.'
+          },
           readdir: readdirSync,
         })
       : null

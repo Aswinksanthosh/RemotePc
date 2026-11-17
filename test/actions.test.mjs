@@ -232,3 +232,28 @@ test('cleanModel tidies the model name', () => {
   assert.equal(cleanModel(''), '')
   assert.ok(APP_CANDIDATES.length > 5)
 })
+
+test('headphones: only a paired device, by exact name, can be connected or disconnected', async (t) => {
+  const { actions, calls } = lab(t, { ps: { 'ForEach-Object { $_.FriendlyName }': (s) => (s.includes('AudioEndpoint') ? 'Speakers (Realtek)\nBuds Stereo\n' : 'AirPods\nBuds\n'), BluetoothSetServiceState: 'ok\n' } })
+  const info = await actions.info()
+  assert.deepEqual(info.headphones, ['AirPods', 'Buds'])
+  assert.deepEqual(info.outputs, ['Speakers (Realtek)', 'Buds Stereo'])
+  assert.match(await actions.run('bt_connect', 'airpods'), /Connecting AirPods/)
+  assert.match(decode(calls.at(-1)), /\$name = 'AirPods'[\s\S]*\$connect = \$true/)
+  assert.match(await actions.run('bt_disconnect', 'Buds'), /disconnected from this PC/)
+  for (const bad of ["x'; calc; '", 'A Mouse', '', undefined]) await assert.rejects(actions.run('bt_connect', bad), /not paired/)
+})
+
+test('audio output: only an active playback device, by exact name', async (t) => {
+  const { actions, calls } = lab(t, { ps: { 'ForEach-Object { $_.FriendlyName }': 'Speakers (Realtek)\nBuds Stereo\n', SetDefaultEndpoint: 'ok\n' } })
+  assert.match(await actions.run('audio_set', 'buds stereo'), /Sound now plays on Buds Stereo/)
+  assert.match(decode(calls.at(-1)), /\$name = 'Buds Stereo'/)
+  for (const bad of ["x'; calc; '", 'Unknown', '', undefined]) await assert.rejects(actions.run('audio_set', bad), /not available/)
+})
+
+test('restart remote asks the program to restart itself', async (t) => {
+  let restarted = 0
+  const { actions } = lab(t, { extra: { restart: () => (restarted++, 'Restarting') } })
+  assert.equal(await actions.run('restart_remote'), 'Restarting')
+  assert.equal(restarted, 1)
+})
