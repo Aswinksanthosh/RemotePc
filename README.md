@@ -147,7 +147,7 @@ Be honest with yourself about this one: **a PC that is completely off cannot ans
 
 Send them this repository link and this message:
 
-> Open the link, follow "Install in 3 steps". Takes 5 minutes. You need a Windows PC, your phone, and a free Tailscale account (the installer sets it up).
+> Open the link and follow "Install: the whole process, step by step". It takes about 10 minutes. You need a Windows PC, your phone, and a Google account. First install the Tailscale app on your phone and sign in with Google, then run the installer on the PC.
 
 Everyone installs on their own PC and pairs their own phone. Nothing is shared between you.
 
