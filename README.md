@@ -9,124 +9,36 @@
 
 ## What you need
 
-- A **Windows 10 or 11 PC** (a laptop or a desktop), and you signed in with an account that is an **administrator** (the normal case on your own PC)
-- An **iPhone or Android phone**
-- A **Google account** (Gmail) to sign in to Tailscale. Microsoft or Apple also work
-- About **5 minutes**
+A **Windows 10 or 11 PC** (signed in as an administrator), an **iPhone or Android phone**, and a **Google account**. About 10 minutes.
 
-The installer takes care of everything else (it installs Node.js and Tailscale for you, both free).
+## Install
 
-## Install: the whole process, step by step
+**On the phone**
 
-You do **not** need to know anything about Tailscale, Node.js or the command line: the installer takes care of the rest, **including installing Tailscale on the PC**. Plan about **10 minutes** the first time. The order is: **phone first** (Tailscale + Google sign-in), then the PC, then scan.
+1. Install the **Tailscale** app (App Store or Google Play).
+2. Open it, tap **Sign in with Google**, allow the **VPN** question, and check it says **Connected**.
 
-### Part 1: on the phone (Tailscale first)
+**On the PC**
 
-#### Step 1. Install the Tailscale app
-
-Open the **App Store** (iPhone) or **Google Play** (Android), search for **Tailscale**, and install it. It is free for personal use.
-
-#### Step 2. Sign in with Google
-
-1. Open the **Tailscale** app and tap **Get started** (or **Log in**).
-2. Choose **Sign in with Google** and pick your Google account. That *is* your Tailscale account: there is no new password to invent. (No Google account? Microsoft, Apple and GitHub work too.)
-3. Allow the **VPN** question your phone asks. This is how Tailscale works: a private network just for your own devices. Turn the switch **on**. It should say **Connected**.
-
-**Remember which Google account you used.** The PC needs the **same one** in step 6.
-
-### Part 2: on the PC
-
-#### Step 3. Start the installer (pick one way)
-
-**First, choose a folder to work in.** Open **File Explorer** and click the folder you want to start from, for example **Downloads**. You will open PowerShell *inside* that folder, so every command runs there. (The program itself is always installed in your user folder, whatever folder you start from.)
-
-**Way A, one line.** This is the fastest.
-
-1. **Open PowerShell in that folder.** Pick one of these:
-   - **Easiest:** in File Explorer, with the folder open, click the **address bar** at the top (where the folder path is), type `powershell`, and press **Enter**. A PowerShell window opens already in that folder. The path before the cursor shows which folder it is.
-   - **Or from the Start menu:** press the **Windows key**, type `PowerShell`, press **Enter**, then type `cd` and the folder, for example `cd Downloads` (or `cd C:\Users\you\Downloads`), and press **Enter**. Type `pwd` to check where you are.
-2. Copy this line, paste it into the PowerShell window (right-click pastes in PowerShell), press **Enter**:
+3. Open **File Explorer**, open a folder (for example **Downloads**), click the **address bar**, type `powershell` and press **Enter**.
+4. Paste this and press **Enter** (right-click pastes):
 
    ```powershell
    irm https://raw.githubusercontent.com/Aswinksanthosh/RemotePc/main/install.ps1 | iex
    ```
 
-   What it does: `irm` downloads the installer script from this repository, and `iex` runs it. Nothing else is downloaded until the script has asked your permission (next step). You can open the address in a browser first and read the script, it is plain text.
+5. Click **Yes** when Windows asks. Wait a few minutes while it installs.
+6. A browser page opens for **Tailscale**: sign in with the **same Google account** as on the phone. No page? Open the link the installer prints (it starts with `https://login.tailscale.com`).
+7. When the installer asks, **choose a PIN** (4 to 8 digits, typed twice; `0000` and `1234` are refused). A **QR code** appears: leave it there.
 
-**Way B, double-click.**
+**On the phone again**
 
-1. On the repository page, click the green **Code** button, then **Download ZIP**.
-2. Open your Downloads folder, right-click the ZIP, choose **Extract All**, then **Extract**.
-3. Open the extracted folder and double-click **`Install.cmd`**.
-   If Windows says **"Windows protected your PC"**, click **More info**, then **Run anyway** (the file is not signed, it just came from the internet).
-   *Prefer PowerShell here too?* With the extracted folder open in File Explorer, click the address bar, type `powershell`, press **Enter**, then run: `powershell -ExecutionPolicy Bypass -File .\install.ps1`
+8. Scan the QR code with the **Camera** app, tap the link, type your **PIN**. Your PC's name appears with a green dot.
+9. Add it to the home screen: **iPhone** (Safari) Share, then **Add to Home Screen**. **Android** menu (three dots), then **Add to Home screen**.
 
-#### Step 4. Say Yes to the permission question
+**On the PC:** press **Enter** in the installer window. Done.
 
-Windows shows a box asking whether the app may make changes to your device. Click **Yes**. The installer needs this once, to install the helper programs, allow your phone through the firewall, and set up the automatic start. A new window opens and shows the progress. Leave it open.
-
-#### Step 5. Wait while it installs the helpers (about 2 to 5 minutes)
-
-The window prints each step. It does these on its own:
-
-| Step | What happens | If you already have it |
-|---|---|---|
-| **Node.js** | The small engine this program runs on is installed. | Skipped |
-| **Putting the program in place** | The program is copied to a folder in your user folder (`.remortstartpc`). | Replaced by the newer copy |
-| **Tailscale** | The private link between your phone and your PC is installed. | Skipped |
-| **Settings, firewall, automatic start** | Windows is told to start the remote when you sign in, and to let only your own devices connect. | Updated |
-
-#### Step 6. Sign in to Tailscale on the PC (the same Google account)
-
-The installer installs Tailscale on the PC. Then a **web page opens in your browser** asking you to sign in:
-
-1. Choose **Sign in with Google** and use the **same Google account as on your phone** (step 2). This is what puts your phone and your PC on the same private network.
-2. If it asks to **connect** this device, click **Connect**.
-3. Go back to the installer window. It notices on its own and continues.
-
-If no browser page opens, the installer prints a link that starts with `https://login.tailscale.com/` in its window. Copy it into any browser.
-
-#### Step 7. Choose a PIN
-
-The installer asks you to **choose a PIN** (4 to 8 digits) and to type it twice. Pick something you can remember, not `0000` or `1234` (those are refused). The phone asks for this PIN every time it opens the remote (it remembers it for 12 hours), so a stranger holding your unlocked phone cannot use your PC. You can change or remove it later with **Set-PIN** in the Start menu.
-
-#### Step 8. The QR code appears
-
-When the steps are done, the installer opens a page with a big **QR code**, and also shows a smaller one in the installer window. **Leave it on the screen.** Do not close the installer window yet.
-
-### Part 3: on the phone again
-
-#### Step 9. Scan the QR code
-
-1. Open the phone's normal **Camera** app and point it at the QR code on the PC screen.
-2. A link appears at the top of the camera view. **Tap it.**
-3. The browser opens the **Remote** page. Type your **PIN**. It then shows your PC's name with a green dot and **online**. Your phone is now paired.
-
-#### Step 10. Put it on the home screen
-
-So you can open it with one tap, like an app:
-
-- **iPhone** (use Safari): tap the **Share** button (square with an arrow), scroll down, tap **Add to Home Screen**, then **Add**.
-- **Android** (Chrome or Brave): tap the **menu** (three dots), then **Add to Home screen** or **Install app**.
-
-Use the icon from now on. It keeps working without scanning again.
-
-#### Step 11. Finish on the PC
-
-Back on the PC, in the installer window, press **Enter**. It removes the QR page (it contains your private key) and prints **All done**. You can close the window.
-
-### Part 4: try it
-
-On the phone page, try these (you cannot break anything with them):
-
-1. **Lock**: the PC locks. Sign back in on the PC.
-2. **Media: Vol +**: the volume goes up.
-3. Open **Steam**, pick a game in the picture box, press **Start game**.
-4. Open the **power icon** (top right): hold it and slide to an option, or just tap it.
-
-Risky buttons (Turn off, Restart, Close game) ask you to **hold** the button for a moment, or ask "are you sure?". That is on purpose.
-
-> The link in the QR code is a private key for your PC. Do not post it or send it to anyone. Lost it, or lost a phone? Run **Pair-Phone** on the PC for a new one, and forget the old phone on the page (Paired phones).
+> The QR link is a key to your PC. Never share it or a screenshot of it. Lost a phone? Run **Pair-Phone** on the PC for a new code, and forget the old phone on the page (Paired phones).
 
 ## What the buttons do
 
@@ -156,7 +68,7 @@ Be honest with yourself about this one: **a PC that is completely off cannot ans
 
 Send them this repository link and this message:
 
-> Open the link and follow "Install: the whole process, step by step". It takes about 10 minutes. You need a Windows PC, your phone, and a Google account. First install the Tailscale app on your phone and sign in with Google, then run the installer on the PC.
+> Open the link and follow "Install". It takes about 10 minutes. You need a Windows PC, your phone, and a Google account. First install the Tailscale app on your phone and sign in with Google, then run the installer on the PC.
 
 Everyone installs on their own PC and pairs their own phone. Nothing is shared between you.
 
