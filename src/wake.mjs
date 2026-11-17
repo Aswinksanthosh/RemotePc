@@ -42,6 +42,8 @@ export function knownPcs(file, readText = (f) => readFileSync(f, 'utf8')) {
         mac,
         broadcast: isIPv4(String(d?.broadcast ?? '')) ? d.broadcast : '255.255.255.255',
         page: PAGE.test(page) ? page : '',
+        theme: ['neon', 'tactical', 'clean'].includes(d?.theme) ? d.theme : '',
+        order: Number.isInteger(d?.order) && d.order >= 0 && d.order <= 99 ? d.order : 0,
       }
     }
     return out

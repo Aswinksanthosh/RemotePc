@@ -60,7 +60,9 @@ If you own two PCs that both run this, the page can show a bar at the bottom wit
 { "TUF": { "page": "http://100.101.102.103:8791" } }
 ```
 
-Do the same on the other PC, listing the first. With **no** other PCs listed, the bar never appears, so a single-PC setup stays clean.
+Do the same on the other PC, listing the first. The page then shows a **swipe card** above Steam: swipe it sideways (or tap a name) and the page slides to the other PC while the colours change into that PC's look. With **no** other PCs listed, the card never appears, so a single-PC setup stays clean.
+
+Optional, in each entry: `"order": 1` (lower is further left; ties go by name) and `"theme": "tactical"` (the look to change into). Put `"order"` in this PC's own `config.json` too.
 
 ## Settings (`config.json`)
 
@@ -82,4 +84,6 @@ The program reads it when it starts, so sign out of Windows and back in (or rest
 | `allow` | Who may connect: `loopback` (this PC), `tailscale` (your phone through Tailscale), `lan` (anything on your home network). Never the open internet. Add `"lan"` only on a network you trust, because on a normal Wi-Fi the traffic is not encrypted. |
 | `accent` | Page colour: `blue`, `pink`, `amber`, `green`, `purple`, `red`. Empty means automatic: pink for "ROG" PCs, amber for "TUF" PCs, otherwise blue. |
 | `name` | The big name on the page. Empty means the PC's own name. |
+| `theme` | The look this PC starts with: `neon`, `tactical` or `clean`. Empty means automatic: neon for "ROG" PCs, tactical for "TUF" PCs, otherwise clean. Each phone can pick another one in the **Theme** card on the page. |
+| `order` | Place in the swipe card when you own several PCs (0 to 99, lower is further left). |
 | `pinHours` | How many hours a typed PIN stays valid on a phone (1 to 720, default 12). |

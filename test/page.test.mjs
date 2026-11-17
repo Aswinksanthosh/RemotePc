@@ -48,3 +48,11 @@ test('the page has a PIN screen and sends the PIN session with every call', () =
   assert.ok(js.includes("h['x-unlock'] = unlock"))
   assert.ok(/inputMode = 'numeric'/.test(js) && /autocomplete = 'off'/.test(js))
 })
+
+test('the page has three looks, a swipe card for several PCs, and a hand-over animation', () => {
+  for (const t of ['neon', 'tactical', 'clean']) assert.ok(js.includes(`['${t}'`), t)
+  assert.ok(js.includes('function pagerCard') && js.includes("'swipe to change PC'"))
+  assert.ok(js.includes("localStorage.setItem('rsp_theme:'"))
+  for (const c of ['body[data-theme=neon]', 'body[data-theme=tactical]', '.panel.enter-right', '.panel.leave-left', '@property --a']) assert.ok(css.includes(c), c)
+  assert.ok(!/class="nav"/.test(html), 'the old bottom bar is gone')
+})

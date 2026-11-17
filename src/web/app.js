@@ -485,10 +485,135 @@ async function ensureGameArt(node, game, has) {
 
 // -- the page ---------------------------------------------------------------------------
 
-function accentOf(pc) {
-  if (pc.accent) return pc.accent
-  const m = pc.model || ''
-  return /ROG/i.test(m) ? 'pink' : /TUF/i.test(m) ? 'amber' : 'blue'
+// -- looks ---------------------------------------------------------------------------------------
+const THEMES = [['neon', 'Neon'], ['tactical', 'Tactical'], ['clean', 'Clean']]
+const ACCENT_THEME = { pink: 'neon', purple: 'neon', amber: 'tactical', red: 'tactical' }
+function guessTheme(text) {
+  return /ROG/i.test(text || '') ? 'neon' : /TUF/i.test(text || '') ? 'tactical' : 'clean'
+}
+// The choice of this phone for this PC wins, then the PC's setting, then what its model name suggests.
+function themeOf(pc) {
+  try {
+    const mine = localStorage.getItem('rsp_theme:' + pc.name)
+    if (THEMES.some((t) => t[0] === mine)) return mine
+  } catch (e) {
+    // Storage blocked: no saved choice.
+  }
+  if (THEMES.some((t) => t[0] === pc.theme)) return pc.theme
+  if (ACCENT_THEME[pc.accent]) return ACCENT_THEME[pc.accent]
+  return guessTheme(pc.model || pc.name)
+}
+function setTheme(name) {
+  document.body.dataset.theme = name
+}
+
+// -- several PCs: a swipe card and a hand-over between their pages ---------------------------------
+let enterInfo = null
+try {
+  const h = new URLSearchParams(location.hash.slice(1))
+  if (h.get('from') === 'left' || h.get('from') === 'right') enterInfo = { dir: h.get('from'), t: h.get('t') || '' }
+} catch (e) {
+  // No hand-over.
+}
+
+function pcsInOrder(pc, others) {
+  const list = [{ name: pc.name, theme: themeOf(pc), order: pc.order || 0, self: true }]
+  for (const o of others) if (o.page) list.push({ name: o.name, theme: o.theme || guessTheme(o.name), order: o.order || 0, page: o.page })
+  return list.sort((x, y) => x.order - y.order || x.name.localeCompare(y.name))
+}
+
+let going = false
+// Slides this page away while the colours change into the next PC's look, then opens that PC's page, which slides in.
+function go(target, dir) {
+  if (going || !target || target.self) return
+  going = true
+  const from = document.body.dataset.theme
+  const panel = document.querySelector('.panel')
+  if (panel) panel.classList.add(dir > 0 ? 'leave-left' : 'leave-right')
+  setTheme(target.theme)
+  if (navigator.vibrate) navigator.vibrate(15)
+  setTimeout(() => {
+    going = false
+    if (window.__navigate) window.__navigate(target, dir, from)
+    else location.href = target.page + '#from=' + (dir > 0 ? 'right' : 'left') + '&t=' + encodeURIComponent(from)
+  }, 340)
+}
+
+function pagerCard(list, meIndex) {
+  const card = el('div', 'card pager')
+  const prev = el('button', 'arrow')
+  prev.type = 'button'
+  prev.setAttribute('aria-label', 'Previous PC')
+  const left = icon('next')
+  left.style.transform = 'scaleX(-1)'
+  prev.append(left)
+  prev.disabled = meIndex === 0
+  const next = el('button', 'arrow')
+  next.type = 'button'
+  next.setAttribute('aria-label', 'Next PC')
+  next.append(icon('next'))
+  next.disabled = meIndex === list.length - 1
+  const mid = el('div', 'mid')
+  const pills = el('div', 'pills')
+  list.forEach((x, i) => {
+    const b = el('button', 'pill' + (i === meIndex ? ' on' : ''))
+    b.type = 'button'
+    b.append(icon('laptop'), el('span', '', x.name))
+    b.addEventListener('click', () => go(list[i], i - meIndex))
+    pills.append(b)
+  })
+  mid.append(pills, el('div', 'hint', 'swipe to change PC'))
+  card.append(prev, mid, next)
+  prev.addEventListener('click', () => go(list[meIndex - 1], -1))
+  next.addEventListener('click', () => go(list[meIndex + 1], 1))
+  // Swipe: a sideways drag of this card.
+  let x0 = 0
+  let y0 = 0
+  let on = false
+  card.addEventListener('pointerdown', (e) => {
+    if (e.button) return
+    on = true
+    x0 = e.clientX
+    y0 = e.clientY
+  })
+  card.addEventListener('pointerup', (e) => {
+    if (!on) return
+    on = false
+    const dx = e.clientX - x0
+    const dy = e.clientY - y0
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      const to = meIndex + (dx < 0 ? 1 : -1)
+      if (list[to]) go(list[to], dx < 0 ? 1 : -1)
+    }
+  })
+  card.addEventListener('pointercancel', () => {
+    on = false
+  })
+  return card
+}
+
+function themeCard(pc) {
+  const card = el('div', 'card')
+  card.append(section('wrench', 'Theme', 'saved for this PC on this phone'))
+  const g = el('div', 'themes')
+  const mine = themeOf(pc)
+  for (const [key, label] of THEMES) {
+    const b = el('button', 'swatch' + (key === mine ? ' on' : ''))
+    b.type = 'button'
+    b.append(el('span', 'pv ' + key), el('span', 'lb', label))
+    b.addEventListener('click', () => {
+      try {
+        localStorage.setItem('rsp_theme:' + pc.name, key)
+      } catch (e) {
+        // The choice lasts until the page is reloaded.
+      }
+      setTheme(key)
+      for (const x of g.children) x.classList.toggle('on', x === b)
+    })
+    g.append(b)
+  }
+  card.append(g)
+  return card
 }
 
 function pinScreen(message) {
@@ -579,10 +704,12 @@ function rowOf(...kids) {
 function render() {
   const pc = data.pc
   const app = $('app')
-  document.body.dataset.accent = accentOf(pc)
+  const myTheme = themeOf(pc)
   app.textContent = ''
   const p = el('div', 'panel')
   const helper = !pc.control
+  const others0 = data.others || []
+  const order = pcsInOrder(pc, others0)
   const run = (action, arg) => () => act(action, arg)
 
   // -- top: name, status, power menu ----------------------------------------------------
@@ -628,6 +755,7 @@ function render() {
     )
     quick.append(g)
     p.append(quick)
+    if (order.length > 1) p.append(pagerCard(order, order.findIndex((x) => x.self)))
 
     // -- steam ---------------------------------------------------------------------------
     const games = pc.games || []
@@ -775,6 +903,8 @@ function render() {
     }
   }
 
+  if (!helper) p.append(themeCard(pc))
+
   // -- system, other PCs, phones -----------------------------------------------------------
   const sys = el('div', 'card')
   sys.append(section('wrench', 'System'))
@@ -820,24 +950,14 @@ function render() {
   p.append(sys)
   app.append(p)
 
-  // -- the switch bar: only when other PCs have a page of their own (your friend, with one PC, never sees it) --
-  const nav = $('nav')
-  const withPage = others.filter((o) => o.page)
-  nav.textContent = ''
-  nav.hidden = !withPage.length
-  document.body.classList.toggle('has-nav', withPage.length > 0)
-  if (withPage.length) {
-    const me = btn(pc.name, () => {}, false, undefined, 'on')
-    me.textContent = ''
-    me.append(icon('laptop'), el('span', '', pc.name))
-    nav.append(me)
-    for (const o of withPage) {
-      const b = btn(o.name, () => { location.href = o.page }, false, undefined, '')
-      b.textContent = ''
-      b.append(icon('laptop'), el('span', '', o.name))
-      nav.append(b)
-    }
-  }
+  // First page after a hand-over from another PC: start in its look and slide in, while the colours settle into this PC's look.
+  if (enterInfo) {
+    const e = enterInfo
+    enterInfo = null
+    if (e.t) setTheme(e.t)
+    p.classList.add('enter-' + e.dir)
+    setTimeout(() => setTheme(myTheme), 90)
+  } else setTheme(myTheme)
 }
 
 async function refresh() {

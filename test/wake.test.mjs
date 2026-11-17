@@ -31,7 +31,14 @@ test('pcs.json: valid entries only, nothing outside the file can be woken', () =
   })
   const pcs = knownPcs('x', () => file)
   assert.deepEqual(Object.keys(pcs), ['desk', 'only page', 'bad broadcast'])
-  assert.deepEqual(pcs.desk, { label: 'Desk', mac: 'AA:BB:CC:DD:EE:FF', broadcast: '192.168.1.255', page: 'http://100.1.2.3:8791' })
+  assert.deepEqual(pcs.desk, { label: 'Desk', mac: 'AA:BB:CC:DD:EE:FF', broadcast: '192.168.1.255', page: 'http://100.1.2.3:8791', theme: '', order: 0 })
   assert.equal(pcs['bad broadcast'].broadcast, '255.255.255.255')
   assert.deepEqual(knownPcs('x', () => { throw new Error('no file') }), {})
+})
+
+test('pcs.json can give each PC a look and a place in the swipe bar', () => {
+  const pcs = knownPcs('x', () => JSON.stringify({ A: { page: 'http://100.1.2.3:8791', theme: 'tactical', order: 2 }, B: { page: 'http://100.1.2.4:8791', theme: 'sparkly', order: -1 }, C: { page: 'http://100.1.2.5:8791', order: 'x' } }))
+  assert.deepEqual([pcs.a.theme, pcs.a.order], ['tactical', 2])
+  assert.deepEqual([pcs.b.theme, pcs.b.order], ['', 0])
+  assert.deepEqual([pcs.c.theme, pcs.c.order], ['', 0])
 })

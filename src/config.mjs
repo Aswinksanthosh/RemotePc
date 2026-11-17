@@ -7,6 +7,8 @@
  *   accent   page colour: "blue" (default), "pink", "amber", "green", "purple", "red".
  *            Empty means: follow the PC's model name (ROG pink, TUF amber, otherwise blue).
  *   name     the name shown on the page; empty means the PC's own name
+ *   theme    "neon", "tactical" or "clean": the look this PC starts with (empty: ROG neon, TUF tactical, else clean)
+ *   order    place in the swipe bar when you own several PCs (0 to 99, lower is further left)
  *   pinHours how long a typed PIN stays valid on a phone (1 to 720, default 12)
  *   nodePath where node.exe is, so the launcher does not depend on PATH
  */
@@ -14,9 +16,10 @@
 import { readJson, writeAtomic } from './fsutil.mjs'
 
 export const ACCENTS = ['blue', 'pink', 'amber', 'green', 'purple', 'red']
+export const THEMES = ['neon', 'tactical', 'clean']
 export const NETWORKS = ['loopback', 'tailscale', 'lan']
 
-export const DEFAULT_CONFIG = { port: 8791, allow: ['loopback', 'tailscale'], accent: '', name: '', nodePath: '', pinHours: 12 }
+export const DEFAULT_CONFIG = { port: 8791, allow: ['loopback', 'tailscale'], accent: '', name: '', theme: '', order: 0, nodePath: '', pinHours: 12 }
 
 export function normalizeConfig(raw) {
   const r = raw && typeof raw === 'object' ? raw : {}
@@ -30,6 +33,10 @@ export function normalizeConfig(raw) {
     allow: allow.includes('loopback') ? allow : ['loopback', ...allow],
     accent: ACCENTS.includes(r.accent) ? r.accent : '',
     name: clean(r.name, 30),
+    // The look the page starts with on this PC. Empty means: follow the PC (ROG neon, TUF tactical, otherwise clean). Each phone can pick its own.
+    theme: THEMES.includes(r.theme) ? r.theme : '',
+    // Where this PC sits in the swipe bar of the page (lower is further left). Ties go by name.
+    order: Number.isInteger(r.order) && r.order >= 0 && r.order <= 99 ? r.order : 0,
     nodePath: clean(r.nodePath, 260),
     pinHours: Number.isInteger(r.pinHours) && r.pinHours >= 1 && r.pinHours <= 720 ? r.pinHours : DEFAULT_CONFIG.pinHours,
   }

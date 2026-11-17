@@ -41,6 +41,8 @@ PIN (2026-11-17, owner request): the installer asks for a PIN (4 to 8 digits, ty
 
 UI redesign (2026-11-17, owner request): organised cards with line icons (Quick actions, Steam, Media, **Bluetooth devices**, **Sound output**, **Power mode**, Apps, My buttons, System with Other PCs / Paired phones). **Switch bar** at the bottom appears only when `pcs.json` lists other PCs that have a `page` (owner has two laptops; friends with one PC never see it). Power mode actions (`mode_saver|balanced|gaming`, powercfg overlay) ported from Jarvis. `scripts/make-preview.mjs` builds a single HTML file with pretend data to look at the page without a PC. Still to port from Jarvis: Steam Big Picture at startup, temperature limiter (needs sensor check on the devices first), ROG/TUF drawn look.
 
+Themes + swipe (2026-11-17, owner request): three looks (neon pink/rounded/glow, tactical amber/chamfered/uppercase, clean blue), picked per PC per phone (localStorage `rsp_theme:<pc>`), default by config `theme` or model name (ROG neon, TUF tactical). The old bottom bar became a **swipe card above Steam** (pointer swipe or arrows or tapping a name): the page slides away while colours animate (`@property` colour variables, crossfaded background layers), the other PC's page opens with `#from=left|right&t=<theme>` and slides in. Order by config/pcs.json `order`. Real navigation between two PCs is a normal page load (each PC has its own origin, key and PIN); `window.__navigate` is a hook only the preview uses.
+
 ## To do / ideas
 
 - Run through the checklist above on a real Windows PC and a clean user; fix what breaks. Put real findings in this file.
