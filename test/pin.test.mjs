@@ -102,3 +102,18 @@ test('RSP_PIN sets the PIN without asking, and refuses a bad one', async (t) => 
   await b.run()
   assert.equal(b.pin.isSet(), false)
 })
+
+import { applySettingsPatch, DEFAULT_CONFIG, normalizeConfig } from '../src/config.mjs'
+
+test('settings patches: only the allowed ones, each checked, restart flagged', () => {
+  const base = normalizeConfig({})
+  assert.deepEqual(applySettingsPatch(base, { steamAtStart: true, steamDelay: 5, theme: 'neon', name: 'Desk', startMode: 'saver' }).config.steamDelay, 5)
+  const r = applySettingsPatch(base, { allow: ['loopback', 'tailscale', 'lan'] })
+  assert.equal(r.restart, true)
+  assert.equal(applySettingsPatch(base, { theme: 'neon' }).restart, false)
+  for (const bad of [{ port: 80 }, { nodePath: 'x' }, { steamAtStart: 'yes' }, { steamDelay: 999 }, { steamDelay: 1.5 }, { theme: 'sparkly' }, { startMode: 'turbo' }, { allow: ['internet'] }, { order: -1 }, { pinHours: 0 }, { name: 5 }, { constructor: 1 }]) {
+    assert.throws(() => applySettingsPatch(base, bad), /./, JSON.stringify(bad))
+  }
+  assert.throws(() => applySettingsPatch(base, null), /Nothing to save/)
+  assert.equal(DEFAULT_CONFIG.steamAtStart, false)
+})

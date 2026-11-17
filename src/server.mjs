@@ -26,6 +26,9 @@ const STATIC = {
   '/': ['index.html', 'text/html; charset=utf-8', 'no-cache'],
   '/app.js': ['app.js', 'text/javascript; charset=utf-8', 'no-cache'],
   '/app.css': ['app.css', 'text/css; charset=utf-8', 'no-cache'],
+  '/settings': ['settings.html', 'text/html; charset=utf-8', 'no-cache'],
+  '/settings.js': ['settings.js', 'text/javascript; charset=utf-8', 'no-cache'],
+  '/common.js': ['common.js', 'text/javascript; charset=utf-8', 'no-cache'],
   '/icon.svg': ['icon.svg', 'image/svg+xml', 'public, max-age=3600'],
   '/icon-192.png': ['icon-192.png', 'image/png', 'public, max-age=3600'],
   '/icon-512.png': ['icon-512.png', 'image/png', 'public, max-age=3600'],
@@ -82,6 +85,7 @@ export async function startServer({
   allow = ['loopback', 'tailscale'],
   auth,
   pin = null,
+  settings = null,
   actions = null,
   config = {},
   others = () => ({}),
@@ -105,7 +109,6 @@ export async function startServer({
 
   // A typed PIN gives this phone a session token for config.pinHours; it also stops working when the PIN changes.
   const unlocks = new Map() // token -> { id, version, expires }
-  const hours = Number(config.pinHours) || 12
   const unlocked = (token, id) => {
     const u = unlocks.get(String(token ?? ''))
     if (!u) return false
@@ -171,7 +174,7 @@ export async function startServer({
         for (const [k, u] of unlocks) if (u.expires <= t) unlocks.delete(k)
         while (unlocks.size >= 50) unlocks.delete(unlocks.keys().next().value)
         const token = randomBytes(24).toString('base64url')
-        unlocks.set(token, { id: who.id, version: pin.version(), expires: t + hours * 3600 * 1000 })
+        unlocks.set(token, { id: who.id, version: pin.version(), expires: t + (Number(config.pinHours) || 12) * 3600 * 1000 })
         return json(res, 200, { token })
       }
       if (pin?.isSet() && !unlocked(req.headers['x-unlock'], who.id)) return json(res, 401, { error: 'Enter your PIN.', code: 'pin' })
@@ -202,6 +205,26 @@ export async function startServer({
           phones: auth.list().map((p) => ({ id: p.id, label: p.label, current: p.id === who.id })),
           version,
         })
+      }
+
+      if (path.startsWith('/api/settings')) {
+        if (!settings) return json(res, 404, { error: 'No settings here.' })
+        try {
+          if (path === '/api/settings') return json(res, 200, await settings.get())
+          if (path === '/api/settings/save') {
+            const r = settings.save(body.changes)
+            return json(res, 200, { ...r, message: r.restart ? 'Saved. This one applies after the program restarts (use Restart remote).' : 'Saved.' })
+          }
+          if (path === '/api/settings/task') return json(res, 200, { state: await settings.setTask(body.on === true) })
+          if (path === '/api/settings/pin') {
+            const r = settings.changePin(ip, String(body.current ?? ''), String(body.next ?? ''))
+            // A new PIN ends every PIN session, including this phone's: it has to type the new one.
+            return json(res, 200, { result: r, message: r === 'removed' ? 'The PIN was removed.' : 'The PIN was changed. Type it again on the phone pages.' })
+          }
+        } catch (err) {
+          return json(res, err?.status ?? 400, { error: String(err?.message ?? err).slice(0, 200) })
+        }
+        return json(res, 404, { error: 'Not found.' })
       }
 
       if (path === '/api/avatar') return sendPicture(res, actions ? await actions.avatar() : null, 60)

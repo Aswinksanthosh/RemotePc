@@ -7,9 +7,13 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createActions } from './actions.mjs'
+import { writeAtomic } from './fsutil.mjs'
 import { createAuth } from './auth.mjs'
 import { loadConfig } from './config.mjs'
 import { createPin } from './pin.mjs'
+import { createSettings } from './settings.mjs'
+import { runStartup } from './startup.mjs'
+import { runCommand } from './actions.mjs'
 import { connect } from './probe.mjs'
 import { dataPaths, RESTART_CODE } from './paths.mjs'
 import { startServer } from './server.mjs'
@@ -83,12 +87,14 @@ export async function startApp({
         })
       : null
 
+  const pin = createPin({ file: paths.pin })
   const server = await startServer({
     port: port ?? config.port,
     host,
     allow: config.allow,
     auth,
-    pin: createPin({ file: paths.pin }),
+    pin,
+    settings: createSettings({ file: paths.config, config, pin, run: runCommand, platform, version }),
     actions,
     config,
     others: () => knownPcs(paths.pcs),
@@ -101,6 +107,8 @@ export async function startApp({
 
   // Warm the slow lookups (Start menu, model name, Steam games) so the first phone does not wait for them.
   if (actions) actions.info().catch(() => {})
+  // Things to do once per boot (set on the Settings page): a power mode, Steam Big Picture.
+  runStartup({ config, actions, stampFile: paths.startup, read: (f) => readFileSync(f, 'utf8'), write: (f, t) => writeAtomic(f, t), log }).catch(() => {})
 
   return { server, paths, config, auth, close: server.close }
 }

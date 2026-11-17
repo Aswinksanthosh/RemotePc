@@ -6,12 +6,12 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 const read = (f) => readFileSync(fileURLToPath(new URL(`../src/web/${f}`, import.meta.url)), 'utf8')
-const js = read('app.js')
-const html = read('index.html')
+const js = read('common.js') + '\n' + read('app.js') + '\n' + read('settings.js')
+const html = read('index.html') + read('settings.html')
 const css = read('app.css')
 
-test('the page script is valid JavaScript', () => {
-  execFileSync(process.execPath, ['--check', fileURLToPath(new URL('../src/web/app.js', import.meta.url))])
+test('the page scripts are valid JavaScript', () => {
+  for (const f of ['common.js', 'app.js', 'settings.js']) execFileSync(process.execPath, ['--check', fileURLToPath(new URL(`../src/web/${f}`, import.meta.url))])
 })
 
 test('text from the PC is never put on the page as HTML', () => {
@@ -55,4 +55,11 @@ test('the page has three looks, a swipe card for several PCs, and a hand-over an
   assert.ok(js.includes("localStorage.setItem('rsp_theme:'"))
   for (const c of ['body[data-theme=neon]', 'body[data-theme=tactical]', '.panel.enter-right', '.panel.leave-left', '@property --a']) assert.ok(css.includes(c), c)
   assert.ok(!/class="nav"/.test(html), 'the old bottom bar is gone')
+})
+
+test('the Settings page only changes what the server allows, and every control saves through the checked route', () => {
+  const settings = read('settings.js')
+  assert.ok(settings.includes("'/api/settings/save'") && settings.includes("'/api/settings/pin'") && settings.includes("'/api/settings/task'"))
+  for (const k of ['steamAtStart', 'steamDelay', 'startMode', 'theme', 'order', 'pinHours', 'name', 'lan']) assert.ok(settings.includes(k), k)
+  assert.ok(!/localStorage\.setItem\('rsp_k'/.test(settings), 'the key is handled in common.js only')
 })

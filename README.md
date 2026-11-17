@@ -47,6 +47,7 @@ A **Windows 10 or 11 PC** (signed in as an administrator), an **iPhone or Androi
 | Power icon (tap, or hold and slide) | Lock, Screen off, Sleep, Restart, Turn off, Cancel turn off |
 | Lock / Screen off | Locks the PC / turns the screen off (move the mouse to bring it back) |
 | Steam | Open Steam, Big Picture, pick one of your installed games and start it, close the running game, switch Steam account |
+| Settings (gear, top right) | Start with Windows, open Steam Big Picture at startup, power mode at startup, name, theme, PIN, home Wi-Fi access |
 | Theme | Pick one of three looks (Neon, Tactical, Clean). Several PCs? A swipe card above Steam moves between them |
 | Media | Previous, play/pause, next, volume up/down, mute |
 | Headphones | Connect or disconnect a paired Bluetooth device (earbuds) on this PC, so it is free for your phone or another PC |

@@ -43,6 +43,8 @@ UI redesign (2026-11-17, owner request): organised cards with line icons (Quick 
 
 Themes + swipe (2026-11-17, owner request): three looks (neon pink/rounded/glow, tactical amber/chamfered/uppercase, clean blue), picked per PC per phone (localStorage `rsp_theme:<pc>`), default by config `theme` or model name (ROG neon, TUF tactical). The old bottom bar became a **swipe card above Steam** (pointer swipe or arrows or tapping a name): the page slides away while colours animate (`@property` colour variables, crossfaded background layers), the other PC's page opens with `#from=left|right&t=<theme>` and slides in. Order by config/pcs.json `order`. Real navigation between two PCs is a normal page load (each PC has its own origin, key and PIN); `window.__navigate` is a hook only the preview uses.
 
+Settings page (2026-11-17, owner request): `/settings` (`src/web/settings.html|js`, shared helpers in `common.js`), opened by the gear on the main page. Autosaving controls: start with Windows (schtasks enable/disable), Steam Big Picture at startup + wait, power mode at startup, name, starting theme, order, PIN change/remove (current PIN checked), PIN hours, allow home Wi-Fi (needs restart). Backend: `src/settings.mjs` (whitelist `EDITABLE` + `applySettingsPatch` in `config.mjs`, running config updated live), `src/startup.mjs` (once per boot, `startup.json`). The Jarvis-version Steam-at-startup (`JARVIS_STEAM_AT_START`) is separate. Not yet done in RemotePc: temperature limiter (needs the sensor check first).
+
 ## To do / ideas
 
 - Run through the checklist above on a real Windows PC and a clean user; fix what breaks. Put real findings in this file.

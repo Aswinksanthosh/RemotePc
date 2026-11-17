@@ -64,6 +64,10 @@ Do the same on the other PC, listing the first. The page then shows a **swipe ca
 
 Optional, in each entry: `"order": 1` (lower is further left; ties go by name) and `"theme": "tactical"` (the look to change into). Put `"order"` in this PC's own `config.json` too.
 
+## The Settings page
+
+The **gear** at the top right of the page opens a separate Settings page. Every control saves at once: start with Windows, open Steam Big Picture at startup (and how long to wait), set a power mode at startup, the name and starting theme of the PC, its place in the swipe card, change or remove the PIN, how long a typed PIN stays valid, and whether your home Wi-Fi may connect (that one applies after a restart). The startup things happen **once per boot**, not every time the remote restarts. The same settings live in `config.json` below, if you prefer to edit the file.
+
 ## Settings (`config.json`)
 
 The program reads it when it starts, so sign out of Windows and back in (or restart the PC) after changing it.
@@ -85,5 +89,7 @@ The program reads it when it starts, so sign out of Windows and back in (or rest
 | `accent` | Page colour: `blue`, `pink`, `amber`, `green`, `purple`, `red`. Empty means automatic: pink for "ROG" PCs, amber for "TUF" PCs, otherwise blue. |
 | `name` | The big name on the page. Empty means the PC's own name. |
 | `theme` | The look this PC starts with: `neon`, `tactical` or `clean`. Empty means automatic: neon for "ROG" PCs, tactical for "TUF" PCs, otherwise clean. Each phone can pick another one in the **Theme** card on the page. |
+| `steamAtStart`, `steamDelay` | `true` opens Steam Big Picture once per boot, `steamDelay` seconds (0 to 300) after the program starts. |
+| `startMode` | `saver`, `balanced` or `gaming`: the Windows power mode to set once per boot. Empty leaves it alone. |
 | `order` | Place in the swipe card when you own several PCs (0 to 99, lower is further left). |
 | `pinHours` | How many hours a typed PIN stays valid on a phone (1 to 720, default 12). |

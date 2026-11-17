@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 // Builds ONE html file that shows the phone page with pretend data (no PC needed, nothing is sent anywhere).
-//   node scripts/make-preview.mjs [output.html]
-// Open the file in any browser; on a computer, narrow the window or use the phone view of the browser's developer tools.
-import { readFileSync, writeFileSync } from 'node:fs'
+//   node scripts/make-preview.mjs [folder]     writes RemotePc-preview.html and RemotePc-settings-preview.html (linked: the gear opens the second)
+// Open the first file in any browser; on a computer, narrow the window or use the phone view of the browser's developer tools.
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const web = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'web')
 const read = (f) => readFileSync(join(web, f), 'utf8')
-const out = process.argv[2] || 'RemotePc-preview.html'
+const outDir = process.argv[2] || '.'
+mkdirSync(outDir, { recursive: true })
 
 const base = {
   version: '0.1.0', control: true, mode: 'balanced', gameArt: [], buttons: ['my tests', 'open code'],
@@ -63,7 +64,36 @@ let html = read('index.html')
 html = html.replace('<link rel="stylesheet" href="/app.css">', `<style>${read('app.css')}</style>`)
 html = html.replace(/<link rel="(icon|apple-touch-icon)"[^>]*>\n?/g, '')
 // The preview is already "paired": give the page a key without reading the address or storage.
-const js = read('app.js').replace('if (key) {\n  // The home-screen shortcut', "key = 'preview-key-0123456789abcdef0123'\nif (key) {\n  // The home-screen shortcut")
-html = html.replace('<script src="/app.js" defer></script>', `${stub}\n<script>${js}</script>\n${pill}`)
-writeFileSync(out, html)
-console.log(`Wrote ${out} (${Math.round(html.length / 1024)} KB)`)
+const fakeKey = (code) => code.replace('if (key) {\n  // The home-screen shortcut', "key = 'preview-key-0123456789abcdef0123'\nif (key) {\n  // The home-screen shortcut")
+const common = fakeKey(read('common.js'))
+const js = read('app.js').replace("location.href = '/settings?k=' + encodeURIComponent(key)", "location.href = 'RemotePc-settings-preview.html'")
+html = html.replace('<script src="/common.js"></script>\n<script src="/app.js" defer></script>', `${stub}\n<script>${common}</script>\n<script>${js}</script>\n${pill}`)
+writeFileSync(join(outDir, 'RemotePc-preview.html'), html)
+
+// The Settings page, with pretend settings kept in memory.
+const settingsStub = `<script>
+// PREVIEW ONLY: pretend settings, kept in this page.
+var pv = { values: { name: '', theme: '', order: 2, pinHours: 12, steamAtStart: true, steamDelay: 0, startMode: 'balanced', accent: '', lan: false }, startupTask: 'on', host: 'ROG-STRIX', hasPin: true, windows: true, version: '0.1.0' }
+window.fetch = function (url, opts) {
+  var body = {}
+  try { body = JSON.parse((opts && opts.body) || '{}') } catch (e) {}
+  var json = function (o) { return Promise.resolve(new Response(JSON.stringify(o), { status: 200, headers: { 'content-type': 'application/json' } })) }
+  var u = String(url)
+  if (u.indexOf('/api/settings/save') >= 0) {
+    var ch = body.changes || {}
+    for (var k in ch) pv.values[k] = ch[k]
+    return json({ changed: Object.keys(ch), restart: 'lan' in ch, message: 'lan' in ch ? 'Saved. This one applies after the program restarts (use Restart remote).' : 'Saved.' })
+  }
+  if (u.indexOf('/api/settings/task') >= 0) { pv.startupTask = body.on ? 'on' : 'off'; return json({ state: pv.startupTask }) }
+  if (u.indexOf('/api/settings/pin') >= 0) { pv.hasPin = body.next !== ''; return json({ result: 'set', message: body.next === '' ? 'The PIN was removed.' : 'The PIN was changed (preview).' }) }
+  if (u.indexOf('/api/settings') >= 0) return json(JSON.parse(JSON.stringify(pv)))
+  if (u.indexOf('/api/do') >= 0) return json({ message: 'Preview: ' + body.action + '. Nothing was really done.' })
+  return Promise.resolve(new Response(null, { status: 204 }))
+}
+</script>`
+let sh = read('settings.html')
+sh = sh.replace('<link rel="stylesheet" href="/app.css">', `<style>${read('app.css')}</style>`).replace(/<link rel="icon"[^>]*>\n?/, '')
+const sjs = read('settings.js').replace("location.href = '/'", "location.href = 'RemotePc-preview.html'").replace('setTimeout(() => location.reload(), 900)', 'setTimeout(() => load(), 900)')
+sh = sh.replace('<script src="/common.js"></script>\n<script src="/settings.js" defer></script>', `${settingsStub}\n<script>${common}</script>\n<script>${sjs}</script>`)
+writeFileSync(join(outDir, 'RemotePc-settings-preview.html'), sh)
+console.log(`Wrote ${outDir}/RemotePc-preview.html and RemotePc-settings-preview.html`)
