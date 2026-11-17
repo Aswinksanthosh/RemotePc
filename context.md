@@ -1,4 +1,4 @@
-# Context: RemortStartPc
+# Context: RemotePc (the repository was renamed from RemortStartPc on 2026-11-17; inside the program the old name stays: the `.remortstartpc` data folder, the `RemortStartPc` scheduled task and firewall rule, Start-menu folder, package name)
 
 Read this first in any new session. Update it with every change or idea (owner's rule). **This repository is meant to be public and shared with friends: never put personal data in it** (names, real Tailscale addresses, e-mail, keys, user folders). `test/repo.test.mjs` checks for the obvious cases. Personal setup notes belong in the owner's private notes repository, not here.
 

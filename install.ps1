@@ -11,7 +11,7 @@ try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::
 try { chcp 65001 | Out-Null } catch {}
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
 
-$Repo = 'Aswinksanthosh/RemortStartPc'
+$Repo = 'Aswinksanthosh/RemotePc'
 $Branch = 'main'
 
 function Say($text, $color) {

@@ -61,8 +61,8 @@ sudo apt install -y nodejs npm git
 node --version      # must say v20 or higher. If not, install a newer one from nodejs.org
 
 # 3. This program
-git clone https://github.com/Aswinksanthosh/RemortStartPc.git
-cd RemortStartPc
+git clone https://github.com/Aswinksanthosh/RemotePc.git
+cd RemotePc
 
 # 4. Tell it about your PC, then pair your phone (a QR code appears in the terminal)
 node bin/add-pc.mjs "My PC" AA:BB:CC:DD:EE:FF http://100.101.102.103:8791

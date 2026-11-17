@@ -1,4 +1,4 @@
-# RemortStartPc
+# RemotePc
 
 **Control your Windows PC from your phone.** Lock it, put the screen off, restart it, open Steam and start a game, change the volume, open apps, and more. One tap to install, one QR code to pair. No account with us, no cloud, no subscription.
 
@@ -24,7 +24,7 @@ Pick **one** way.
 **Way A, one line (fastest).** Press the Windows key, type `PowerShell`, press Enter, paste this line and press Enter:
 
 ```powershell
-irm https://raw.githubusercontent.com/Aswinksanthosh/RemortStartPc/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/Aswinksanthosh/RemotePc/main/install.ps1 | iex
 ```
 
 **Way B, two clicks.** Click the green **Code** button above, choose **Download ZIP**, right-click the file, choose **Extract All**, open the folder and double-click **`Install.cmd`**.

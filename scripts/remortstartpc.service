@@ -9,7 +9,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=pi
-ExecStart=/usr/bin/node /home/pi/RemortStartPc/bin/remote.mjs
+ExecStart=/usr/bin/node /home/pi/RemotePc/bin/remote.mjs
 Restart=always
 RestartSec=5
 
