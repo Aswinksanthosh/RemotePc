@@ -35,7 +35,7 @@ Verified here (Linux): 128 tests (115 run on Linux, 15 PowerShell tests only run
 ## Added 2026-11-17
 Ported from the owner's Jarvis remote: **Headphones** (connect/disconnect a paired Bluetooth device, Windows `BluetoothSetServiceState`), **Audio output** (default playback device, undocumented `IPolicyConfig`), **Restart remote** (exit code 75, the launcher restarts it). The PowerShell/C# parts are only parse-checked in CI and have never run on a real PC in this repo (in Jarvis the first real press is also still the test). The owner wants to send this repo to a friend: needs the repo made public first.
 
-`docs/TUTORIAL.md` (2026-11-17): the whole install step by step, written from the code (what the installer does and in which order), not from screenshots of a real run; fix it after the first real install.
+The README holds the whole install step by step (2026-11-17; `docs/TUTORIAL.md` is only a pointer to it), written from the code (what the installer does and in which order), not from screenshots of a real run; fix it after the first real install.
 
 ## To do / ideas
 
