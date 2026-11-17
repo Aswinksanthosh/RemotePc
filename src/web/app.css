@@ -201,6 +201,19 @@ input.switch:disabled{opacity:.45}
 .set-row input.field[type=text]{width:150px;flex:0 1 150px}
 select.field{max-width:190px}
 .pinform{display:flex;flex-direction:column;gap:8px;padding:8px 0 14px}
+
+/* footer: feedback drop-down and copyright */
+.foot{margin-top:6px;padding:4px 2px 10px;text-align:center}
+.fb{border:1px solid var(--line);border-radius:var(--r);background:var(--card);text-align:left;overflow:hidden}
+.fb-h{width:100%;display:flex;align-items:center;gap:10px;background:none;border:0;color:var(--a);padding:14px;font:inherit;font-weight:600;cursor:pointer}
+.fb-h .chev{margin-left:auto}
+.fb.open .fb-h .chev{transform:rotate(225deg) translateY(-2px)}
+.fb-list{display:none;flex-direction:column;gap:8px;padding:0 12px 12px}
+.fb.open .fb-list{display:flex}
+.fb-i{display:flex;align-items:center;gap:12px;font:inherit;color:#e8f1f6;text-align:left;padding:12px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.04);cursor:pointer;min-height:50px}
+.fb-i svg.i{color:var(--a)}
+.fb-note{color:var(--muted);font-size:.76rem;padding:2px 2px 0}
+.copy{color:var(--muted);font-size:.74rem;margin:14px 6px 0;line-height:1.5}
 [hidden]{display:none!important}
 @keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @keyframes smIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}

@@ -34,7 +34,7 @@ window.fetch = function (url, opts) {
     var pc = JSON.parse(JSON.stringify(previewPcs[previewSelf]))
     pc.mode = previewModes[previewSelf]
     var other = previewSelf === 'ROG' ? 'TUF' : 'ROG'
-    return json({ pc: pc, version: '0.1.0', phones: [{ id: 'a', label: 'My phone', current: true, connected: true, lastSeen: Date.now() }, { id: 'b', label: 'Partner phone', current: false, connected: true, lastSeen: Date.now() - 40000 }, { id: 'c', label: 'Old tablet', current: false, connected: false, lastSeen: Date.now() - 5 * 3600 * 1000 }],
+    return json({ pc: pc, version: '0.1.0', feedback: 'https://github.com/example/remotepc/issues/new', phones: [{ id: 'a', label: 'My phone', current: true, connected: true, lastSeen: Date.now() }, { id: 'b', label: 'Partner phone', current: false, connected: true, lastSeen: Date.now() - 40000 }, { id: 'c', label: 'Old tablet', current: false, connected: false, lastSeen: Date.now() - 5 * 3600 * 1000 }],
       others: previewOne ? [] : [{ key: other, name: other, canWake: true, page: 'https://example.invalid/' + other, online: true, order: previewPcs[other].order }] })
   }
   if (String(url).indexOf('/api/do') >= 0) {
@@ -73,7 +73,7 @@ writeFileSync(join(outDir, 'RemotePc-preview.html'), html)
 // The Settings page, with pretend settings kept in memory.
 const settingsStub = `<script>
 // PREVIEW ONLY: pretend settings, kept in this page.
-var pv = { values: { name: '', theme: '', order: 2, pinHours: 12, steamAtStart: true, steamDelay: 0, startMode: 'balanced', accent: '', lan: false }, startupTask: 'on', host: 'ROG-STRIX', hasPin: true, windows: true, version: '0.1.0' }
+var pv = { feedback: 'https://github.com/example/remotepc/issues/new', values: { name: '', theme: '', order: 2, pinHours: 12, steamAtStart: true, steamDelay: 0, startMode: 'balanced', accent: '', lan: false }, startupTask: 'on', host: 'ROG-STRIX', hasPin: true, windows: true, version: '0.1.0' }
 window.fetch = function (url, opts) {
   var body = {}
   try { body = JSON.parse((opts && opts.body) || '{}') } catch (e) {}

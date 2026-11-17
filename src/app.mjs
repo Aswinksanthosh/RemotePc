@@ -102,6 +102,7 @@ export async function startApp({
     probe: (pc) => connect(pc.page),
     webDir: join(here, 'web'),
     version,
+    issuesUrl: repoSlug(pkg) ? `https://github.com/${repoSlug(pkg)}/issues/new` : '',
   })
   log(`[remote] ready on port ${server.port} (${config.allow.join(', ')}). ${actions ? 'This PC can be controlled.' : 'Helper mode: starts other PCs only.'}`)
 

@@ -47,6 +47,8 @@ Settings page (2026-11-17, owner request): `/settings` (`src/web/settings.html|j
 
 Page order (2026-11-17, owner request: he mostly uses games and audio, rarely power): swipe card, Steam, Sound output, Bluetooth devices, Media, Power mode, Apps, My buttons, Theme, **Phones** (who is connected now, last seen), System, **Power** (lock, screen off, sleep, restart, turn off) last. Phones "connected" = talked to this PC in the last 2 minutes (`auth.list()`, `lastSeen` also saved to phones.json at most every 10 min). Installer PIN prompt now says that pressing Enter with nothing typed means NO PIN, and warns.
 
+Footer (2026-11-17, owner request): copyright line like the French repo, in MIT wording ("© 2026 Aswin K Santhosh. Open source under the MIT licence..."; the French repo says "All rights reserved", which would contradict this repo's MIT licence: ask if he wants it changed) and a drop-down **Ideas, feedback or a bug?** (idea / feedback / bug) that opens a prefilled GitHub new-issue form (`?labels=&title=&body=`, version and page only, never the key or PIN). The issues address comes from the server (`issuesUrl` from package.json `repository`), so the page script holds no web address. Issue templates in `.github/ISSUE_TEMPLATE/`. LICENSE now names Aswin K Santhosh (and the Jarvis author for the parts first written there).
+
 ## To do / ideas
 
 - Run through the checklist above on a real Windows PC and a clean user; fix what breaks. Put real findings in this file.

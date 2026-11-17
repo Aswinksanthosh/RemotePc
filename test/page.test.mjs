@@ -63,3 +63,11 @@ test('the Settings page only changes what the server allows, and every control s
   for (const k of ['steamAtStart', 'steamDelay', 'startMode', 'theme', 'order', 'pinHours', 'name', 'lan']) assert.ok(settings.includes(k), k)
   assert.ok(!/localStorage\.setItem\('rsp_k'/.test(settings), 'the key is handled in common.js only')
 })
+
+test('the footer has the copyright line and a feedback drop-down that only opens a GitHub new-issue form', () => {
+  assert.ok(js.includes('© 2026 Aswin K Santhosh') && js.includes('MIT licence'))
+  for (const t of ['Share an idea', 'Give feedback', 'Report a bug or glitch']) assert.ok(js.includes(t), t)
+  assert.ok(js.includes('issues\\/new$'), 'only a github.com .../issues/new address is accepted')
+  assert.ok(js.includes('Please do not paste your pairing link, PIN or any password'))
+  assert.ok(!/password\s*[:=]\s*['"]|localStorage\.getItem\('rsp_k'\)[^;]*encodeURIComponent/.test(js.slice(js.indexOf('function footer'))), 'the key never goes into a feedback link')
+})

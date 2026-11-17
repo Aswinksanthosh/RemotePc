@@ -213,6 +213,7 @@ function render() {
     }, false, 'Restart the remote on this PC?')))
   }
   p.append(card('pulse', 'About', ...about))
+  p.append(footer(v.feedback, v.version, 'settings page'))
   app.append(p)
 }
 

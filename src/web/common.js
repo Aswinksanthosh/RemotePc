@@ -91,6 +91,9 @@ const ICONS = {
   wrench: ['M14.5 6.5a4 4 0 0 0-5 5L4 17l3 3 5.5-5.5a4 4 0 0 0 5-5l-2.5 2.5-2-2z'],
   gear: ['M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z', 'M12 3v3', 'M12 18v3', 'M3 12h3', 'M18 12h3', 'M5.6 5.6l2.1 2.1', 'M16.3 16.3l2.1 2.1', 'M18.4 5.6l-2.1 2.1', 'M7.7 16.3l-2.1 2.1'],
   back: ['M15 5l-7 7 7 7'],
+  bulb: ['M9 18h6', 'M10 21h4', 'M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.3 1 2.1h5c0-.8.4-1.6 1-2.1A6 6 0 0 0 12 3z'],
+  chat: ['M4 5h16v11H9l-5 4z'],
+  bug: ['M9 8a3 3 0 0 1 6 0v1H9z', 'M7 9h10v5a5 5 0 0 1-10 0z', 'M3 12h4', 'M17 12h4', 'M5 6l3 3', 'M19 6l-3 3', 'M5 19l3-3', 'M19 19l-3-3'],
   user: ['M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', 'M4 20a8 8 0 0 1 16 0'],
 }
 function icon(name) {
@@ -175,4 +178,43 @@ function makePinForm(message, done) {
   })
   setTimeout(() => input.focus(), 60)
   return box
+}
+
+// -- footer: ideas and feedback, and the copyright line ---------------------------------------------
+// The drop-down opens a new GitHub issue with a few words already filled in (no personal information).
+function footer(feedbackUrl, version, where) {
+  const f = el('footer', 'foot')
+  if (feedbackUrl && /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/issues\/new$/.test(feedbackUrl)) {
+    const box = el('div', 'fb')
+    const head = el('button', 'fb-h')
+    head.type = 'button'
+    head.setAttribute('aria-expanded', 'false')
+    head.append(icon('bulb'), el('span', '', 'Ideas, feedback or a bug?'), el('span', 'chev'))
+    const list = el('div', 'fb-list')
+    const choices = [
+      ['bulb', 'Share an idea', 'enhancement', 'Idea: '],
+      ['chat', 'Give feedback', 'feedback', 'Feedback: '],
+      ['bug', 'Report a bug or glitch', 'bug', 'Bug: '],
+    ]
+    for (const [ic, label, tag, prefix] of choices) {
+      const b = el('button', 'fb-i')
+      b.type = 'button'
+      b.append(icon(ic), el('span', '', label))
+      b.addEventListener('click', () => {
+        const body = '(Write here what you would like, or what went wrong and what you pressed.)\n\n---\nRemote PC version: ' + (version || 'unknown') + '\nPage: ' + where + '\nPlease do not paste your pairing link, PIN or any password.'
+        const url = feedbackUrl + '?labels=' + encodeURIComponent(tag) + '&title=' + encodeURIComponent(prefix) + '&body=' + encodeURIComponent(body)
+        window.open(url, '_blank', 'noopener')
+      })
+      list.append(b)
+    }
+    list.append(el('div', 'fb-note', 'Opens a form on GitHub (a free GitHub account is needed to send it).'))
+    head.addEventListener('click', () => {
+      const open = box.classList.toggle('open')
+      head.setAttribute('aria-expanded', open ? 'true' : 'false')
+    })
+    box.append(head, list)
+    f.append(box)
+  }
+  f.append(el('p', 'copy', '© 2026 Aswin K Santhosh. Open source under the MIT licence: free to use and share, with this copyright notice kept.'))
+  return f
 }

@@ -95,6 +95,7 @@ export async function startServer({
   probe = async () => false,
   webDir,
   version = '',
+  issuesUrl = '',
 }) {
   const files = new Map()
   for (const [path, [file, type, cache]] of Object.entries(STATIC)) {
@@ -204,13 +205,14 @@ export async function startServer({
           others: pcs,
           phones: auth.list().map((p) => ({ id: p.id, label: p.label, current: p.id === who.id, lastSeen: p.lastSeen, connected: p.connected })),
           version,
+          feedback: issuesUrl,
         })
       }
 
       if (path.startsWith('/api/settings')) {
         if (!settings) return json(res, 404, { error: 'No settings here.' })
         try {
-          if (path === '/api/settings') return json(res, 200, await settings.get())
+          if (path === '/api/settings') return json(res, 200, { ...(await settings.get()), feedback: issuesUrl })
           if (path === '/api/settings/save') {
             const r = settings.save(body.changes)
             return json(res, 200, { ...r, message: r.restart ? 'Saved. This one applies after the program restarts (use Restart remote).' : 'Saved.' })

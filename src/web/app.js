@@ -817,6 +817,7 @@ function render() {
   for (const x of parts) sys.append(x)
   if (!helper || parts.length) p.append(sys)
   if (powerCard) p.append(powerCard)
+  p.append(footer(data.feedback, data.version, 'main page'))
   app.append(p)
 
   // First page after a hand-over from another PC: start in its look and slide in, while the colours settle into this PC's look.

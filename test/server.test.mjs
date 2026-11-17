@@ -234,3 +234,10 @@ test('too many wrong PINs are locked out', async (t) => {
   for (let i = 0; i < 5; i++) assert.equal((await tryPin('0000')).status, 401)
   assert.equal((await tryPin('8426')).status, 429)
 })
+
+test('the state carries the feedback address only when the server was given one', async (t) => {
+  const a = await lab(t, { issuesUrl: 'https://github.com/owner/repo/issues/new' })
+  assert.equal((await (await a.post('/api/state')).json()).feedback, 'https://github.com/owner/repo/issues/new')
+  const b = await lab(t)
+  assert.equal((await (await b.post('/api/state')).json()).feedback, '')
+})
