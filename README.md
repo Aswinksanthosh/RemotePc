@@ -7,6 +7,8 @@
 <img src="docs/img/phone-more.png" alt="The phone page: media keys, open apps, your own buttons" width="260">
 </p>
 
+> **New to this?** Read the step-by-step **[tutorial](docs/TUTORIAL.md)**. It shows the whole installation, including the Tailscale sign-in, in order.
+
 ## What you need
 
 - A **Windows 10 or 11 PC** (a laptop or a desktop), and you signed in with an account that is an **administrator** (the normal case on your own PC)
