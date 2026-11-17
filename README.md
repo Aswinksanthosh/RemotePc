@@ -44,7 +44,7 @@ Open the **App Store** (iPhone) or **Google Play** (Android), search for **Tails
 
 1. **Open PowerShell in that folder.** Pick one of these:
    - **Easiest:** in File Explorer, with the folder open, click the **address bar** at the top (where the folder path is), type `powershell`, and press **Enter**. A PowerShell window opens already in that folder. The path before the cursor shows which folder it is.
-   - **Or from the Start menu:** press the **Windows key**, type `PowerShell`, press **Enter**, then type `cd` and the folder, for example `cd Downloads` (or `cd C:\Users\YourName\Downloads`), and press **Enter**. Type `pwd` to check where you are.
+   - **Or from the Start menu:** press the **Windows key**, type `PowerShell`, press **Enter**, then type `cd` and the folder, for example `cd Downloads` (or `cd C:\Users\you\Downloads`), and press **Enter**. Type `pwd` to check where you are.
 2. Copy this line, paste it into the PowerShell window (right-click pastes in PowerShell), press **Enter**:
 
    ```powershell
