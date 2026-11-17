@@ -20,7 +20,7 @@ A **Windows 10 or 11 PC** (signed in as an administrator), an **iPhone or Androi
 
 **On the PC**
 
-3. Open **File Explorer**, open a folder (for example **Downloads**), click the **address bar**, type `powershell` and press **Enter**.
+3. **Select the installation folder** in File Explorer (for example **Downloads**). Then click the **address bar**, type `powershell` and press **Enter**. PowerShell opens in that folder.
 4. Paste this and press **Enter** (right-click pastes):
 
    ```powershell
