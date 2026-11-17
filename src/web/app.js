@@ -391,20 +391,26 @@ function pcsInOrder(pc, others) {
 }
 
 let going = false
-// Slides this page away while the colours change into the next PC's look, then opens that PC's page, which slides in.
+let pagerEl = null
+// The swipe card flies out while the colours change into the next PC's look, then that PC's page opens and its card flies in.
 function go(target, dir) {
   if (going || !target || target.self) return
   going = true
   const from = document.body.dataset.theme
-  const panel = document.querySelector('.panel')
-  if (panel) panel.classList.add(dir > 0 ? 'leave-left' : 'leave-right')
+  if (pagerEl) {
+    // Fly on from wherever the finger left it.
+    pagerEl.classList.remove('dragging')
+    pagerEl.style.transition = 'transform .18s cubic-bezier(.5,0,1,1), opacity .18s'
+    pagerEl.style.transform = 'translateX(' + (dir > 0 ? '-115%' : '115%') + ')'
+    pagerEl.style.opacity = '0'
+  }
   setTheme(target.theme)
-  if (navigator.vibrate) navigator.vibrate(15)
+  if (navigator.vibrate) navigator.vibrate(12)
   setTimeout(() => {
     going = false
     if (window.__navigate) window.__navigate(target, dir, from)
     else location.href = target.page + '#from=' + (dir > 0 ? 'right' : 'left') + '&t=' + encodeURIComponent(from)
-  }, 340)
+  }, 190)
 }
 
 function pagerCard(list, meIndex) {
@@ -434,29 +440,64 @@ function pagerCard(list, meIndex) {
   card.append(prev, mid, next)
   prev.addEventListener('click', () => go(list[meIndex - 1], -1))
   next.addEventListener('click', () => go(list[meIndex + 1], 1))
-  // Swipe: a sideways drag of this card.
+  // Swipe: the card follows the finger; past 60 px (or a quick flick) it changes PC, otherwise it snaps back.
   let x0 = 0
   let y0 = 0
+  let t0 = 0
   let on = false
+  let moved = false
   card.addEventListener('pointerdown', (e) => {
-    if (e.button) return
+    if (e.button || going) return
     on = true
+    moved = false
     x0 = e.clientX
     y0 = e.clientY
+    t0 = Date.now()
   })
-  card.addEventListener('pointerup', (e) => {
+  card.addEventListener('pointermove', (e) => {
     if (!on) return
-    on = false
     const dx = e.clientX - x0
     const dy = e.clientY - y0
-    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-      const to = meIndex + (dx < 0 ? 1 : -1)
-      if (list[to]) go(list[to], dx < 0 ? 1 : -1)
+    if (!moved && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+      moved = true
+      card.classList.add('dragging')
+      try {
+        card.setPointerCapture(e.pointerId)
+      } catch (x) {
+        // Not every browser allows it.
+      }
     }
+    if (!moved) return
+    // Resist pulling toward a side that has no PC (rubber band).
+    const free = (dx < 0 && list[meIndex + 1]) || (dx > 0 && list[meIndex - 1])
+    card.style.transform = 'translateX(' + Math.round(dx * (free ? 0.9 : 0.25)) + 'px)'
   })
+  const end = (e) => {
+    if (!on) return
+    on = false
+    card.classList.remove('dragging')
+    if (!moved) return
+    const dx = e.clientX - x0
+    const fast = Math.abs(dx) > 25 && Date.now() - t0 < 250
+    const to = meIndex + (dx < 0 ? 1 : -1)
+    if ((Math.abs(dx) > 60 || fast) && list[to]) go(list[to], dx < 0 ? 1 : -1)
+    else card.style.transform = ''
+  }
+  card.addEventListener('pointerup', end)
   card.addEventListener('pointercancel', () => {
     on = false
+    card.classList.remove('dragging')
+    card.style.transform = ''
   })
+  // A drag must not count as a tap on a name.
+  card.addEventListener('click', (e) => {
+    if (moved) {
+      e.stopPropagation()
+      e.preventDefault()
+      moved = false
+    }
+  }, true)
+  pagerEl = card
   return card
 }
 
@@ -825,7 +866,8 @@ function render() {
     const e = enterInfo
     enterInfo = null
     if (e.t) setTheme(e.t)
-    p.classList.add('enter-' + e.dir)
+    if (pagerEl && p.contains(pagerEl)) pagerEl.classList.add('enter-' + e.dir)
+    p.classList.add('settle')
     setTimeout(() => setTheme(myTheme), 90)
   } else setTheme(myTheme)
 }

@@ -53,7 +53,7 @@ test('the page has three looks, a swipe card for several PCs, and a hand-over an
   for (const t of ['neon', 'tactical', 'clean']) assert.ok(js.includes(`['${t}'`), t)
   assert.ok(js.includes('function pagerCard') && js.includes("'swipe to change PC'"))
   assert.ok(js.includes("localStorage.setItem('rsp_theme:'"))
-  for (const c of ['body[data-theme=neon]', 'body[data-theme=tactical]', '.panel.enter-right', '.panel.leave-left', '@property --a']) assert.ok(css.includes(c), c)
+  for (const c of ['body[data-theme=neon]', 'body[data-theme=tactical]', '.pager.enter-right', '.pager.dragging', '@property --a']) assert.ok(css.includes(c), c)
   assert.ok(!/class="nav"/.test(html), 'the old bottom bar is gone')
 })
 

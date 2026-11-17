@@ -167,14 +167,15 @@ body[data-theme=tactical] .avatar{border-radius:3px}
 .pill.on{color:#06121c;background:var(--a);border-color:transparent;box-shadow:0 0 20px -4px var(--a)}
 .pill svg.i{width:18px;height:18px}
 .pager .hint{font-size:.7rem;color:var(--muted);margin-top:2px;letter-spacing:.14em;text-transform:uppercase}
-.panel.leave-left{animation:outL .32s ease forwards}
-.panel.leave-right{animation:outR .32s ease forwards}
-.panel.enter-right{animation:inR .5s cubic-bezier(.2,.8,.2,1) both}
-.panel.enter-left{animation:inL .5s cubic-bezier(.2,.8,.2,1) both}
-@keyframes outL{to{opacity:0;transform:translateX(-80px) scale(.98)}}
-@keyframes outR{to{opacity:0;transform:translateX(80px) scale(.98)}}
-@keyframes inR{from{opacity:0;transform:translateX(80px) scale(.98)}to{opacity:1;transform:none}}
-@keyframes inL{from{opacity:0;transform:translateX(-80px) scale(.98)}to{opacity:1;transform:none}}
+/* Only the swipe card moves: it follows the finger, then flies out fast; the next PC's card flies in. The rest of the page stays still. */
+.pager{transition:transform .2s cubic-bezier(.2,.9,.3,1),opacity .2s;will-change:transform}
+.pager.dragging{transition:none}
+.pager.enter-right{animation:pagerInR .28s cubic-bezier(.2,.9,.3,1) both}
+.pager.enter-left{animation:pagerInL .28s cubic-bezier(.2,.9,.3,1) both}
+.panel.settle>*:not(.pager){animation:settle .22s ease both}
+@keyframes pagerInR{from{opacity:0;transform:translateX(115%)}to{opacity:1;transform:none}}
+@keyframes pagerInL{from{opacity:0;transform:translateX(-115%)}to{opacity:1;transform:none}}
+@keyframes settle{from{opacity:.35}to{opacity:1}}
 /* the theme choice */
 .themes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .swatch{font:inherit;color:#fff;border:2px solid transparent;border-radius:14px;padding:0;cursor:pointer;overflow:hidden;background:#0b141c;text-align:center}

@@ -49,6 +49,8 @@ Page order (2026-11-17, owner request: he mostly uses games and audio, rarely po
 
 Footer (2026-11-17, owner request): copyright line like the French repo, in MIT wording ("© 2026 Aswin K Santhosh. Open source under the MIT licence..."; the French repo says "All rights reserved", which would contradict this repo's MIT licence: ask if he wants it changed) and a drop-down **Ideas, feedback or a bug?** (idea / feedback / bug) that opens a prefilled GitHub new-issue form (`?labels=&title=&body=`, version and page only, never the key or PIN). The issues address comes from the server (`issuesUrl` from package.json `repository`), so the page script holds no web address. Issue templates in `.github/ISSUE_TEMPLATE/`. LICENSE now names Aswin K Santhosh (and the Jarvis author for the parts first written there).
 
+Swipe card motion (2026-11-17, owner request): ONLY the swipe card moves. It follows the finger (rubber band toward a side with no PC), past 60 px or a quick flick (25 px in under 250 ms) it flies out (.18 s) while the colours change; the next PC's page opens with the card flying in (.28 s) and the rest of the page only fades slightly. A short slow drag snaps back. A drag never counts as a tap on a name. Tested in a real browser with mouse pointer events (preview).
+
 ## To do / ideas
 
 - Run through the checklist above on a real Windows PC and a clean user; fix what breaks. Put real findings in this file.
