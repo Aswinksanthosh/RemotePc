@@ -148,7 +148,7 @@ export async function loginTailscale({ spawnFn, run, exe, open, ui, sleep, timeo
     const url = LOGIN_URL.exec(String(chunk))?.[0]
     if (url && !opened) {
       opened = true
-      ui.info('A sign-in page opens in your browser. Sign in with Google, Microsoft or Apple, and keep the same account for your phone.')
+      ui.info('A sign-in page opens in your browser. Sign in with Google, using the SAME account as on your phone.')
       ui.info(`If it does not open, go to: ${url}`)
       open(url)
     }

@@ -11,17 +11,32 @@
 
 - A **Windows 10 or 11 PC** (a laptop or a desktop), and you signed in with an account that is an **administrator** (the normal case on your own PC)
 - An **iPhone or Android phone**
+- A **Google account** (Gmail) to sign in to Tailscale. Microsoft or Apple also work
 - About **5 minutes**
 
 The installer takes care of everything else (it installs Node.js and Tailscale for you, both free).
 
 ## Install: the whole process, step by step
 
-You do **not** need to know anything about Tailscale, Node.js or the command line: the installer takes care of all of it, **including installing Tailscale** if you do not have it. Plan about **10 minutes** the first time.
+You do **not** need to know anything about Tailscale, Node.js or the command line: the installer takes care of the rest, **including installing Tailscale on the PC**. Plan about **10 minutes** the first time. The order is: **phone first** (Tailscale + Google sign-in), then the PC, then scan.
 
-### Part 1: on the PC
+### Part 1: on the phone (Tailscale first)
 
-#### Step 1. Start the installer (pick one way)
+#### Step 1. Install the Tailscale app
+
+Open the **App Store** (iPhone) or **Google Play** (Android), search for **Tailscale**, and install it. It is free for personal use.
+
+#### Step 2. Sign in with Google
+
+1. Open the **Tailscale** app and tap **Get started** (or **Log in**).
+2. Choose **Sign in with Google** and pick your Google account. That *is* your Tailscale account: there is no new password to invent. (No Google account? Microsoft, Apple and GitHub work too.)
+3. Allow the **VPN** question your phone asks. This is how Tailscale works: a private network just for your own devices. Turn the switch **on**. It should say **Connected**.
+
+**Remember which Google account you used.** The PC needs the **same one** in step 6.
+
+### Part 2: on the PC
+
+#### Step 3. Start the installer (pick one way)
 
 **Way A, one line.** This is the fastest.
 
@@ -41,11 +56,11 @@ You do **not** need to know anything about Tailscale, Node.js or the command lin
 3. Open the extracted folder and double-click **`Install.cmd`**.
    If Windows says **"Windows protected your PC"**, click **More info**, then **Run anyway** (the file is not signed, it just came from the internet).
 
-#### Step 2. Say Yes to the permission question
+#### Step 4. Say Yes to the permission question
 
 Windows shows a box asking whether the app may make changes to your device. Click **Yes**. The installer needs this once, to install the helper programs, allow your phone through the firewall, and set up the automatic start. A new window opens and shows the progress. Leave it open.
 
-#### Step 3. Wait while it installs the helpers (about 2 to 5 minutes)
+#### Step 5. Wait while it installs the helpers (about 2 to 5 minutes)
 
 The window prints each step. It does these on its own:
 
@@ -56,37 +71,29 @@ The window prints each step. It does these on its own:
 | **Tailscale** | The private link between your phone and your PC is installed. | Skipped |
 | **Settings, firewall, automatic start** | Windows is told to start the remote when you sign in, and to let only your own devices connect. | Updated |
 
-#### Step 4. Sign in to Tailscale (the only account you create)
+#### Step 6. Sign in to Tailscale on the PC (the same Google account)
 
-**You do not need to have Tailscale already.** The installer installs it. Then a **web page opens in your browser** asking you to sign in:
+The installer installs Tailscale on the PC. Then a **web page opens in your browser** asking you to sign in:
 
-1. Choose **Google, Microsoft, Apple or GitHub** and sign in with an account you already have. That *is* the Tailscale account, there is no separate password to invent. It is free for personal use.
+1. Choose **Sign in with Google** and use the **same Google account as on your phone** (step 2). This is what puts your phone and your PC on the same private network.
 2. If it asks to **connect** this device, click **Connect**.
 3. Go back to the installer window. It notices on its own and continues.
 
-Remember which account you used: your **phone needs the same one**.
-
 If no browser page opens, the installer prints a link that starts with `https://login.tailscale.com/` in its window. Copy it into any browser.
 
-#### Step 5. The QR code appears
+#### Step 7. The QR code appears
 
 When the steps are done, the installer opens a page with a big **QR code**, and also shows a smaller one in the installer window. **Leave it on the screen.** Do not close the installer window yet.
 
-### Part 2: on the phone
+### Part 3: on the phone again
 
-#### Step 6. Install Tailscale on the phone
-
-1. Open the **App Store** (iPhone) or **Google Play** (Android), search for **Tailscale**, install it.
-2. Open it and **sign in with the same account** you used on the PC (step 4).
-3. Allow the **VPN** question your phone asks (this is how Tailscale works: a private network just for your own devices). Turn the switch **on**. It should say **Connected**.
-
-#### Step 7. Scan the QR code
+#### Step 8. Scan the QR code
 
 1. Open the phone's normal **Camera** app and point it at the QR code on the PC screen.
 2. A link appears at the top of the camera view. **Tap it.**
 3. The browser opens the **Remote** page, showing your PC's name with a green dot and **online**. Your phone is now paired.
 
-#### Step 8. Put it on the home screen
+#### Step 9. Put it on the home screen
 
 So you can open it with one tap, like an app:
 
@@ -95,11 +102,11 @@ So you can open it with one tap, like an app:
 
 Use the icon from now on. It keeps working without scanning again.
 
-#### Step 9. Finish on the PC
+#### Step 10. Finish on the PC
 
 Back on the PC, in the installer window, press **Enter**. It removes the QR page (it contains your private key) and prints **All done**. You can close the window.
 
-### Part 3: try it
+### Part 4: try it
 
 On the phone page, try these (you cannot break anything with them):
 
