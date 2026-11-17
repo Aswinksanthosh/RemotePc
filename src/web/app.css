@@ -1,13 +1,14 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:#080d14}
 html,body{margin:0;min-height:100%}
 @property --a{syntax:'<color>';inherits:true;initial-value:#4fb3ff}
 @property --a2{syntax:'<color>';inherits:true;initial-value:#10324a}
 @property --line{syntax:'<color>';inherits:true;initial-value:rgba(130,175,215,.2)}
-body{background:#080d14;color:#e8f1f6;font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow-x:hidden;--a:#4fb3ff;--a2:#10324a;--card:rgba(17,27,40,.78);--line:rgba(130,175,215,.2);--r:18px;--rb:14px;--rt:14px;--muted:#8fa4b3;transition:--a .7s ease,--a2 .7s ease,--line .7s ease}
+body{background:#080d14;color:#e8f1f6;font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow-x:hidden;--a:#4fb3ff;--a2:#10324a;--card:rgba(17,27,40,.78);--line:rgba(130,175,215,.2);--r:18px;--rb:14px;--rt:14px;--muted:#8fa4b3}
 /* Three looks. Each phone picks one per PC; a PC starts with its own (ROG neon, TUF tactical, otherwise clean). */
 body[data-theme=neon]{--a:#ff5fae;--a2:#4a1440;--line:rgba(255,130,195,.3);--card:rgba(38,12,40,.62);--r:26px;--rb:999px;--rt:22px}
 body[data-theme=tactical]{--a:#ffa927;--a2:#3a2a08;--line:rgba(255,170,40,.34);--card:rgba(24,20,12,.8);--r:4px;--rb:3px;--rt:3px}
-.bgl{position:fixed;inset:0;z-index:-1;opacity:0;transition:opacity .8s ease}
+.bgl{position:fixed;inset:0;z-index:-1;opacity:0;transition:opacity .35s ease}
 .bgl.clean{background:radial-gradient(120% 60% at 85% -8%,#16324a 0,#080d14 62%)}
 .bgl.neon{background:radial-gradient(90% 55% at 90% -5%,#7a2170 0,transparent 60%),radial-gradient(80% 50% at 0% 105%,#3b1a8a 0,transparent 60%),#0c0414;animation:drift 14s ease-in-out infinite alternate}
 .bgl.tactical{background:linear-gradient(165deg,#241d12 0,#0e0c09 55%,#17120a 100%)}
@@ -172,10 +173,8 @@ body[data-theme=tactical] .avatar{border-radius:3px}
 .pager.dragging{transition:none}
 .pager.enter-right{animation:pagerInR .28s cubic-bezier(.2,.9,.3,1) both}
 .pager.enter-left{animation:pagerInL .28s cubic-bezier(.2,.9,.3,1) both}
-.panel.settle>*:not(.pager){animation:settle .22s ease both}
 @keyframes pagerInR{from{opacity:0;transform:translateX(115%)}to{opacity:1;transform:none}}
 @keyframes pagerInL{from{opacity:0;transform:translateX(-115%)}to{opacity:1;transform:none}}
-@keyframes settle{from{opacity:.35}to{opacity:1}}
 /* the theme choice */
 .themes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .swatch{font:inherit;color:#fff;border:2px solid transparent;border-radius:14px;padding:0;cursor:pointer;overflow:hidden;background:#0b141c;text-align:center}
@@ -215,6 +214,14 @@ select.field{max-width:190px}
 .fb-i svg.i{color:var(--a)}
 .fb-note{color:var(--muted);font-size:.76rem;padding:2px 2px 0}
 .copy{color:var(--muted);font-size:.74rem;margin:14px 6px 0;line-height:1.5}
+
+/* the persistent shell: header, swipe card and footer stay; only .content is swapped */
+.top-host,.pager-host,.foot-host{display:block}
+.pager-host:empty,.foot-host:empty{display:none}
+.content{display:flex;flex-direction:column;gap:14px;transition:opacity .18s ease,transform .18s ease}
+.content.out{opacity:0;transform:translateY(8px);transition-duration:.11s}
+.card.skel{background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.09),rgba(255,255,255,.04));background-size:200% 100%;animation:shimmer 1.2s linear infinite;border-color:var(--line)}
+@keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
 [hidden]{display:none!important}
 @keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @keyframes smIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}

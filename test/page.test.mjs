@@ -71,3 +71,11 @@ test('the footer has the copyright line and a feedback drop-down that only opens
   assert.ok(js.includes('Please do not paste your pairing link, PIN or any password'))
   assert.ok(!/password\s*[:=]\s*['"]|localStorage\.getItem\('rsp_k'\)[^;]*encodeURIComponent/.test(js.slice(js.indexOf('function footer'))), 'the key never goes into a feedback link')
 })
+
+test('switching PCs keeps the header, swipe card and footer on screen and swaps only the cards; the next page paints its shell at once', () => {
+  for (const t of ['function ensureShell', 'function placePager', 'function commitContent', 'function showSkeleton', 'card._set', 'sh.foot.dataset.sig']) assert.ok(js.includes(t), t)
+  assert.ok(js.includes("'#from='") && js.includes("encodeURIComponent(JSON.stringify(l.map("), 'the address carries the look and the list of PCs')
+  assert.ok(read('boot.js').includes('document.body.dataset.theme'), 'the look is set before the first paint')
+  assert.ok(html.includes('<script src="/boot.js"></script>'))
+  assert.ok(!css.includes('transition:--a'), 'no colour-variable transition (it repaints the whole page every frame)')
+})

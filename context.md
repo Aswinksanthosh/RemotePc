@@ -53,6 +53,8 @@ Swipe card motion (2026-11-17, owner request): ONLY the swipe card moves. It fol
 
 Tutorial pictures + Desktop shortcut (2026-11-17, owner request): README steps 3 and 4 have two DRAWN illustrations (`docs/img/step-1-address-bar.png`, `step-2-powershell.png`, made from HTML mock-ups, labelled as drawings; replace with real screenshots from a Windows PC when available). The installer puts a **Remote Start PC** shortcut to the data folder (`~\.remortstartpc`: settings, buttons.json, logs) on the Desktop (`desktopShortcutScript`); Uninstall removes it. Never run on real Windows yet (CI parses the script).
 
+Smooth switching (2026-11-17, owner saw reload/stutter in the demo): the page is now a persistent shell (`ensureShell`: header, swipe card, footer kept as the same DOM nodes; only `.content` cards are swapped, fade out 110 ms, colours change while invisible, fade in 180 ms). No colour-variable transitions any more (they repainted everything each frame). For a real jump to the other PC's address (different origin = full page load) the address carries `#from=&t=<theme>&i=<index>&l=<[name,theme,order]...>`: `boot.js` sets the look before the first paint and `showSkeleton` paints the name, swipe card (in place) and grey blocks at once; real data then replaces the blocks. `html` has the dark background so there is no white flash. A true single-page switch (no load at all) would need one PC to proxy the other (like the Jarvis hub) and is not done.
+
 ## To do / ideas
 
 - Run through the checklist above on a real Windows PC and a clean user; fix what breaks. Put real findings in this file.

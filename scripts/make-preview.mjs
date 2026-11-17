@@ -25,11 +25,12 @@ const stub = `<script>
 var previewPcs = ${JSON.stringify(pcs)}
 var previewSelf = 'ROG'
 var previewOne = false
+window.previewDelay = window.previewDelay || 0
 var previewModes = { ROG: 'balanced', TUF: 'gaming' }
 window.fetch = function (url, opts) {
   var body = {}
   try { body = JSON.parse((opts && opts.body) || '{}') } catch (e) {}
-  var json = function (o) { return Promise.resolve(new Response(JSON.stringify(o), { status: 200, headers: { 'content-type': 'application/json' } })) }
+  var json = function (o) { return new Promise(function (ok) { setTimeout(function () { ok(new Response(JSON.stringify(o), { status: 200, headers: { 'content-type': 'application/json' } })) }, window.previewDelay) }) }
   if (String(url).indexOf('/api/state') >= 0) {
     var pc = JSON.parse(JSON.stringify(previewPcs[previewSelf]))
     pc.mode = previewModes[previewSelf]
@@ -44,10 +45,8 @@ window.fetch = function (url, opts) {
   return Promise.resolve(new Response(null, { status: 204 }))
 }
 // Instead of opening the other laptop's page, show it here with the same slide-in and colour change.
-window.__navigate = function (target, dir, fromTheme) {
+window.__navigate = function (target, dir) {
   previewSelf = target.name
-  enterInfo = { dir: dir > 0 ? 'right' : 'left', t: fromTheme }
-  going = false
   lastSig = ''
   refresh()
 }
@@ -62,7 +61,7 @@ document.getElementById('pv2').onclick = function () { previewOne = true; lastSi
 
 let html = read('index.html')
 html = html.replace('<link rel="stylesheet" href="/app.css">', `<style>${read('app.css')}</style>`)
-html = html.replace(/<link rel="(icon|apple-touch-icon)"[^>]*>\n?/g, '')
+html = html.replace(/<link rel="(icon|apple-touch-icon)"[^>]*>\n?/g, '').replace('<script src="/boot.js"></script>\n', '')
 // The preview is already "paired": give the page a key without reading the address or storage.
 const fakeKey = (code) => code.replace('if (key) {\n  // The home-screen shortcut', "key = 'preview-key-0123456789abcdef0123'\nif (key) {\n  // The home-screen shortcut")
 const common = fakeKey(read('common.js'))
