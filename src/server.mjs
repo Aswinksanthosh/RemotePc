@@ -14,6 +14,7 @@
  */
 
 import { createServer } from 'node:http'
+import { randomBytes } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { ACTIONS } from './actions.mjs'
@@ -80,6 +81,7 @@ export async function startServer({
   host = '0.0.0.0',
   allow = ['loopback', 'tailscale'],
   auth,
+  pin = null,
   actions = null,
   config = {},
   others = () => ({}),
@@ -100,6 +102,20 @@ export async function startServer({
     }
   }
   const knownActions = new Set(ACTIONS)
+
+  // A typed PIN gives this phone a session token for config.pinHours; it also stops working when the PIN changes.
+  const unlocks = new Map() // token -> { id, version, expires }
+  const hours = Number(config.pinHours) || 12
+  const unlocked = (token, id) => {
+    const u = unlocks.get(String(token ?? ''))
+    if (!u) return false
+    if (u.expires <= Date.now() || u.version !== pin.version()) {
+      unlocks.delete(token)
+      return false
+    }
+    // A token belongs to one phone. Another phone trying it is refused, and does not end the owner's session.
+    return u.id === id
+  }
 
   const server = createServer(async (req, res) => {
     const ip = req.socket.remoteAddress
@@ -146,6 +162,19 @@ export async function startServer({
       const who = auth.verify(ip, bearer)
       if (!who.ok) return json(res, who.status, { error: who.error })
       const body = await readBody(req)
+
+      if (path === '/api/unlock') {
+        if (!pin?.isSet()) return json(res, 200, { token: '' })
+        const r = pin.verify(ip, body.pin)
+        if (!r.ok) return json(res, r.status, { error: r.error })
+        const t = Date.now()
+        for (const [k, u] of unlocks) if (u.expires <= t) unlocks.delete(k)
+        while (unlocks.size >= 50) unlocks.delete(unlocks.keys().next().value)
+        const token = randomBytes(24).toString('base64url')
+        unlocks.set(token, { id: who.id, version: pin.version(), expires: t + hours * 3600 * 1000 })
+        return json(res, 200, { token })
+      }
+      if (pin?.isSet() && !unlocked(req.headers['x-unlock'], who.id)) return json(res, 401, { error: 'Enter your PIN.', code: 'pin' })
 
       if (path === '/api/state') {
         // If reading the PC's details fails, the page still opens with the buttons (and the problem is in the log).

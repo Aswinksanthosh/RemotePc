@@ -4,6 +4,7 @@
  *   app\            the program (replaced by every update)
  *   config.json     the settings (port, who may connect)
  *   phones.json     the paired phones (only a fingerprint of each key, never the key)
+ *   pin.json        the PIN (only a salted hash, never the PIN)
  *   buttons.json    your own buttons          (optional, you write it)
  *   apps.json       your own apps             (optional, you write it)
  *   games.json      games Steam does not list (optional, you write it)
@@ -24,6 +25,7 @@ export function dataPaths(home = process.env.REMORTSTARTPC_HOME || join(homedir(
     app: join(home, 'app'),
     config: join(home, 'config.json'),
     phones: join(home, 'phones.json'),
+    pin: join(home, 'pin.json'),
     installed: join(home, 'installed.json'),
     log: join(home, 'remote.log'),
     installLog: join(home, 'install.log'),

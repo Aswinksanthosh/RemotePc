@@ -81,19 +81,23 @@ The installer installs Tailscale on the PC. Then a **web page opens in your brow
 
 If no browser page opens, the installer prints a link that starts with `https://login.tailscale.com/` in its window. Copy it into any browser.
 
-#### Step 7. The QR code appears
+#### Step 7. Choose a PIN
+
+The installer asks you to **choose a PIN** (4 to 8 digits) and to type it twice. Pick something you can remember, not `0000` or `1234` (those are refused). The phone asks for this PIN every time it opens the remote (it remembers it for 12 hours), so a stranger holding your unlocked phone cannot use your PC. You can change or remove it later with **Set-PIN** in the Start menu.
+
+#### Step 8. The QR code appears
 
 When the steps are done, the installer opens a page with a big **QR code**, and also shows a smaller one in the installer window. **Leave it on the screen.** Do not close the installer window yet.
 
 ### Part 3: on the phone again
 
-#### Step 8. Scan the QR code
+#### Step 9. Scan the QR code
 
 1. Open the phone's normal **Camera** app and point it at the QR code on the PC screen.
 2. A link appears at the top of the camera view. **Tap it.**
-3. The browser opens the **Remote** page, showing your PC's name with a green dot and **online**. Your phone is now paired.
+3. The browser opens the **Remote** page. Type your **PIN**. It then shows your PC's name with a green dot and **online**. Your phone is now paired.
 
-#### Step 9. Put it on the home screen
+#### Step 10. Put it on the home screen
 
 So you can open it with one tap, like an app:
 
@@ -102,7 +106,7 @@ So you can open it with one tap, like an app:
 
 Use the icon from now on. It keeps working without scanning again.
 
-#### Step 10. Finish on the PC
+#### Step 11. Finish on the PC
 
 Back on the PC, in the installer window, press **Enter**. It removes the QR page (it contains your private key) and prints **All done**. You can close the window.
 
@@ -155,6 +159,7 @@ Everyone installs on their own PC and pairs their own phone. Nothing is shared b
 
 | I want to... | Do this |
 |---|---|
+| Change or remove my PIN | Double-click **Set-PIN** (also in the Start menu) |
 | Pair another phone | Double-click **Pair-Phone** (also in the Start menu), scan the new code |
 | Update to the newest version | Press **Update** on the phone page (System), or double-click **Update** |
 | Something does not work | Double-click **Fix-It**. It checks everything and tells you what to do |
@@ -167,7 +172,7 @@ The **Pair-Phone**, **Fix-It**, **Update** and **Uninstall** shortcuts are in th
 ## Is it safe?
 
 - **Nothing is opened to the internet.** Your phone talks to your PC through Tailscale (encrypted, private to your own devices). The program refuses every connection that does not come from your own devices.
-- **No password to type or leak.** Each phone holds a long random key (in the link of the QR code). The PC stores only a fingerprint of it, and you can forget any phone at any time.
+- **A key and a PIN.** Each phone holds a long random key (in the link of the QR code) and must also type your PIN. The PC stores only a fingerprint of the key and a salted hash of the PIN. Five wrong PINs lock that device out for five minutes. You can forget any phone at any time.
 - **Fixed buttons only.** The phone can only ask for the actions in a fixed list. It cannot run commands, read files or type on the PC.
 - **No accounts, no tracking.** Your phone and PC talk directly. The only thing that goes out is the update check (to GitHub) when you press Update.
 

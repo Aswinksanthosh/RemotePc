@@ -175,3 +175,60 @@ test('if reading the PC details fails, the page still opens with the buttons', a
   assert.equal(r.status, 200)
   assert.equal((await r.json()).pc.control, true)
 })
+
+import { createPin } from '../src/pin.mjs'
+
+async function pinLab(t, extra = {}) {
+  const pin = createPin({ file: join(tempDir(t), 'pin.json') })
+  pin.set('8426')
+  const l = await lab(t, { pin, ...extra })
+  return { ...l, pin }
+}
+
+test('with a PIN set, a paired phone still gets nothing until the PIN is typed', async (t) => {
+  const { post } = await pinLab(t)
+  for (const path of ['/api/state', '/api/do', '/api/avatar', '/api/gameart']) {
+    const r = await post(path, { action: 'lock' })
+    assert.equal(r.status, 401, path)
+    assert.equal((await r.json()).code, 'pin', path)
+  }
+})
+
+test('the right PIN gives a session that works, a wrong PIN does not', async (t) => {
+  const { base, key, done } = await pinLab(t)
+  const call = (path, body, headers = {}) => fetch(base + path, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${key}`, ...headers }, body: JSON.stringify(body) })
+  assert.equal((await call('/api/unlock', { pin: '0000' })).status, 401)
+  const ok = await call('/api/unlock', { pin: '8426' })
+  assert.equal(ok.status, 200)
+  const { token } = await ok.json()
+  assert.match(token, /^[A-Za-z0-9_-]{32}$/)
+  assert.equal((await call('/api/state', {}, { 'x-unlock': token })).status, 200)
+  assert.equal((await call('/api/do', { action: 'lock' }, { 'x-unlock': token })).status, 200)
+  assert.deepEqual(done, [['lock', undefined]])
+  assert.equal((await call('/api/state', {}, { 'x-unlock': 'made-up-token' })).status, 401)
+})
+
+test('a session is tied to its phone, ends when the PIN changes, and expires', async (t) => {
+  const { base, key, pin, auth } = await pinLab(t, { config: { pinHours: 1 } })
+  const other = auth.add('Other phone')
+  const call = (k, path, body, headers = {}) => fetch(base + path, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${k}`, ...headers }, body: JSON.stringify(body) })
+  const { token } = await (await call(key, '/api/unlock', { pin: '8426' })).json()
+  assert.equal((await call(other.key, '/api/state', {}, { 'x-unlock': token })).status, 401, 'another phone cannot reuse it')
+  assert.equal((await call(key, '/api/state', {}, { 'x-unlock': token })).status, 200)
+  pin.set('8427')
+  assert.equal((await call(key, '/api/state', {}, { 'x-unlock': token })).status, 401, 'old PIN session is gone')
+})
+
+test('without a PIN nothing changes, and the unlock call is harmless', async (t) => {
+  const { base, key, post } = await lab(t)
+  assert.equal((await post('/api/state')).status, 200)
+  const r = await fetch(base + '/api/unlock', { method: 'POST', headers: { authorization: `Bearer ${key}` }, body: '{}' })
+  assert.deepEqual(await r.json(), { token: '' })
+})
+
+test('too many wrong PINs are locked out', async (t) => {
+  const { base, key } = await pinLab(t)
+  const tryPin = (pin) => fetch(base + '/api/unlock', { method: 'POST', headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' }, body: JSON.stringify({ pin }) })
+  for (let i = 0; i < 5; i++) assert.equal((await tryPin('0000')).status, 401)
+  assert.equal((await tryPin('8426')).status, 429)
+})

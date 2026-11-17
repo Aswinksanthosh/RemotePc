@@ -8,6 +8,7 @@ import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } fro
 import { basename, join, resolve } from 'node:path'
 import { createAuth } from './auth.mjs'
 import { loadConfig, saveConfig } from './config.mjs'
+import { createPin, isWeakPin, validPin } from './pin.mjs'
 import { listAddresses, phoneUrl } from './net.mjs'
 import { TASK_NAME } from './paths.mjs'
 import { qrToConsole, qrToSvg } from './qr.mjs'
@@ -79,6 +80,54 @@ export function newPairing({ paths, config, interfaces, label }) {
   const count = auth.list().length
   const { key, id, label: name } = auth.add(label || `Phone ${count + 1}`)
   return { key, id, label: name, url: phoneUrl(addresses, config.port, key, config.allow), tailscale: addresses.tailscale.length > 0 }
+}
+
+/**
+ * Asks for the PIN (4 to 8 digits, typed twice) and saves it. A PIN that is already set can be kept by pressing Enter.
+ * `RSP_PIN` in the environment sets it without asking (for automatic installs). Without `ask`, nothing is asked.
+ */
+export async function setupPin({ pin, ask, ui, env = {} }) {
+  const had = pin.isSet()
+  if (env.RSP_PIN) {
+    if (!validPin(env.RSP_PIN)) ui.warn('RSP_PIN must be 4 to 8 digits, so no PIN was set.')
+    else {
+      pin.set(env.RSP_PIN)
+      ui.ok('PIN set.')
+    }
+    return
+  }
+  if (!ask) {
+    if (!had) ui.warn('No PIN is set. Double-click Set-PIN to add one.')
+    return
+  }
+  ui.blank()
+  ui.say('  Choose a PIN. The phone asks for it every time it opens the remote, so a stranger holding your unlocked phone cannot use it.')
+  ui.say('  4 to 8 digits. Pick something you can remember (not 0000 or 1234).')
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const first = (await ask(had ? '  New PIN (or press Enter to keep your current PIN): ' : '  Choose a PIN (or press Enter to skip, not recommended): ')).trim()
+    if (!first) {
+      if (had) ui.ok('Your current PIN stays.')
+      else ui.warn('No PIN set. Double-click Set-PIN later to add one.')
+      return
+    }
+    if (!validPin(first)) {
+      ui.warn('A PIN is 4 to 8 digits, nothing else. Try again.')
+      continue
+    }
+    if (isWeakPin(first)) {
+      ui.warn('That is too easy to guess (like 0000 or 1234). Pick another.')
+      continue
+    }
+    const second = (await ask('  Type it again: ')).trim()
+    if (second !== first) {
+      ui.warn('The two PINs were different. Try again.')
+      continue
+    }
+    pin.set(first)
+    ui.ok('PIN saved. The phone asks for it when it opens the remote.')
+    return
+  }
+  ui.warn(had ? 'The PIN was not changed.' : 'No PIN set. Double-click Set-PIN later to add one.')
 }
 
 /** Waits until the program answers on this PC. */
@@ -165,6 +214,7 @@ export async function runSetup({
   skipTailscale = false,
   downloadTo,
   showPairing,
+  askLine,
 }) {
   const TOTAL = 6
   const ps = (script, opts) => run('powershell.exe', psArgs(script), opts)
@@ -188,6 +238,7 @@ export async function runSetup({
   saveConfig(paths.config, config)
   writeFileSync(paths.launcher, launcherScript({ nodePath, entry: join(paths.app, 'bin', 'remote.mjs'), home: paths.home }))
   ui.ok(`Phone page on port ${config.port}. Allowed: ${config.allow.join(', ')}.`)
+  await setupPin({ pin: createPin({ file: paths.pin }), ask: askLine, ui, env })
   if (!ts.ok && windows) ui.warn('Without Tailscale, the phone must be on the same Wi-Fi as this PC. Run Install again after setting up Tailscale to change that.')
 
   ui.step(4, TOTAL, 'Starting by itself at every sign-in')

@@ -8,6 +8,8 @@ let msgTimer = 0
 let lastSig = ''
 let offline = false
 let fails = 0
+let needPin = false
+let unlock = ''
 const opened = new Set()
 const picked = { game: '', app: '', bt: '', out: '' }
 const avatars = {}
@@ -23,6 +25,11 @@ try {
   // Storage can be blocked (private mode); the key in the address still works.
   key = key || ''
 }
+try {
+  unlock = localStorage.getItem('rsp_u') || ''
+} catch (e) {
+  unlock = ''
+}
 
 if (key) {
   // The home-screen shortcut must keep the key, so the manifest is asked for with it.
@@ -35,6 +42,7 @@ if (key) {
 async function call(path, body) {
   const h = { 'content-type': 'application/json' }
   if (key) h.authorization = 'Bearer ' + key
+  if (unlock) h['x-unlock'] = unlock
   const r = await fetch(path, { method: 'POST', headers: h, body: JSON.stringify(body || {}) })
   if (r.status === 204) return null
   const ct = r.headers.get('content-type') || ''
@@ -43,7 +51,7 @@ async function call(path, body) {
     return r.blob()
   }
   const j = await r.json().catch(() => ({}))
-  if (!r.ok) throw Object.assign(new Error(j.error || 'Something went wrong'), { status: r.status })
+  if (!r.ok) throw Object.assign(new Error(j.error || 'Something went wrong'), { status: r.status, code: j.code })
   return j
 }
 
@@ -70,6 +78,11 @@ async function act(action, arg, extra) {
     const j = await call('/api/do', Object.assign({ action, arg }, extra || {}))
     say(j.message || 'Done.')
   } catch (err) {
+    if (err.status === 401 && err.code === 'pin') {
+      unlock = ''
+      pinScreen('Your PIN session ended. Enter it again.')
+      return
+    }
     say(err.message, true)
   }
   setTimeout(refresh, 3000)
@@ -433,6 +446,54 @@ function accentOf(pc) {
   return /ROG/i.test(m) ? 'pink' : /TUF/i.test(m) ? 'amber' : 'blue'
 }
 
+function pinScreen(message) {
+  needPin = true
+  data = null
+  lastSig = ''
+  $('banner').hidden = true
+  const app = $('app')
+  app.textContent = ''
+  const box = el('form', 'pair panel')
+  box.autocomplete = 'off'
+  box.append(el('h1', '', 'Enter your PIN'))
+  box.append(el('p', 'hint', 'The PIN you chose when you installed Remote Start PC on the PC.'))
+  const input = el('input', 'pin')
+  input.type = 'password'
+  input.inputMode = 'numeric'
+  input.pattern = '[0-9]*'
+  input.maxLength = 8
+  input.autocomplete = 'off'
+  input.setAttribute('aria-label', 'PIN')
+  const err = el('p', 'pinerr', message || '')
+  const go = el('button', 'b go', 'Unlock')
+  go.type = 'submit'
+  box.append(input, go, err)
+  box.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    err.textContent = ''
+    go.disabled = true
+    try {
+      const j = await call('/api/unlock', { pin: input.value })
+      unlock = j.token || ''
+      try {
+        localStorage.setItem('rsp_u', unlock)
+      } catch (x) {
+        // The PIN is asked again next time.
+      }
+      needPin = false
+      $('app').textContent = ''
+      $('app').append(el('p', 'loading', 'Connecting to your PC…'))
+      refresh()
+    } catch (x) {
+      input.value = ''
+      err.textContent = x.message
+    }
+    go.disabled = false
+  })
+  app.append(box)
+  setTimeout(() => input.focus(), 60)
+}
+
 function pairScreen(bad) {
   const app = $('app')
   app.textContent = ''
@@ -630,7 +691,7 @@ function render() {
 }
 
 async function refresh() {
-  if (!key) return
+  if (!key || needPin) return
   try {
     const next = await call('/api/state')
     fails = 0
@@ -649,6 +710,16 @@ async function refresh() {
     if (err.status === 429) {
       // Too many wrong tries from this address: the key is probably fine, so keep it and wait.
       say(err.message, true)
+      return
+    }
+    if (err.status === 401 && err.code === 'pin') {
+      unlock = ''
+      try {
+        localStorage.removeItem('rsp_u')
+      } catch (e) {
+        // Ignore.
+      }
+      pinScreen('')
       return
     }
     if (err.status === 401) {

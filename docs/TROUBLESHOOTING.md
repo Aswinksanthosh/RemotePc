@@ -9,6 +9,10 @@
 3. Is Tailscale on the **PC** connected (tray icon), and are both signed in to the **same account**?
 4. Fix-It on the PC. If it says "Remote running: nothing answers", run **Install.cmd** again.
 
+## I forgot my PIN
+
+On the PC, double-click **Set-PIN** and choose a new one (nothing asks for the old one: the PC is the trusted side). Phones are then asked for the new PIN.
+
 ## The QR code page says "Pair this phone again"
 
 The phone was forgotten, or you opened an old link. Double-click **Pair-Phone** on the PC and scan the new code.

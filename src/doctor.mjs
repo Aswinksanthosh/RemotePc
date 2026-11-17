@@ -8,6 +8,7 @@ import { join } from 'node:path'
 import { loadConfig } from './config.mjs'
 import { listAddresses } from './net.mjs'
 import { createAuth } from './auth.mjs'
+import { createPin } from './pin.mjs'
 import { scanGames } from './steam.mjs'
 import { regValue } from './steam.mjs'
 import { FIREWALL_RULE, TASK_NAME } from './paths.mjs'
@@ -72,6 +73,9 @@ export async function runDoctor({
 
   const phones = createAuth({ file: paths.phones }).list()
   add('Paired phones', phones.length ? 'ok' : 'warn', phones.length ? phones.map((p) => p.label).join(', ') : 'none yet', phones.length ? '' : 'Double-click Pair-Phone and scan the code with your phone.')
+
+  const hasPin = createPin({ file: paths.pin }).isSet()
+  add('PIN', hasPin ? 'ok' : 'warn', hasPin ? 'set' : 'no PIN is set (a paired phone opens the remote without asking)', hasPin ? '' : 'Double-click Set-PIN to add one.')
 
   if (windows) {
     try {

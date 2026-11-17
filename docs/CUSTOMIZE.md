@@ -61,7 +61,8 @@ The program reads it when it starts, so sign out of Windows and back in (or rest
   "port": 8791,
   "allow": ["loopback", "tailscale"],
   "accent": "",
-  "name": ""
+  "name": "",
+  "pinHours": 12
 }
 ```
 
@@ -71,3 +72,4 @@ The program reads it when it starts, so sign out of Windows and back in (or rest
 | `allow` | Who may connect: `loopback` (this PC), `tailscale` (your phone through Tailscale), `lan` (anything on your home network). Never the open internet. Add `"lan"` only on a network you trust, because on a normal Wi-Fi the traffic is not encrypted. |
 | `accent` | Page colour: `blue`, `pink`, `amber`, `green`, `purple`, `red`. Empty means automatic: pink for "ROG" PCs, amber for "TUF" PCs, otherwise blue. |
 | `name` | The big name on the page. Empty means the PC's own name. |
+| `pinHours` | How many hours a typed PIN stays valid on a phone (1 to 720, default 12). |

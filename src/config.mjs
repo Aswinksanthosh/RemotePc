@@ -7,6 +7,7 @@
  *   accent   page colour: "blue" (default), "pink", "amber", "green", "purple", "red".
  *            Empty means: follow the PC's model name (ROG pink, TUF amber, otherwise blue).
  *   name     the name shown on the page; empty means the PC's own name
+ *   pinHours how long a typed PIN stays valid on a phone (1 to 720, default 12)
  *   nodePath where node.exe is, so the launcher does not depend on PATH
  */
 
@@ -15,7 +16,7 @@ import { readJson, writeAtomic } from './fsutil.mjs'
 export const ACCENTS = ['blue', 'pink', 'amber', 'green', 'purple', 'red']
 export const NETWORKS = ['loopback', 'tailscale', 'lan']
 
-export const DEFAULT_CONFIG = { port: 8791, allow: ['loopback', 'tailscale'], accent: '', name: '', nodePath: '' }
+export const DEFAULT_CONFIG = { port: 8791, allow: ['loopback', 'tailscale'], accent: '', name: '', nodePath: '', pinHours: 12 }
 
 export function normalizeConfig(raw) {
   const r = raw && typeof raw === 'object' ? raw : {}
@@ -30,6 +31,7 @@ export function normalizeConfig(raw) {
     accent: ACCENTS.includes(r.accent) ? r.accent : '',
     name: clean(r.name, 30),
     nodePath: clean(r.nodePath, 260),
+    pinHours: Number.isInteger(r.pinHours) && r.pinHours >= 1 && r.pinHours <= 720 ? r.pinHours : DEFAULT_CONFIG.pinHours,
   }
 }
 

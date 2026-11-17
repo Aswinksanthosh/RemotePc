@@ -9,7 +9,7 @@ import { PROJECT_ROOT } from '../src/app.mjs'
 import { appendLog } from '../src/fsutil.mjs'
 import { dataPaths } from '../src/paths.mjs'
 import { cleanupPairingPages, runSetup, showPairingOnScreen } from '../src/setup.mjs'
-import { downloadTo, openTarget, run, waitForEnter } from '../src/system.mjs'
+import { ask, downloadTo, openTarget, run, waitForEnter } from '../src/system.mjs'
 import { createUi } from '../src/ui.mjs'
 
 const args = process.argv.slice(2)
@@ -33,6 +33,7 @@ try {
     interfaces: networkInterfaces(),
     skipTailscale: args.includes('--skip-tailscale') || process.env.RSP_SKIP_TAILSCALE === '1',
     downloadTo,
+    askLine: ask,
     showPairing: (pairing) => showPairingOnScreen(pairing, { ui, tmp: tmpdir(), open: openTarget, waitForKey: waitForEnter }),
   })
   ui.blank()

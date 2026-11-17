@@ -42,3 +42,9 @@ test('every button of the page maps to an action the server knows', async () => 
 test('the page asks before the risky things', () => {
   for (const risky of ['Turn off the PC?', 'Restart the PC?', 'Sleep the PC?', 'Switch Steam account?', 'Close the running game?', 'Update this app and restart it?']) assert.ok(js.includes(risky), risky)
 })
+
+test('the page has a PIN screen and sends the PIN session with every call', () => {
+  assert.ok(js.includes('function pinScreen') && js.includes("'Enter your PIN'"))
+  assert.ok(js.includes("h['x-unlock'] = unlock"))
+  assert.ok(/inputMode = 'numeric'/.test(js) && /autocomplete = 'off'/.test(js))
+})

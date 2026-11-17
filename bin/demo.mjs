@@ -8,6 +8,7 @@ import { join } from 'node:path'
 import { createAuth } from '../src/auth.mjs'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createPin } from '../src/pin.mjs'
 import { startServer } from '../src/server.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -32,8 +33,11 @@ const actions = {
   avatar: async () => null,
   gameArt: async () => null,
 }
+const pin = createPin({ file: join(home, 'pin.json') })
+if (process.env.DEMO_PIN) pin.set(process.env.DEMO_PIN)
 await startServer({
   port,
+  pin,
   allow: ['loopback', 'tailscale', 'lan'],
   auth,
   actions,

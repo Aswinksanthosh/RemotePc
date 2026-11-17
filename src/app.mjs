@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url'
 import { createActions } from './actions.mjs'
 import { createAuth } from './auth.mjs'
 import { loadConfig } from './config.mjs'
+import { createPin } from './pin.mjs'
 import { connect } from './probe.mjs'
 import { dataPaths, RESTART_CODE } from './paths.mjs'
 import { startServer } from './server.mjs'
@@ -87,6 +88,7 @@ export async function startApp({
     host,
     allow: config.allow,
     auth,
+    pin: createPin({ file: paths.pin }),
     actions,
     config,
     others: () => knownPcs(paths.pcs),

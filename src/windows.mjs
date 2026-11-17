@@ -84,7 +84,7 @@ $n`
 
 // -- Start menu shortcuts ---------------------------------------------------------------
 
-export const SHORTCUTS = ['Pair-Phone', 'Fix-It', 'Update', 'Uninstall', 'Wake-on-LAN-Setup']
+export const SHORTCUTS = ['Pair-Phone', 'Set-PIN', 'Fix-It', 'Update', 'Uninstall', 'Wake-on-LAN-Setup']
 
 export const shortcutsScript = (appDir) => String.raw`$app = ${psQuote(appDir)}
 $dir = Join-Path ([Environment]::GetFolderPath('Programs')) 'RemortStartPc'
