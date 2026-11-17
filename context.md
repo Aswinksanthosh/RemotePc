@@ -51,6 +51,8 @@ Footer (2026-11-17, owner request): copyright line like the French repo, in MIT 
 
 Swipe card motion (2026-11-17, owner request): ONLY the swipe card moves. It follows the finger (rubber band toward a side with no PC), past 60 px or a quick flick (25 px in under 250 ms) it flies out (.18 s) while the colours change; the next PC's page opens with the card flying in (.28 s) and the rest of the page only fades slightly. A short slow drag snaps back. A drag never counts as a tap on a name. Tested in a real browser with mouse pointer events (preview).
 
+Tutorial pictures + Desktop shortcut (2026-11-17, owner request): README steps 3 and 4 have two DRAWN illustrations (`docs/img/step-1-address-bar.png`, `step-2-powershell.png`, made from HTML mock-ups, labelled as drawings; replace with real screenshots from a Windows PC when available). The installer puts a **Remote Start PC** shortcut to the data folder (`~\.remortstartpc`: settings, buttons.json, logs) on the Desktop (`desktopShortcutScript`); Uninstall removes it. Never run on real Windows yet (CI parses the script).
+
 ## To do / ideas
 
 - Run through the checklist above on a real Windows PC and a clean user; fix what breaks. Put real findings in this file.

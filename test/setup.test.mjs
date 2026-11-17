@@ -7,7 +7,7 @@ import { loadConfig, saveConfig } from '../src/config.mjs'
 import { dataPaths } from '../src/paths.mjs'
 import { cleanupPairingPages, newPairing, pairingPage, runSetup, setupTailscale, showPairingOnScreen, syncApp, waitForHealth } from '../src/setup.mjs'
 import { createUi } from '../src/ui.mjs'
-import { configureFirewall, findTailscale, firewallArgs, launcherScript, loginTailscale, psArgs, registerTaskScript, shortcutsScript, stopRemoteScript, tailscaleStatus } from '../src/windows.mjs'
+import { configureFirewall, desktopShortcutScript, findTailscale, removeTaskScript, firewallArgs, launcherScript, loginTailscale, psArgs, registerTaskScript, shortcutsScript, stopRemoteScript, tailscaleStatus } from '../src/windows.mjs'
 import { tempDir, writeTree } from './helpers.mjs'
 
 const decode = (args) => Buffer.from(args.at(-1), 'base64').toString('utf16le')
@@ -43,6 +43,9 @@ test('configureFirewall removes the old rule first, and a missing old rule is fi
 })
 
 test('the Windows scripts name the right things', () => {
+  const desk = desktopShortcutScript("C:\\Users\\me\\it's here")
+  assert.ok(desk.includes("$s.TargetPath = 'C:\\Users\\me\\it''s here'") && desk.includes("'Remote Start PC' + '.lnk'"))
+  assert.match(removeTaskScript, /Remote Start PC\.lnk/)
   assert.match(registerTaskScript('C:\\x\\start.ps1'), /\$name = 'RemortStartPc'/)
   assert.match(registerTaskScript('C:\\x\\start.ps1'), /-LogonType Interactive -RunLevel Limited/)
   assert.match(registerTaskScript('C:\\x\\start.ps1'), /-WindowStyle Hidden -File/)
@@ -234,6 +237,7 @@ test('the whole install on Windows: every step runs, the settings are right, not
   assert.ok(flat.some((c) => c.startsWith('netsh.exe advfirewall firewall add rule')))
   assert.ok(flat.some((c) => c.includes('Register-ScheduledTask')))
   assert.ok(flat.some((c) => c.includes('CreateShortcut')))
+  assert.ok(flat.some((c) => c.includes('GetFolderPath(\'Desktop\')') && c.includes(paths.home)), 'a Desktop shortcut to the program folder')
   assert.ok(flat.some((c) => c === 'schtasks.exe /run /tn RemortStartPc'))
   assert.ok(flat.some((c) => c.endsWith('set --unattended')))
   assert.equal(shown.length, 1)

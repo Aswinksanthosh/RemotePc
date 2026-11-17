@@ -21,11 +21,15 @@ A **Windows 10 or 11 PC** (signed in as an administrator), an **iPhone or Androi
 **On the PC**
 
 3. **Select the installation folder** in File Explorer (for example **Downloads**). Then click the **address bar**, type `powershell` and press **Enter**. PowerShell opens in that folder.
+
+   ![Step 3: open any folder, click the address bar, type powershell, press Enter (illustration)](docs/img/step-1-address-bar.png)
 4. Paste this and press **Enter** (right-click pastes):
 
    ```powershell
    irm https://raw.githubusercontent.com/Aswinksanthosh/RemotePc/main/install.ps1 | iex
    ```
+
+   ![Step 4: PowerShell opened in that folder, with the install line pasted (illustration)](docs/img/step-2-powershell.png)
 
 5. Click **Yes** when Windows asks. Wait a few minutes while it installs.
 6. A browser page opens for **Tailscale**: sign in with the **same Google account** as on the phone. No page? Open the link the installer prints (it starts with `https://login.tailscale.com`).
@@ -36,7 +40,9 @@ A **Windows 10 or 11 PC** (signed in as an administrator), an **iPhone or Androi
 8. Scan the QR code with the **Camera** app, tap the link, type your **PIN**. Your PC's name appears with a green dot.
 9. Add it to the home screen: **iPhone** (Safari) Share, then **Add to Home Screen**. **Android** menu (three dots), then **Add to Home screen**.
 
-**On the PC:** press **Enter** in the installer window. Done.
+**On the PC:** press **Enter** in the installer window. Done. A **Remote Start PC** shortcut to the program folder is now on your Desktop (your settings, `buttons.json` and logs are in it).
+
+*The two pictures above are drawings of the steps, not screenshots of your PC.*
 
 > The QR link is a key to your PC. Never share it or a screenshot of it. Lost a phone? Run **Pair-Phone** on the PC for a new code, and forget the old phone on the page (Paired phones).
 

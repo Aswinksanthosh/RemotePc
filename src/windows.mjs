@@ -73,6 +73,8 @@ $link = Join-Path ([Environment]::GetFolderPath('Startup')) ($name + '.lnk')
 if (Test-Path $link) { Remove-Item $link -Force }
 $dir = Join-Path ([Environment]::GetFolderPath('Programs')) 'RemortStartPc'
 if (Test-Path $dir) { Remove-Item $dir -Recurse -Force }
+$desk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Remote Start PC.lnk'
+if (Test-Path $desk) { Remove-Item $desk -Force }
 'removed'`
 
 /** Stops a running copy (the launcher and the node program), so files can be replaced. Prints how many were stopped. */
@@ -96,6 +98,18 @@ foreach ($n in @(${SHORTCUTS.map(psQuote).join(', ')})) {
   $s.WorkingDirectory = $env:USERPROFILE
   $s.Save()
 }
+'ok'`
+
+// -- a Desktop shortcut to the program folder (settings, your own buttons, logs) ------------------------
+
+export const DESKTOP_SHORTCUT = 'Remote Start PC'
+
+export const desktopShortcutScript = (folder) => String.raw`$desktop = [Environment]::GetFolderPath('Desktop')
+$ws = New-Object -ComObject WScript.Shell
+$s = $ws.CreateShortcut((Join-Path $desktop (${psQuote(DESKTOP_SHORTCUT)} + '.lnk')))
+$s.TargetPath = ${psQuote(folder)}
+$s.Description = 'Remote Start PC: settings, your own buttons and logs'
+$s.Save()
 'ok'`
 
 // -- the firewall -----------------------------------------------------------------------

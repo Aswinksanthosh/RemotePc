@@ -14,6 +14,7 @@ import { TASK_NAME } from './paths.mjs'
 import { qrToConsole, qrToSvg } from './qr.mjs'
 import {
   configureFirewall,
+  desktopShortcutScript,
   findTailscale,
   launcherScript,
   loginTailscale,
@@ -264,6 +265,12 @@ export async function runSetup({
       ui.ok('Start menu shortcuts added (search for Pair-Phone or Fix-It).')
     } catch {
       ui.warn('Could not add Start menu shortcuts. You can still use the .cmd files in the program folder.')
+    }
+    try {
+      await ps(desktopShortcutScript(paths.home))
+      ui.ok('A "Remote Start PC" shortcut to the program folder is on your Desktop.')
+    } catch {
+      ui.warn('Could not put a shortcut on the Desktop. The folder is ' + paths.home)
     }
   } else {
     ui.info('Not Windows: skipped the firewall, scheduled task and shortcuts.')
