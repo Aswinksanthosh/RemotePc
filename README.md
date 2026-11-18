@@ -30,10 +30,11 @@ A **Windows 10 or 11 PC**, an **iPhone or Android phone**, and a **Google accoun
 
 > [!IMPORTANT]
 > ### 🟪 Step 3: Scan the QR code with the phone
-> Scan with the **Camera** app and tap the link. Then **Add to Home Screen** (iPhone: Share. Android: menu). Press **Enter** on the laptop. Done.
+> The QR code is the **link that opens the remote page** on your phone. It only opens while the phone's **Tailscale app is Connected, signed in with the same Google account** as the laptop.
+> Scan it with the **Camera** app and tap the link. Then **Add to Home Screen** (iPhone: Share. Android: menu). Press **Enter** on the laptop. Done.
 
 > [!WARNING]
-> The QR link is the key to your laptop: never share it. Lost a phone? Run **Pair-Phone**.
+> The QR link is the key to your laptop: never share it or a picture of it. Lost a phone? Run **Pair-Phone** for a new code.
 
 *Phone pictures are a preview with pretend data. The installer prints where your files are (`C:\Users\<you>\.remortstartpc`).*
 
