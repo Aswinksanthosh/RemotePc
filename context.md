@@ -109,3 +109,5 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 
 ## Update prompt after every restart
 - app.mjs checks GitHub (latestSha vs installed.json sha) 30 s and 5 min after each program start; actions.info() returns update {available, boot}; the page (offerUpdate) asks once per run per phone: "A new version is ready. Update now?" Yes, update / Cancel (confirm box). Skipped on developer copies without installed.json.
+
+- README install is now 3 colour-coded steps using GitHub alert boxes (blue NOTE = Tailscale, green TIP = install, purple IMPORTANT = scan + save to home, orange WARNING = key). GitHub cannot colour plain text, only these boxes.

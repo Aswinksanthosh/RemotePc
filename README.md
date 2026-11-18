@@ -11,42 +11,39 @@
 
 A **Windows 10 or 11 PC** (signed in as an administrator), an **iPhone or Android phone**, and a **Google account**. About 10 minutes.
 
-## Install
+## Install: 3 steps
 
-**On the phone**
+> [!NOTE]
+> ### 🟦 Step 1: Tailscale, on your phone and your laptop
+> Tailscale is the private link between them (free).
+> 1. Install the **Tailscale** app: phone (App Store or Google Play) and laptop ([tailscale.com/download](https://tailscale.com/download)).
+> 2. Open it on both and tap **Sign in with Google**. Use the **same Google account** on both. Allow the **VPN** question on the phone.
+> 3. Check it says **Connected**.
 
-1. Install the **Tailscale** app (App Store or Google Play).
-2. Open it, tap **Sign in with Google**, allow the **VPN** question, and check it says **Connected**.
+> [!TIP]
+> ### 🟩 Step 2: Install on the laptop (choose one)
+> **A. The Setup file (easiest).** Open the [Releases page](https://github.com/Aswinksanthosh/RemotePc/releases/latest), download **RemotePc-Setup.exe** and double-click it. A blue "Windows protected your PC" box may show (the file is not code-signed): click **More info**, then **Run anyway**.
+>
+> **B. The command.** In File Explorer open any folder (for example **Downloads**), click the **address bar**, type `powershell` and press **Enter**. Paste this and press **Enter**:
+>
+> ```powershell
+> irm https://raw.githubusercontent.com/Aswinksanthosh/RemotePc/main/install.ps1 | iex
+> ```
+>
+> ![Open any folder, click the address bar, type powershell, press Enter (illustration)](docs/img/step-1-address-bar.png)
+>
+> Click **Yes** when Windows asks, then wait a few minutes. A **QR code** appears: leave it there.
 
-**On the PC**
+> [!IMPORTANT]
+> ### 🟪 Step 3: Scan the QR code with your phone (Tailscale connected)
+> 1. Scan the QR code with the **Camera** app and tap the link. Your laptop's name appears with a green dot.
+> 2. Save it to your home screen: **iPhone** (Safari): Share, then **Add to Home Screen**. **Android**: menu (three dots), then **Add to Home screen**.
+> 3. Back on the laptop, press **Enter** in the installer window. Done.
 
-3. **Easiest: the Setup file.** Open the [Releases page](https://github.com/Aswinksanthosh/RemotePc/releases/latest), download **RemotePc-Setup.exe** and double-click it. Windows may show a blue "Windows protected your PC" box (the file is not code-signed): click **More info**, then **Run anyway**. Then jump to step 5.
+> [!WARNING]
+> The QR link is a key to your laptop. Never share it or a screenshot of it. Lost a phone? Run **Pair-Phone** on the laptop for a new code, and forget the old phone on the page (Paired phones). There is no PIN question: you can add one later with **Set-PIN**.
 
-   **If that does not work: the PowerShell way.** Select the installation folder in File Explorer (for example **Downloads**), click the **address bar**, type `powershell` and press **Enter**. PowerShell opens in that folder.
-
-   ![Open any folder, click the address bar, type powershell, press Enter (illustration)](docs/img/step-1-address-bar.png)
-4. Paste this and press **Enter** (right-click pastes):
-
-   ```powershell
-   irm https://raw.githubusercontent.com/Aswinksanthosh/RemotePc/main/install.ps1 | iex
-   ```
-
-   ![PowerShell opened in that folder, with the install line pasted (illustration)](docs/img/step-2-powershell.png)
-
-5. Click **Yes** when Windows asks. Wait a few minutes while it installs.
-6. A browser page opens for **Tailscale**: sign in with the **same Google account** as on the phone. No page? Open the link the installer prints (it starts with `https://login.tailscale.com`).
-7. A **QR code** appears: leave it there. (There is no PIN question: your phone is protected by the secret key in the QR link. You can add a PIN later, see below.)
-
-**On the phone again**
-
-8. Scan the QR code with the **Camera** app and tap the link. Your PC's name appears with a green dot.
-9. Add it to the home screen: **iPhone** (Safari) Share, then **Add to Home Screen**. **Android** menu (three dots), then **Add to Home screen**.
-
-**On the PC:** press **Enter** in the installer window. Done. A **Remote Start PC** shortcut to the program folder is now on your Desktop (your settings, `buttons.json` and logs are in it).
-
-*The two pictures above are drawings of the steps, not screenshots of your PC.*
-
-> The QR link is a key to your PC. Never share it or a screenshot of it. Lost a phone? Run **Pair-Phone** on the PC for a new code, and forget the old phone on the page (Paired phones).
+*The pictures are drawings of the steps, not screenshots of your PC.*
 
 ## What the buttons do
 
