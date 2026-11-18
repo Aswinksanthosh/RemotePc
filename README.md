@@ -46,6 +46,8 @@ A **Windows 10 or 11 PC** (signed in as an administrator), an **iPhone or Androi
 
 *The pictures are drawings of the steps, not screenshots of your PC.*
 
+When the installer finishes it prints where everything is: the program is in `C:\Users\<you>\.remortstartpc\app`, your files in `C:\Users\<you>\.remortstartpc`.
+
 ## What the buttons do
 
 | Button | What it does |

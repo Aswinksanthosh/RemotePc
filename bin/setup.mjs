@@ -40,6 +40,12 @@ try {
   if (result.ok) {
     ui.title('All done')
     ui.say('  Your phone now controls this PC.')
+    ui.blank()
+    ui.say(`  ${ui.paint('magenta bold', 'Where everything is')}`)
+    ui.say(`  ${ui.paint('cyan', 'Program folder: ')}${paths.app}`)
+    ui.say(`  ${ui.paint('cyan', 'Your files:     ')}${paths.home}   (settings, buttons.json, logs; updates never touch it)`)
+    ui.say(`  ${ui.paint('cyan', 'Shortcuts:      ')}Desktop: "RemotePc Settings" and "Remote Start PC"; Start menu: RemortStartPc`)
+    ui.blank()
     ui.say('  - To pair another phone later: double-click Pair-Phone (or search for it in the Start menu).')
     ui.say('  - If something does not work: double-click Fix-It.')
     ui.say('  - To also START the PC from your phone when it is off: see docs/START-FROM-OFF.md')
