@@ -783,8 +783,8 @@ function render() {
     // -- bluetooth devices -----------------------------------------------------------------
     const heads = pc.headphones || []
     const bt = el('div', 'card')
-    bt.append(section('bluetooth', 'Bluetooth devices', heads.length ? 'paired with this PC' : ''))
-    if (!heads.length) bt.append(el('div', 'empty', 'No paired Bluetooth devices found. Pair your earbuds with this PC in Windows first.'))
+    const btIn = el('div', '')
+    if (!heads.length) btIn.append(el('div', 'empty', 'No paired Bluetooth devices found. Pair your earbuds with this PC in Windows first.'))
     else {
       const list = el('div', 'list')
       for (const name of heads) {
@@ -797,9 +797,10 @@ function render() {
         item.append(acts)
         list.append(item)
       }
-      bt.append(list)
-      bt.append(el('div', 'note', 'Earbuds must be in range and not busy with another device. Disconnect frees them for your phone.'))
+      btIn.append(list)
+      btIn.append(el('div', 'note', 'Earbuds must be in range and not busy with another device. Disconnect frees them for your phone.'))
     }
+    bt.append(acc('bt', heads.length ? 'Bluetooth devices (' + heads.length + ')' : 'Bluetooth devices', btIn, 'bluetooth'))
     const btCard = bt
 
     // -- sound output ----------------------------------------------------------------------
@@ -845,7 +846,7 @@ function render() {
     const apps = pc.apps || []
     if (apps.length) {
       const card = el('div', 'card')
-      card.append(section('grid', 'Apps'))
+      const appsIn = el('div', '')
       const g2 = el('div', 'apps')
       for (const name of apps) {
         const b = btn(name, () => act('app', name), false, undefined, 'tile')
@@ -853,7 +854,8 @@ function render() {
         b.append(el('div', 'letter', name.charAt(0).toUpperCase()), el('span', '', name))
         g2.append(b)
       }
-      card.append(g2)
+      appsIn.append(g2)
+      card.append(acc('apps', 'Apps (' + apps.length + ')', appsIn, 'grid'))
       p.append(card)
     }
     if ((pc.buttons || []).length) {

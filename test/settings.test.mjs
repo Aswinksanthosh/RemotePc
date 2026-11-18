@@ -284,3 +284,13 @@ test('startApps lists Start menu names, sorted, without helper entries (Windows 
   assert.deepEqual(await mk('win32').startApps(), ['Discord', 'OBS Studio', 'Zoom'])
   await assert.rejects(() => mk('linux').startApps(), /Windows/)
 })
+
+test('a phone (with its key) can read the apps list but never add or remove an app', async (t) => {
+  const { port, key, local } = await localServer(t)
+  const phone = (body) => fetch(`http://127.0.0.1:${port}/api/settings/apps`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` }, body: JSON.stringify(body) })
+  assert.equal((await phone({ op: 'list' })).status, 200)
+  assert.equal((await phone({ op: 'add', label: 'Bank', match: 'Bank App' })).status, 403)
+  await local('/api/settings/apps', { op: 'add', label: 'Notes', match: 'Notepad' })
+  assert.equal((await phone({ op: 'remove', label: 'Notes' })).status, 403)
+  assert.equal((await (await local('/api/settings/apps', { op: 'list' })).json()).apps.length, 1)
+})

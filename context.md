@@ -95,3 +95,6 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 - Settings button icon on the page is now a real cog (it looked like a brightness sun before). Owner feedback.
 
 - Phone page has ONE tile "Update App" (updates + restarts; the separate Restart tile was removed). PC Settings About card: "Update App" and "Restart" (needed after some settings). Desktop/Start-menu icon is now a cog.
+
+## Security rule (owner): phones can NOT add or remove apps
+- /api/settings/apps add/remove and /startapps need the PC-local Settings page (403 for a phone key); a phone may only list. Phone Settings shows a warning: apps can only be added on the PC. Page: Bluetooth devices and Apps are now drop-downs (acc).
