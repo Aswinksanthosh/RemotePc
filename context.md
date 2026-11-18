@@ -85,3 +85,6 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 
 ## Settings page tools
 - Settings page (on the PC only, not from a phone) About card has Update, Fix-It, Uninstall buttons: POST /api/settings/tool {tool: update|fixit|uninstall}, fixed whitelist in settings.mjs TOOLS, opens the .cmd in its own window.
+
+## App picker (PC Settings page only)
+- My apps card on the PC: search the Start menu list (GET-like POST /api/settings/startapps, local only) and Add, or drop a shortcut on the dashed box (browser only gives the file NAME, matched to the Start menu list; no match -> pick from the list). Games are NOT listed here: all games only via the Steam drop-down (owner decision).

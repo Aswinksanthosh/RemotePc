@@ -278,3 +278,9 @@ test('openTool opens only the three fixed tools, on Windows', async () => {
   const linux = createSettings({ file: '/x/config.json', config: { allow: [] }, pin: { isSet: () => false }, run: async () => {}, platform: 'linux', appDir: '/app' })
   await assert.rejects(() => linux.openTool('update'), /Windows/)
 })
+
+test('startApps lists Start menu names, sorted, without helper entries (Windows only)', async () => {
+  const mk = (platform) => createSettings({ file: '/x/config.json', config: { allow: [] }, pin: { isSet: () => false }, run: async () => 'Zoom\r\nOBS Studio\r\nOBS Studio\r\nUninstall OBS\r\nDiscord\r\n', platform })
+  assert.deepEqual(await mk('win32').startApps(), ['Discord', 'OBS Studio', 'Zoom'])
+  await assert.rejects(() => mk('linux').startApps(), /Windows/)
+})

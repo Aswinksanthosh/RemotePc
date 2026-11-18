@@ -177,8 +177,77 @@ async function appsCard() {
   }, false, undefined, 'go'))
   c.append(form)
   c.append(el('div', 'note', 'Type the name exactly as the Windows Start menu shows it. The phone can only press the apps in this list.'))
+  if (onThePc) c.append(pickerBox(draw))
   draw()
   return c
+}
+
+// On the PC only: pick from every app this laptop has, or drop an app's shortcut on the box. A web page never learns
+// where a dropped file lives, only its name, so the name is matched against the Start menu list the laptop gives us.
+function pickerBox(draw) {
+  const box = el('div', 'pinform')
+  const zone = el('div', 'drop', 'Drop an app shortcut here, or pick from the list')
+  const search = el('input', 'field')
+  search.type = 'text'
+  search.maxLength = 40
+  search.placeholder = 'Search the apps on this laptop'
+  const results = el('div', 'list')
+  let names = null
+  const add = async (name) => {
+    try {
+      draw((await call('/api/settings/apps', { op: 'add', label: name.slice(0, 30), match: name })).apps)
+      say2('Added ' + name + '. It shows in Open apps.')
+    } catch (err) {
+      say2(err.message, true)
+    }
+  }
+  const show = () => {
+    results.textContent = ''
+    const q = search.value.trim().toLowerCase()
+    for (const n of (names || []).filter((x) => !q || x.toLowerCase().indexOf(q) >= 0).slice(0, 12)) {
+      const item = el('div', 'item')
+      item.append(el('div', 'nm', n))
+      const acts = el('div', 'acts')
+      acts.append(btn('Add', () => add(n), false, undefined, 'go'))
+      item.append(acts)
+      results.append(item)
+    }
+    if (names && !results.childNodes.length) results.append(el('div', 'empty', 'Nothing matches. Games belong in the Steam list, not here.'))
+  }
+  const load = async () => {
+    if (names) return
+    try {
+      names = (await call('/api/settings/startapps')).names
+    } catch (err) {
+      say2(err.message, true)
+      names = []
+    }
+    show()
+  }
+  search.addEventListener('focus', load)
+  search.addEventListener('input', () => load().then(show))
+  zone.addEventListener('dragover', (e) => {
+    e.preventDefault()
+    zone.classList.add('over')
+  })
+  zone.addEventListener('dragleave', () => zone.classList.remove('over'))
+  zone.addEventListener('drop', async (e) => {
+    e.preventDefault()
+    zone.classList.remove('over')
+    await load()
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]
+    if (!f) return say2('Drop the shortcut file itself (from the Desktop or Start menu folder).', true)
+    const base = f.name.replace(/\.(lnk|exe|url|appref-ms)$/i, '').toLowerCase()
+    const hit = names.find((n) => n.toLowerCase() === base) || names.find((n) => n.toLowerCase().indexOf(base) >= 0 || base.indexOf(n.toLowerCase()) >= 0)
+    if (hit) add(hit)
+    else {
+      search.value = base
+      show()
+      say2('Could not match "' + base + '" for sure. Pick it from the list below.', true)
+    }
+  })
+  box.append(zone, search, results)
+  return box
 }
 
 function addPhoneCard() {

@@ -250,6 +250,10 @@ export async function startServer({
             if (!who.local) return json(res, 403, { error: 'Open Settings on the PC itself to use this.' })
             return json(res, 200, { message: await settings.openTool(String(body.tool ?? '')) })
           }
+          if (path === '/api/settings/startapps') {
+            if (!who.local) return json(res, 403, { error: 'Open Settings on the PC itself to pick apps from this laptop.' })
+            return json(res, 200, { names: await settings.startApps() })
+          }
           if (path === '/api/settings/apps') return json(res, 200, settings.apps(body))
           if (path === '/api/settings/sensors') return json(res, 200, { lines: await settings.sensors() })
           if (path === '/api/settings/task') return json(res, 200, { state: await settings.setTask(body.on === true) })

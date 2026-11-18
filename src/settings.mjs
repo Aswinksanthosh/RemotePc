@@ -74,6 +74,15 @@ export function createSettings({ file, appsFile = '', config, pin, run, platform
       return []
     }
   }
+  /** Every app the Start menu lists, so the PC's own Settings page can offer them (names only, sorted, no helper entries). */
+  async function startApps() {
+    if (!windows) throw new Error('This works on Windows only.')
+    const out = await run('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', Buffer.from('Get-StartApps | ForEach-Object { $_.Name }', 'utf16le').toString('base64')], { timeout: 20_000 })
+    const noise = /\b(uninstall|readme|help|documentation|release notes|website|license|manual)\b/i
+    const names = out.split(/\r?\n/).map((l) => l.trim()).filter((l) => l && l.length <= 60 && !CONTROL.test(l) && !noise.test(l))
+    return [...new Set(names)].sort((a, b) => a.localeCompare(b)).slice(0, 400)
+  }
+
   /** { op: 'list' } | { op: 'add', label, match } | { op: 'remove', label } -> { apps } */
   function apps(body) {
     if (!appsFile) throw new Error('Custom apps are not available here.')
@@ -97,6 +106,7 @@ export function createSettings({ file, appsFile = '', config, pin, run, platform
 
   return {
     apps,
+    startApps,
     sensors,
     async get() {
       const { name, theme, order, pinHours, steamAtStart, steamDelay, startMode, accent, allow, limiterOn, cpuLimit, gpuLimit } = config

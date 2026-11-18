@@ -233,3 +233,6 @@ select.field{max-width:190px}
 @keyframes pulse{0%,100%{box-shadow:0 0 3px 0 #38d27a}50%{box-shadow:0 0 11px 3px #38d27a}}
 @keyframes ping{0%{box-shadow:0 0 0 0 var(--a)}100%{box-shadow:0 0 0 14px transparent}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+.drop{border:2px dashed var(--muted);border-radius:12px;padding:18px;text-align:center;color:var(--muted);font-size:.9rem}
+.drop.over{border-color:var(--accent,#4da3ff);color:var(--text,#fff)}
