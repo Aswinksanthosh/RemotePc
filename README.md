@@ -1,10 +1,11 @@
 # RemotePc
 
-**Control your Windows PC from your phone.** Lock it, put the screen off, restart it, open Steam and start a game, change the volume, open apps, and more. One tap to install, one QR code to pair. No account with us, no cloud, no subscription.
+**Control your Windows PC from your phone.** Lock it, put the screen off, restart it, open Steam and start a game, change the volume and sound output, connect your earbuds, open apps, and more. One tap to install, one QR code to pair. No account with us, no cloud, no subscription.
 
 <p>
 <img src="docs/img/phone-home.png" alt="The phone page: power menu, Lock, Screen off, Steam with game picker" width="260">
-<img src="docs/img/phone-more.png" alt="The phone page: media keys, open apps, your own buttons" width="260">
+<img src="docs/img/phone-more.png" alt="The phone page: Bluetooth devices and Apps drop-downs, media keys, power mode" width="260">
+<img src="docs/img/phone-settings.png" alt="The Settings page: startup, temperature limit" width="260">
 </p>
 
 ## What you need
@@ -49,19 +50,21 @@ A **Windows 10 or 11 PC** (signed in as an administrator), an **iPhone or Androi
 
 | Button | What it does |
 |---|---|
-| Power icon (tap, or hold and slide) | Lock, Screen off, Sleep, Restart, Turn off, Cancel turn off |
-| Lock / Screen off | Locks the PC / turns the screen off (move the mouse to bring it back) |
-| Steam | Open Steam, Big Picture, pick one of your installed games and start it, close the running game, switch Steam account |
-| Settings (gear, top right; or **Settings** in the Start menu on the PC) | Start with Windows, open Steam Big Picture at startup, power mode at startup, name, theme, PIN, home Wi-Fi access |
-| Theme | Pick one of three looks (Neon, Tactical, Clean). Several PCs? A swipe card above Steam moves between them |
+| Power menu (power icon, top right) and the Power card | Lock, Screen off, Sleep, Restart, Turn off, Cancel turn off. Sleep, Restart and Turn off ask "are you sure?" first |
+| Steam | Open Steam, Big Picture, pick one of your installed games and start it, close the running game, switch Steam account. Every game is started from this drop-down only. Starting asks first |
+| Sound output | Choose where the sound plays (speakers, headphones, monitor) |
+| Bluetooth devices (drop-down) | Connect or disconnect a paired Bluetooth device (earbuds) on this PC, so it is free for your phone or another PC |
 | Media | Previous, play/pause, next, volume up/down, mute |
-| Headphones | Connect or disconnect a paired Bluetooth device (earbuds) on this PC, so it is free for your phone or another PC |
-| Audio output | Choose where the sound plays (speakers, headphones, monitor) |
-| Open apps | Spotify (if installed). Add your own on the PC, in Settings |
+| Power mode | Efficiency, Balanced or Performance (Windows) |
+| Apps (drop-down) | **Spotify** (if installed) plus any apps you add **on the PC**. Opening an app asks first |
 | My buttons | Your own buttons that run a command you wrote (optional, see [docs/CUSTOMIZE.md](docs/CUSTOMIZE.md)) |
-| System | PC status (battery, graphics card, uptime) and one-tap **Update App** (updates and restarts by itself) |
+| Theme | Pick one of three looks (Neon, Tactical, Clean). Several PCs? A swipe card above Steam moves between them |
+| Settings (cog, top right) | Start with Windows, Steam Big Picture at startup, power mode at startup, temperature limit, name, theme, PIN, home Wi-Fi access |
+| System | PC status (battery, graphics card, uptime) and **Update App** (updates and restarts by itself) |
 
-Risky buttons (Turn off, Restart, Close game, ...) must be **held** for a moment, or ask "are you sure?". Nothing you type on the phone is ever run as a command: the phone can only press buttons that exist.
+Risky buttons ask first, and a few need a short hold. Nothing you type on the phone is ever run as a command: the phone can only press buttons that exist. **A phone can never add or remove apps**; that is only possible on the PC itself, so a lost phone cannot open a sensitive app.
+
+**Updates:** every time the PC starts, the program checks for a newer version. If there is one, the phone page asks **"A new version is ready. Update now?"** once per start (Yes, update / Cancel).
 
 ## Starting the PC when it is turned off
 
@@ -88,7 +91,7 @@ Everyone installs on their own PC and pairs their own phone. Nothing is shared b
 | Update to the newest version | Press **Update App** on the phone page (System), or double-click **Update** |
 | Something does not work | Double-click **Fix-It**. It checks everything and tells you what to do |
 | Remove it | Double-click **Uninstall** |
-| Add my own buttons, apps or games | [docs/CUSTOMIZE.md](docs/CUSTOMIZE.md) |
+| Add my own buttons or apps (apps are added on the PC) | [docs/CUSTOMIZE.md](docs/CUSTOMIZE.md) |
 | Change the colour or the name on the page | [docs/CUSTOMIZE.md](docs/CUSTOMIZE.md) |
 
 The **Pair-Phone**, **Fix-It**, **Update** and **Uninstall** shortcuts are in the Start menu under *RemortStartPc* after the install.
@@ -96,7 +99,7 @@ The **Pair-Phone**, **Fix-It**, **Update** and **Uninstall** shortcuts are in th
 ## Is it safe?
 
 - **Nothing is opened to the internet.** Your phone talks to your PC through Tailscale (encrypted, private to your own devices). The program refuses every connection that does not come from your own devices.
-- **A key and a PIN.** Each phone holds a long random key (in the link of the QR code) and must also type your PIN. The PC stores only a fingerprint of the key and a salted hash of the PIN. Five wrong PINs lock that device out for five minutes. You can forget any phone at any time.
+- **A key, and an optional PIN.** Each phone holds a long random key (in the link of the QR code). You can also add a PIN, which the phone then asks for. The PC stores only a fingerprint of the key and a salted hash of the PIN. Five wrong PINs lock that device out for five minutes. You can forget any phone at any time.
 - **Fixed buttons only.** The phone can only ask for the actions in a fixed list. It cannot run commands, read files or type on the PC.
 - **No accounts, no tracking.** Your phone and PC talk directly. The only thing that goes out is the update check (to GitHub) when you press Update.
 
@@ -118,11 +121,15 @@ How it works, the files, how to run the tests: [docs/HOW-IT-WORKS.md](docs/HOW-I
 
 ## Settings on the PC itself
 
-Double-click **Settings** (Start menu, or the desktop folder) to open the same Settings page in a browser **on the PC**. No phone needed, no pairing key; if you set a PIN it asks for it. There you can also **add a phone** (it shows a new QR code), add your own **apps** to the Open apps list, and set the **temperature limiter**.
+Double-click the **RemotePc Settings** shortcut (cog icon) on the Desktop, or **Settings** in the Start menu. It opens the Settings page in a browser **on the PC**. No phone needed, no pairing key; if you set a PIN it asks for it. Only here you can:
 
-## Temperature limiter (optional, off by default)
+- **Add a phone** (it shows a new QR code).
+- **Add apps** to the phone's Apps list: search the apps on the PC and press Add, or drop an app's shortcut on the box. Games are not added here: they live in the Steam drop-down.
+- Press **Update App**, **Fix-It** or **Uninstall**, and set the **temperature limiter**.
 
-Switch it on in Settings and choose a CPU limit and a graphics card limit in degrees. Below the limits nothing is restricted and the CPU and graphics card boost as usual. Above a limit the speed is lowered a little at a time until it is cool again. A laptop starts at 70, a handheld (ROG Ally) at 90. It needs administrator rights **once, at install time**; run Install.cmd again to add it to an existing install. Read **[docs/SECURITY.md](docs/SECURITY.md)** and the notes in [docs/CUSTOMIZE.md](docs/CUSTOMIZE.md) first: reading the CPU temperature is not exact on every PC, so use **Check temperature sensors** and compare with another monitor.
+## Temperature limiter (optional)
+
+Switch it on in Settings and choose a CPU limit and a graphics card limit in degrees. Below the limits nothing is restricted and the CPU and graphics card boost as usual. Above a limit the speed is lowered a little at a time until it is cool again. A laptop starts at 70, a handheld (ROG Ally) at 90. It needs administrator rights **once, at install time**; run the installer again to add it to an existing install. Read **[docs/SECURITY.md](docs/SECURITY.md)** and the notes in [docs/CUSTOMIZE.md](docs/CUSTOMIZE.md) first: reading the CPU temperature is not exact on every PC, so use **Check temperature sensors** and compare with another monitor.
 
 ## Ideas, feedback, bugs
 

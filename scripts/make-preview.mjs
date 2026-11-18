@@ -14,7 +14,7 @@ mkdirSync(outDir, { recursive: true })
 const base = {
   version: '0.1.0', control: true, mode: 'balanced', gameArt: [], buttons: ['my tests', 'open code'],
   headphones: ['OnePlus Buds Pro', 'AirPods Pro'], outputs: ['Speakers (Realtek Audio)', 'OnePlus Buds Pro Stereo', 'Monitor (HDMI)'],
-  apps: ['Discord', 'Spotify', 'Chrome', 'Epic Games', 'OBS Studio', 'Claude'],
+  apps: ['Spotify'],
 }
 const pcs = {
   ROG: { ...base, name: 'ROG', model: 'ROG Strix G16', order: 2, games: ['Counter-Strike 2', 'Hades', 'Portal 2', 'PUBG: BATTLEGROUNDS'], steam: { user: 'DemoPlayer', playing: '', id: '1', avatar: false, accounts: [{ id: '1', name: 'DemoPlayer' }, { id: '2', name: 'Second Account' }] } },
