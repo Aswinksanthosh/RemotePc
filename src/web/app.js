@@ -758,8 +758,8 @@ function render() {
       ban.append(img, gdd)
       ensureGameArt(img, picked.game, (pc.gameArt || []).includes(picked.game))
       steam.append(ban)
-      steam.append(rowOf(btn('Start game', () => act('steam_game', picked.game), !games.length, undefined, 'go'), btn('Close game', run('close_game'), false, 'Close the running game?')))
-      steam.append(rowOf(btn('Open Steam', run('steam_open')), btn('Big Picture', run('steam_bigpicture'))))
+      steam.append(rowOf(btn('Start game', () => confirmBox('Start ' + picked.game + '?', 'The game opens on this PC.', 'Start', () => act('steam_game', picked.game)), !games.length, undefined, 'go'), btn('Close game', run('close_game'), false, 'Close the running game?')))
+      steam.append(rowOf(btn('Open Steam', () => confirmBox('Open Steam?', 'Steam opens on this PC.', 'Open', run('steam_open'))), btn('Big Picture', () => confirmBox('Open Steam Big Picture?', 'The full-screen Steam opens on this PC.', 'Open', run('steam_bigpicture')))))
       p.append(steam)
     }
 
@@ -793,7 +793,7 @@ function render() {
         ic.append(icon('bluetooth'))
         item.append(ic, el('div', 'nm', name))
         const acts = el('div', 'acts')
-        acts.append(btn('Connect', () => act('bt_connect', name), false, undefined, 'go'), btn('Disconnect', () => act('bt_disconnect', name)))
+        acts.append(btn('Connect', () => confirmBox('Connect ' + name + '?', 'Sound from this PC moves to it.', 'Connect', () => act('bt_connect', name)), false, undefined, 'go'), btn('Disconnect', () => confirmBox('Disconnect ' + name + '?', 'It stops playing sound from this PC.', 'Disconnect', () => act('bt_disconnect', name))))
         item.append(acts)
         list.append(item)
       }
@@ -849,7 +849,7 @@ function render() {
       const appsIn = el('div', '')
       const g2 = el('div', 'apps')
       for (const name of apps) {
-        const b = btn(name, () => act('app', name), false, undefined, 'tile')
+        const b = btn(name, () => confirmBox('Open ' + name + '?', name + ' opens on this PC.', 'Open', () => act('app', name)), false, undefined, 'tile')
         b.textContent = ''
         b.append(el('div', 'letter', name.charAt(0).toUpperCase()), el('span', '', name))
         g2.append(b)

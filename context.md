@@ -102,3 +102,5 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 - Owner decision: the installer no longer asks for a PIN (no PIN by default; Set-PIN / Settings add one later; RSP_PIN env still works). README updated.
 
 - Owner decision: built-in Open apps list (APP_CANDIDATES) is Spotify only. Everything else is added on the PC (Settings > My apps).
+
+- Owner decision: every crucial action asks first. Confirm box (confirmBox) for Start game, Open Steam, Big Picture, each app, Bluetooth connect/disconnect; hold-to-confirm for power/close game/update/my buttons. Lock, Screen off, media, volume, theme stay one tap.
