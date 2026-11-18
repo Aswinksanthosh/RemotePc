@@ -650,6 +650,27 @@ function rowOf(...kids) {
   return r
 }
 
+let askedUpdate = false
+// After each restart of the PC the program checks for a newer version; the first page load of that run asks once.
+function offerUpdate(pc) {
+  const u = pc && pc.update
+  if (askedUpdate || !u || !u.available) return
+  let seen = ''
+  try {
+    seen = sessionStorage.getItem('updateAsked') || ''
+  } catch {
+    seen = ''
+  }
+  if (seen === u.boot) return
+  askedUpdate = true
+  try {
+    sessionStorage.setItem('updateAsked', u.boot)
+  } catch {
+    // Ask again next time: harmless.
+  }
+  confirmBox('A new version is ready', 'Update now? The app restarts by itself and the page comes back in about 15 seconds.', 'Yes, update', () => act('update'))
+}
+
 function render() {
   const pc = data.pc
   const app = $('app')
@@ -660,6 +681,7 @@ function render() {
   const others0 = data.others || []
   const order = pcsInOrder(pc, others0)
   const run = (action, arg) => () => act(action, arg)
+  offerUpdate(pc)
 
   // -- top: name, status, power menu ----------------------------------------------------
   const top = el('div', 'top on')

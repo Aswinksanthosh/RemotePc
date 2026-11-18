@@ -106,3 +106,6 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 - Owner decision: every crucial action asks first. Confirm box (confirmBox) for Start game, Open Steam, Big Picture, each app (NOT Bluetooth: owner said no); hold-to-confirm for power/close game/update/my buttons. Lock, Screen off, media, volume, theme stay one tap.
 
 - Sleep, Restart and Turn off now ask with the same confirm box everywhere (top power menu and the Power card), not hold-to-confirm.
+
+## Update prompt after every restart
+- app.mjs checks GitHub (latestSha vs installed.json sha) 30 s and 5 min after each program start; actions.info() returns update {available, boot}; the page (offerUpdate) asks once per run per phone: "A new version is ready. Update now?" Yes, update / Cancel (confirm box). Skipped on developer copies without installed.json.

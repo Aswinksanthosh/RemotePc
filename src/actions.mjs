@@ -284,6 +284,7 @@ export function createActions({
   update = async () => {
     throw new Error('Updating is not available here.')
   },
+  updateInfo = () => ({ available: false, boot: '' }),
   launch = runLaunch,
   run = runCommand,
   spawnFn = spawn,
@@ -680,6 +681,7 @@ export function createActions({
         name: hostname(),
         model: modelName,
         version,
+        update: updateInfo(),
         games: games.map((g) => g.name),
         gameArt: await artList(),
         buttons: Object.keys(buttons()),

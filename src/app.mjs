@@ -17,7 +17,7 @@ import { runCommand } from './actions.mjs'
 import { connect } from './probe.mjs'
 import { dataPaths, RESTART_CODE } from './paths.mjs'
 import { startServer } from './server.mjs'
-import { installUpdate, repoSlug } from './updater.mjs'
+import { installUpdate, latestSha, repoSlug } from './updater.mjs'
 import { qrToSvg } from './qr.mjs'
 import { newPairing } from './setup.mjs'
 import { networkInterfaces } from 'node:os'
@@ -75,12 +75,17 @@ export async function startApp({
     return `Updated${r.sha ? ` to ${r.sha.slice(0, 7)}` : ''}. Restarting: reload this page in about 15 seconds.`
   }
 
+  // Looked up once each time the program starts (so after every restart of the PC): is there a newer version on GitHub?
+  // The phone page then asks "Update now? Yes / Not now". `boot` tells a phone it was already asked during this run.
+  const updateState = { available: false, boot: Date.now().toString(36) }
+
   const actions =
     platform === 'win32'
       ? createActions({
           files: { buttons: paths.buttons, apps: paths.apps, games: paths.games, switchLog: paths.switchLog, mode: paths.mode },
           version,
           update,
+          updateInfo: () => ({ ...updateState }),
           restart: () => {
             // The launcher starts the program again as soon as this one exits.
             setTimeout(() => exit(RESTART_CODE), 1500)
@@ -115,6 +120,21 @@ export async function startApp({
 
   // Warm the slow lookups (Start menu, model name, Steam games) so the first phone does not wait for them.
   if (actions) actions.info().catch(() => {})
+  if (actions) {
+    const check = async () => {
+      let current = ''
+      try {
+        current = String(JSON.parse(readFileSync(paths.installed, 'utf8')).sha ?? '')
+      } catch {
+        return // Not installed by the updater (for example a developer copy): nothing to compare.
+      }
+      const sha = await latestSha(repoSlug(pkg), 'main', fetchFn)
+      updateState.available = Boolean(sha && current && sha !== current)
+    }
+    // A little after start, so a boot with no network yet still gets an answer, and tried again once.
+    setTimeout(() => check().catch(() => {}), 30_000).unref?.()
+    setTimeout(() => check().catch(() => {}), 5 * 60_000).unref?.()
+  }
   // Things to do once per boot (set on the Settings page): a power mode, Steam Big Picture.
   runStartup({ config, actions, stampFile: paths.startup, read: (f) => readFileSync(f, 'utf8'), write: (f, t) => writeAtomic(f, t), log }).catch(() => {})
 

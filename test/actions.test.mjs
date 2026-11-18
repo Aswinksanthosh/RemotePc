@@ -273,3 +273,9 @@ test('power modes: the right Windows command, remembered for the page, with fall
   assert.deepEqual(calls.at(-1), ['powercfg.exe', '/setactive', '381b4222-f694-41f0-9685-ff5bb260df2e'])
   assert.ok(actions)
 })
+
+test('info tells the page whether an update is waiting', async (t) => {
+  const a = lab(t, { extra: { updateInfo: () => ({ available: true, boot: 'abc' }) } })
+  assert.deepEqual((await a.actions.info()).update, { available: true, boot: 'abc' })
+  assert.deepEqual((await lab(t).actions.info()).update, { available: false, boot: '' })
+})
