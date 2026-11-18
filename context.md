@@ -127,3 +127,5 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 
 ## Security rule CHANGED (owner, 2026-11-18)
 - Phones MAY now add and remove apps (Settings > My apps) picking from the laptop Start-menu list (/api/settings/startapps, /apps open to any paired phone). The earlier "PC only" rule and the yellow warning were removed. Drop-a-shortcut box still PC only. Update/Fix-It/Uninstall buttons remain PC only.
+
+- My apps card: the typed name/Start-menu fields and "Add app" button were removed (owner); apps are added only by picking from the laptop list (or dropping a shortcut on the PC).

@@ -134,7 +134,7 @@ async function appsCard() {
       }
     }
     list.textContent = ''
-    if (!apps.length) list.append(el('div', 'empty', 'No apps added yet. Add one below.'))
+    if (!apps.length) list.append(el('div', 'empty', 'No apps added yet. Pick one below.'))
     for (const a of apps) {
       const item = el('div', 'item')
       const ic = el('div', 'ic')
@@ -155,28 +155,6 @@ async function appsCard() {
     }
   }
   c.append(list)
-  const form = el('div', 'pinform')
-  const name = el('input', 'field')
-  name.type = 'text'
-  name.maxLength = 30
-  name.placeholder = 'Name on the button, for example VS Code'
-  const match = el('input', 'field')
-  match.type = 'text'
-  match.maxLength = 60
-  match.placeholder = 'Exact name in the Start menu, for example Visual Studio Code'
-  form.append(name, match, btn('Add app', async () => {
-    try {
-      const j = await call('/api/settings/apps', { op: 'add', label: name.value, match: match.value })
-      name.value = ''
-      match.value = ''
-      say2('Added. It shows in Open apps.')
-      draw(j.apps)
-    } catch (err) {
-      say2(err.message, true)
-    }
-  }, false, undefined, 'go'))
-  c.append(form)
-  c.append(el('div', 'note', 'Type the name exactly as the Windows Start menu shows it. The phone can only press the apps in this list.'))
   c.append(pickerBox(draw))
   draw()
   return c
