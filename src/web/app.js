@@ -709,9 +709,9 @@ function render() {
     g.append(
       tile('lock', 'Lock', run('lock')),
       tile('screen', 'Screen off', run('screen_off')),
-      tile('moon', 'Sleep', run('sleep'), { sure: 'Sleep the PC?' }),
-      tile('restart', 'Restart', run('restart'), { sure: 'Restart the PC?' }),
-      tile('power', 'Turn off', run('shutdown'), { sure: 'Turn off the PC?', cls: 'dangerous' }),
+      tile('moon', 'Sleep', () => confirmBox('Sleep the PC?', 'A sleeping PC cannot be reached from the phone until you wake it.', 'Sleep', run('sleep'))),
+      tile('restart', 'Restart', () => confirmBox('Restart the PC?', 'It restarts in 10 seconds and comes back by itself.', 'Restart', run('restart'), true)),
+      tile('power', 'Turn off', () => confirmBox('Turn off the PC?', 'It turns off in 15 seconds and stays off until you start it again.', 'Turn off', run('shutdown'), true), { cls: 'dangerous' }),
       tile('stop', 'Cancel off', run('shutdown_cancel')),
     )
     quick.append(g)
