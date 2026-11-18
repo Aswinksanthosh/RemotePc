@@ -124,3 +124,6 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 - REMOVED the Setup.exe (Inno Setup file and release workflow): owner decided the PowerShell command is enough. README install is short: 3 callout boxes only. (If a v0.1.0 release/tag exists on GitHub, the owner can delete it there.)
 
 - README step 2: no address-bar/folder trick any more: install.ps1 uses only %TEMP% and never the current folder (checked), so "Windows key, type powershell, Enter, paste" is enough.
+
+## Security rule CHANGED (owner, 2026-11-18)
+- Phones MAY now add and remove apps (Settings > My apps) picking from the laptop Start-menu list (/api/settings/startapps, /apps open to any paired phone). The earlier "PC only" rule and the yellow warning were removed. Drop-a-shortcut box still PC only. Update/Fix-It/Uninstall buttons remain PC only.

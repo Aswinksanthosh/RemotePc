@@ -143,7 +143,7 @@ async function appsCard() {
       nm.append(el('small', '', 'Start menu: ' + a.match))
       item.append(ic, nm)
       const acts = el('div', 'acts')
-      if (onThePc) acts.append(btn('Remove', async () => {
+      acts.append(btn('Remove', async () => {
         try {
           draw((await call('/api/settings/apps', { op: 'remove', label: a.label })).apps)
         } catch (err) {
@@ -155,34 +155,29 @@ async function appsCard() {
     }
   }
   c.append(list)
-  if (!onThePc) {
-    const w = el('div', 'warn', 'Warning: apps can only be added or removed on the PC itself, never from a phone. This keeps a lost or borrowed phone from opening a sensitive app. On the PC, open the RemotePc Settings shortcut on the Desktop.')
-    c.append(w)
-  } else {
   const form = el('div', 'pinform')
-    const name = el('input', 'field')
-    name.type = 'text'
-    name.maxLength = 30
-    name.placeholder = 'Name on the button, for example VS Code'
-    const match = el('input', 'field')
-    match.type = 'text'
-    match.maxLength = 60
-    match.placeholder = 'Exact name in the Start menu, for example Visual Studio Code'
-    form.append(name, match, btn('Add app', async () => {
-      try {
-        const j = await call('/api/settings/apps', { op: 'add', label: name.value, match: match.value })
-        name.value = ''
-        match.value = ''
-        say2('Added. It shows in Open apps.')
-        draw(j.apps)
-      } catch (err) {
-        say2(err.message, true)
-      }
-    }, false, undefined, 'go'))
-    c.append(form)
-    c.append(el('div', 'note', 'Type the name exactly as the Windows Start menu shows it. The phone can only press the apps in this list.'))
+  const name = el('input', 'field')
+  name.type = 'text'
+  name.maxLength = 30
+  name.placeholder = 'Name on the button, for example VS Code'
+  const match = el('input', 'field')
+  match.type = 'text'
+  match.maxLength = 60
+  match.placeholder = 'Exact name in the Start menu, for example Visual Studio Code'
+  form.append(name, match, btn('Add app', async () => {
+    try {
+      const j = await call('/api/settings/apps', { op: 'add', label: name.value, match: match.value })
+      name.value = ''
+      match.value = ''
+      say2('Added. It shows in Open apps.')
+      draw(j.apps)
+    } catch (err) {
+      say2(err.message, true)
     }
-  if (onThePc) c.append(pickerBox(draw))
+  }, false, undefined, 'go'))
+  c.append(form)
+  c.append(el('div', 'note', 'Type the name exactly as the Windows Start menu shows it. The phone can only press the apps in this list.'))
+  c.append(pickerBox(draw))
   draw()
   return c
 }
@@ -191,7 +186,7 @@ async function appsCard() {
 // where a dropped file lives, only its name, so the name is matched against the Start menu list the laptop gives us.
 function pickerBox(draw) {
   const box = el('div', 'pinform')
-  const zone = el('div', 'drop', 'Drop an app shortcut here, or pick from the list')
+  const zone = el('div', 'drop', onThePc ? 'Drop an app shortcut here, or pick from the list' : 'Pick an app from this laptop below')
   const search = el('input', 'field')
   search.type = 'text'
   search.maxLength = 40
@@ -231,7 +226,7 @@ function pickerBox(draw) {
   }
   search.addEventListener('focus', load)
   search.addEventListener('input', () => load().then(show))
-  zone.addEventListener('dragover', (e) => {
+  if (onThePc) zone.addEventListener('dragover', (e) => {
     e.preventDefault()
     zone.classList.add('over')
   })

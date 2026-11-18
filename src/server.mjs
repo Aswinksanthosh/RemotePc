@@ -250,15 +250,9 @@ export async function startServer({
             if (!who.local) return json(res, 403, { error: 'Open Settings on the PC itself to use this.' })
             return json(res, 200, { message: await settings.openTool(String(body.tool ?? '')) })
           }
-          if (path === '/api/settings/startapps') {
-            if (!who.local) return json(res, 403, { error: 'Open Settings on the PC itself to pick apps from this laptop.' })
-            return json(res, 200, { names: await settings.startApps() })
-          }
-          if (path === '/api/settings/apps') {
-            // A phone may look at the list but never change it: an app opened from the phone could be a sensitive one.
-            if (body?.op !== 'list' && !who.local) return json(res, 403, { error: 'Apps can only be added or removed on the PC itself.' })
-            return json(res, 200, settings.apps(body))
-          }
+          // Owner decision (2026-11-18): a paired phone may add and remove apps, picking from the laptop's own Start menu list.
+          if (path === '/api/settings/startapps') return json(res, 200, { names: await settings.startApps() })
+          if (path === '/api/settings/apps') return json(res, 200, settings.apps(body))
           if (path === '/api/settings/sensors') return json(res, 200, { lines: await settings.sensors() })
           if (path === '/api/settings/task') return json(res, 200, { state: await settings.setTask(body.on === true) })
           if (path === '/api/settings/pin') {
