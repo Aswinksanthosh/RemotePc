@@ -20,16 +20,18 @@ A **Windows 10 or 11 PC** (signed in as an administrator), an **iPhone or Androi
 
 **On the PC**
 
-3. **Select the installation folder** in File Explorer (for example **Downloads**). Then click the **address bar**, type `powershell` and press **Enter**. PowerShell opens in that folder.
+3. **Easiest: the Setup file.** Open the [Releases page](https://github.com/Aswinksanthosh/RemotePc/releases/latest), download **RemotePc-Setup.exe** and double-click it. Windows may show a blue "Windows protected your PC" box (the file is not code-signed): click **More info**, then **Run anyway**. Then jump to step 5.
 
-   ![Step 3: open any folder, click the address bar, type powershell, press Enter (illustration)](docs/img/step-1-address-bar.png)
+   **If that does not work: the PowerShell way.** Select the installation folder in File Explorer (for example **Downloads**), click the **address bar**, type `powershell` and press **Enter**. PowerShell opens in that folder.
+
+   ![Open any folder, click the address bar, type powershell, press Enter (illustration)](docs/img/step-1-address-bar.png)
 4. Paste this and press **Enter** (right-click pastes):
 
    ```powershell
    irm https://raw.githubusercontent.com/Aswinksanthosh/RemotePc/main/install.ps1 | iex
    ```
 
-   ![Step 4: PowerShell opened in that folder, with the install line pasted (illustration)](docs/img/step-2-powershell.png)
+   ![PowerShell opened in that folder, with the install line pasted (illustration)](docs/img/step-2-powershell.png)
 
 5. Click **Yes** when Windows asks. Wait a few minutes while it installs.
 6. A browser page opens for **Tailscale**: sign in with the **same Google account** as on the phone. No page? Open the link the installer prints (it starts with `https://login.tailscale.com`).

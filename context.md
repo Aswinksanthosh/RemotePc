@@ -79,3 +79,6 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 
 ## Installer text (colour coded)
 - Installer and Fix-It text is colour coded (green = good, cyan = info, yellow = attention, red = danger/problem). Colours only on a real console; install.log stays plain. The PIN question has three points: phone asks every time, 4 to 8 digits, NO PIN if Enter is pressed.
+
+## Setup.exe
+- installer/RemotePc.iss (Inno Setup) wraps install.ps1 into RemotePc-Setup.exe; workflow .github/workflows/release.yml builds it on Windows (push a tag like v0.2.0 -> attached to the Release; or run by hand). Unsigned, so SmartScreen warns (More info > Run anyway). README step 3 = the .exe, PowerShell one-liner = backup. To release: git tag v0.2.0 && git push origin v0.2.0.
