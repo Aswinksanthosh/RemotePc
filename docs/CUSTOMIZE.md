@@ -68,6 +68,18 @@ Optional, in each entry: `"order": 1` (lower is further left; ties go by name) a
 
 The **gear** at the top right of the page opens a separate Settings page. Every control saves at once: start with Windows, open Steam Big Picture at startup (and how long to wait), set a power mode at startup, the name and starting theme of the PC, its place in the swipe card, change or remove the PIN, how long a typed PIN stays valid, and whether your home Wi-Fi may connect (that one applies after a restart). The startup things happen **once per boot**, not every time the remote restarts. The same settings live in `config.json` below, if you prefer to edit the file.
 
+## Temperature limiter
+
+**What it does.** While it is on, the limiter reads the temperatures every three seconds. Over your limit it lowers the speed one step at a time, and when the temperature is clearly (3 degrees) under the limit for a few readings it raises it one step. Under the limit nothing is restricted.
+
+- **CPU:** Windows power settings. Step 1 turns *boost* off, then the *maximum processor state* goes down in steps (95, 90, 85, 80, 70, 60, 50 percent). Your original values are saved and put back when it steps up, when you switch it off, when the limiter stops, and at the next start after a crash.
+- **Graphics card (NVIDIA only):** the graphics clock is locked a little lower (`nvidia-smi -lgc`) and released again (`-rgc`). An AMD or Intel graphics chip, like the one in a handheld, is not limited separately (the CPU limit covers it).
+- **If it cannot read a temperature, or anything goes wrong, it frees everything** instead of leaving a limit behind.
+
+**Honest limits.** Windows has no single dependable CPU temperature. The limiter tries, in order: LibreHardwareMonitor (a free monitor, if it is running: the most exact), Windows thermal zones, then the ACPI thermal zone. Press **Check temperature sensors** on the Settings page, compare with Armoury Crate or another monitor, and see which one matches. A software limit also reacts *after* the temperature passed the limit, so it can go a few degrees over for a moment. A low limit (70 on the CPU of a gaming laptop) will lower the speed often.
+
+**Needs administrator rights, once.** Changing the graphics clock needs them, so the limiter runs as its own scheduled task with administrator rights, from a folder only administrators can change (`C:\ProgramData\RemortStartPc`). It only reads numbers from your settings and runs fixed commands. Install.cmd (run as administrator) sets it up; it stays idle until you switch it on.
+
 ## Settings (`config.json`)
 
 The program reads it when it starts, so sign out of Windows and back in (or restart the PC) after changing it.
@@ -89,6 +101,7 @@ The program reads it when it starts, so sign out of Windows and back in (or rest
 | `accent` | Page colour: `blue`, `pink`, `amber`, `green`, `purple`, `red`. Empty means automatic: pink for "ROG" PCs, amber for "TUF" PCs, otherwise blue. |
 | `name` | The big name on the page. Empty means the PC's own name. |
 | `theme` | The look this PC starts with: `neon`, `tactical` or `clean`. Empty means automatic: neon for "ROG" PCs, tactical for "TUF" PCs, otherwise clean. Each phone can pick another one in the **Theme** card on the page. |
+| `limiterOn`, `cpuLimit`, `gpuLimit` | The temperature limiter and its limits in degrees (50 to 100). |
 | `steamAtStart`, `steamDelay` | `true` opens Steam Big Picture once per boot, `steamDelay` seconds (0 to 300) after the program starts. |
 | `startMode` | `saver`, `balanced` or `gaming`: the Windows power mode to set once per boot. Empty leaves it alone. |
 | `order` | Place in the swipe card when you own several PCs (0 to 99, lower is further left). |

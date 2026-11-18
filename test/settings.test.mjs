@@ -157,3 +157,114 @@ test('the PIN can be set, changed and removed from the Settings page', async (t)
   assert.equal(pin.check('2580'), true)
   assert.equal((await post('/api/state', {}, h)).status, 401, 'the old PIN session ends when the PIN changes')
 })
+
+async function localServer(t, { withPin = false } = {}) {
+  const dir = tempDir(t)
+  const auth = createAuth({ file: join(dir, 'phones.json') })
+  const { key } = auth.add('Phone')
+  const config = normalizeConfig({})
+  const pin = createPin({ file: join(dir, 'pin.json') })
+  if (withPin) pin.set('8426')
+  const calls = []
+  const settings = createSettings({ file: join(dir, 'config.json'), appsFile: join(dir, 'apps.json'), config, pin, platform: 'win32', hostname: () => 'HOST', dir, run: async () => 'Status: Ready' })
+  const srv = await startServer({
+    port: 0, host: '127.0.0.1', auth, pin, settings, config, webDir,
+    actions: { info: async () => ({ name: 'HOST' }), run: async (a) => (calls.push(a), 'ok'), avatar: async () => null, gameArt: async () => null },
+    pairing: async () => ({ url: 'http://100.1.2.3:8791/?k=SECRET', svg: '<svg/>', label: 'Phone 2' }),
+  })
+  t.after(() => srv.close())
+  const port = srv.port
+  const local = (path, body = {}, headers = {}) => fetch(`http://127.0.0.1:${port}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-rsp-local': '1', ...headers }, body: JSON.stringify(body) })
+  return { local, key, port, calls, dir, pin }
+}
+
+test('on the PC itself the Settings page works with no phone key', async (t) => {
+  const { local } = await localServer(t)
+  const got = await local('/api/settings')
+  assert.equal(got.status, 200)
+  assert.equal((await got.json()).host, 'HOST')
+  assert.equal((await local('/api/settings/save', { changes: { name: 'Local' } })).status, 200)
+})
+
+test('the local access is only for the settings, never for the buttons or the state', async (t) => {
+  const { local } = await localServer(t)
+  for (const path of ['/api/state', '/api/do', '/api/avatar', '/api/gameart']) assert.equal((await local(path, { action: 'lock' })).status, 401, path)
+})
+
+import { request } from 'node:http'
+const raw = (port, path, headers) =>
+  new Promise((resolve, reject) => {
+    const req = request({ host: '127.0.0.1', port, path, method: 'POST', headers: { 'content-type': 'application/json', ...headers } }, (res) => {
+      res.resume()
+      res.on('end', () => resolve(res.statusCode))
+    })
+    req.on('error', reject)
+    req.end('{}')
+  })
+
+test('the local access refuses a request that does not look like the real local page', async (t) => {
+  const { port } = await localServer(t)
+  const ok = { 'x-rsp-local': '1', host: `127.0.0.1:${port}` }
+  assert.equal(await raw(port, '/api/settings', ok), 200)
+  assert.equal(await raw(port, '/api/settings', { host: `127.0.0.1:${port}` }), 401, 'no custom header: a web page cannot add one')
+  assert.equal(await raw(port, '/api/settings', { ...ok, host: 'evil.example:80' }), 401, 'a name that is not local (DNS tricks)')
+  assert.equal(await raw(port, '/api/settings', { ...ok, origin: 'https://evil.example' }), 401, 'another website')
+  assert.equal(await raw(port, '/api/settings', { ...ok, origin: `http://127.0.0.1:${port}` }), 200, 'the page itself')
+  assert.equal(await raw(port, '/api/settings', { ...ok, host: `localhost:${port}` }), 200)
+})
+
+test('with a PIN set, the local page asks for it too', async (t) => {
+  const { local } = await localServer(t, { withPin: true })
+  const noPin = await local('/api/settings')
+  assert.equal(noPin.status, 401)
+  assert.equal((await noPin.json()).code, 'pin')
+  assert.equal((await local('/api/unlock', { pin: '0000' })).status, 401)
+  const { token } = await (await local('/api/unlock', { pin: '8426' })).json()
+  assert.equal((await local('/api/settings', {}, { 'x-unlock': token })).status, 200)
+})
+
+test('adding a phone from the PC shows its link (only locally), a phone key cannot ask for it', async (t) => {
+  const { local, key, port } = await localServer(t)
+  const r = await (await local('/api/local/pair')).json()
+  assert.equal(r.label, 'Phone 2')
+  assert.ok(r.url.includes('?k=') && r.svg.startsWith('<svg'))
+  const viaPhone = await fetch(`http://127.0.0.1:${port}/api/local/pair`, { method: 'POST', headers: { authorization: `Bearer ${key}`, 'x-rsp-local': '1' } })
+  assert.equal(viaPhone.status, 403)
+})
+
+test('custom apps: add, list, replace, remove, with checks', async (t) => {
+  const { local, dir } = await localServer(t)
+  const call = async (body) => (await local('/api/settings/apps', body)).json()
+  assert.deepEqual((await call({ op: 'list' })).apps, [])
+  assert.deepEqual((await call({ op: 'add', label: 'VS Code', match: 'Visual Studio Code' })).apps, [{ label: 'VS Code', match: 'Visual Studio Code' }])
+  await call({ op: 'add', label: 'Notes', match: 'Notepad' })
+  assert.equal((await call({ op: 'add', label: 'vs code', match: 'VSCodium' })).apps.length, 2, 'the same name replaces the old one')
+  assert.deepEqual(JSON.parse(readFileSync(join(dir, 'apps.json'), 'utf8')), { Notes: 'Notepad', 'vs code': 'VSCodium' })
+  assert.deepEqual((await call({ op: 'remove', label: 'NOTES' })).apps, [{ label: 'vs code', match: 'VSCodium' }])
+  for (const bad of [{ op: 'add', label: '', match: 'x' }, { op: 'add', label: 'x', match: '' }, { op: 'add', label: 'a'.repeat(31), match: 'x' }, { op: 'add', label: 'x', match: 'y'.repeat(61) }, { op: 'add', label: 'a\u0001', match: 'x' }, { op: 'nope' }]) {
+    const r = await local('/api/settings/apps', bad)
+    assert.equal(r.status, 400, JSON.stringify(bad))
+  }
+})
+
+test('restart from the Settings page asks the program to restart', async (t) => {
+  const { local, calls } = await localServer(t)
+  assert.equal((await local('/api/settings/restart')).status, 200)
+  assert.deepEqual(calls, ['restart_remote'])
+})
+
+test('the Settings page now also tells about the limiter and can list the sensors', async (t) => {
+  const dir = tempDir(t)
+  const config = normalizeConfig({ limiterOn: true, cpuLimit: 80 })
+  const run = async (f) => (f === 'schtasks.exe' ? 'ok' : f === 'powershell.exe' ? 'Windows thermal zone A: 61.0 C\n' : '62, GeForce RTX 4060\n')
+  const s = createSettings({ file: join(dir, 'config.json'), config, pin: createPin({ file: join(dir, 'pin.json') }), platform: 'win32', run, dir, readText: () => JSON.stringify({ at: 'now', on: true }), age: () => 1000 })
+  const got = await s.get()
+  assert.deepEqual([got.values.limiterOn, got.values.cpuLimit, got.limiter.installed, got.limiter.running], [true, 80, true, true])
+  assert.deepEqual(got.limiter.status, { at: 'now', on: true })
+  const old = createSettings({ file: join(dir, 'c.json'), config, pin: createPin({ file: join(dir, 'p.json') }), platform: 'win32', run, dir, readText: () => '{}', age: () => 60_000 })
+  assert.equal((await old.get()).limiter.running, false, 'an old status means it is not running')
+  assert.equal((await old.get()).limiter.status, null)
+  const lines = await s.sensors()
+  assert.ok(lines.some((l) => l.includes('thermal zone A: 61.0 C')))
+  assert.ok(lines.some((l) => l.startsWith('NVIDIA')))
+})

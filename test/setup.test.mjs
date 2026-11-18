@@ -50,7 +50,7 @@ test('the Windows scripts name the right things', () => {
   assert.match(registerTaskScript('C:\\x\\start.ps1'), /-LogonType Interactive -RunLevel Limited/)
   assert.match(registerTaskScript('C:\\x\\start.ps1'), /-WindowStyle Hidden -File/)
   assert.match(stopRemoteScript, /remortstartpc\.\*remote\\\.mjs/)
-  assert.match(shortcutsScript('C:\\a'), /'Pair-Phone', 'Set-PIN', 'Fix-It', 'Update', 'Uninstall', 'Wake-on-LAN-Setup'/)
+  assert.match(shortcutsScript('C:\\a'), /'Settings', 'Pair-Phone', 'Set-PIN', 'Fix-It', 'Update', 'Uninstall', 'Wake-on-LAN-Setup'/)
   const args = psArgs('Write-Output 1')
   assert.deepEqual(args.slice(0, 4), ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass'])
   assert.equal(decode(args), 'Write-Output 1')
@@ -202,7 +202,7 @@ test('waitForHealth gives up politely and succeeds when the program answers', as
 
 function setupLab(t, extra = {}) {
   const source = tempDir(t)
-  writeTree(source, { 'bin/remote.mjs': '//', 'package.json': '{"name":"remortstartpc"}' })
+  writeTree(source, { 'bin/remote.mjs': '//', 'src/limiter.mjs': '// limiter', 'package.json': '{"name":"remortstartpc"}' })
   const paths = dataPaths(join(tempDir(t), 'home'))
   const cap = capture()
   const calls = []
@@ -217,12 +217,13 @@ function setupLab(t, extra = {}) {
     fetchFn: async () => ({ ok: true, json: async () => ({ app: 'remortstartpc' }) }), open() {}, sleep: async () => {}, env: {},
     platform: 'win32', nodePath: 'C:\\node\\node.exe', interfaces: IFACES, ...extra,
   }
-  return { args, paths, cap, calls }
+  args.env = { ProgramData: join(tempDir(t), 'pd'), ...(extra.env ?? {}) }
+  return { args, paths, cap, calls, pd: args.env.ProgramData }
 }
 
 test('the whole install on Windows: every step runs, the settings are right, nothing secret is logged', async (t) => {
   const shown = []
-  const { args, paths, cap, calls } = setupLab(t, { showPairing: async (p) => shown.push(p) })
+  const { args, paths, cap, calls, pd } = setupLab(t, { showPairing: async (p) => shown.push(p) })
   const r = await runSetup(args)
   assert.equal(r.ok, true)
   assert.equal(r.tailscale, true)
@@ -242,6 +243,13 @@ test('the whole install on Windows: every step runs, the settings are right, not
   assert.ok(flat.some((c) => c.endsWith('set --unattended')))
   assert.equal(shown.length, 1)
   assert.ok(!cap.logged.join('\n').includes('?k='), 'no pairing key in the install log')
+  // The limiter: copied into a folder only administrators can change, started by an elevated task.
+  assert.equal(readFileSync(join(pd, 'RemortStartPc', 'limiter.mjs'), 'utf8'), '// limiter')
+  assert.ok(flat.some((c) => c.startsWith('icacls.exe') && c.includes('*S-1-5-32-544:(OI)(CI)F') && c.includes('*S-1-5-32-545:(OI)(CI)RX')), 'only administrators may write there')
+  assert.ok(flat.some((c) => c.includes('Register-ScheduledTask') && c.includes('-RunLevel Highest') && c.includes('RemortStartPc Limiter')))
+  const launcherText = readFileSync(join(pd, 'RemortStartPc', 'limiter-start.ps1'), 'utf8')
+  assert.ok(launcherText.includes('--run --config') && launcherText.includes('limiter-status.json'))
+  assert.equal(loadConfig(paths.config).cpuLimit, 70, 'a laptop starts at 70')
 })
 
 test('without Tailscale the home network is allowed so the phone can still connect', async (t) => {
@@ -290,5 +298,26 @@ test('on a system that is not Windows the Windows steps are skipped, not attempt
   const { args, calls } = setupLab(t, { platform: 'linux', showPairing: async () => {} })
   const r = await runSetup(args)
   assert.equal(calls.length, 0)
+  assert.equal(r.ok, true)
+})
+
+test('a handheld (ROG Ally) starts with temperature limits of 90', async (t) => {
+  const { args, paths } = setupLab(t, { showPairing: async () => {} })
+  const base = args.run
+  args.run = async (f, a) => (f === 'powershell.exe' && decode(a).includes('Win32_ComputerSystem') ? 'ROG Ally RC71L_RC71L\n' : base(f, a))
+  await runSetup(args)
+  const c = loadConfig(paths.config)
+  assert.deepEqual([c.cpuLimit, c.gpuLimit, c.limiterOn], [90, 90, false])
+})
+
+test('a failing limiter install does not stop the rest of the install', async (t) => {
+  const { args, cap } = setupLab(t, { showPairing: async () => {} })
+  const base = args.run
+  args.run = async (f, a) => {
+    if (f === 'icacls.exe') throw new Error('Access is denied')
+    return base(f, a)
+  }
+  const r = await runSetup(args)
+  assert.match(cap.out.join(''), /Could not install the temperature limiter \(the rest works\): Access is denied/)
   assert.equal(r.ok, true)
 })

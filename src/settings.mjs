@@ -4,11 +4,15 @@
  */
 
 import { hostname as osHostname } from 'node:os'
+import { readFileSync, statSync } from 'node:fs'
+import { join } from 'node:path'
 import { applySettingsPatch, saveConfig } from './config.mjs'
-import { TASK_NAME } from './paths.mjs'
+import { SENSOR_REPORT } from './limiter.mjs'
+import { writeAtomic } from './fsutil.mjs'
+import { LIMITER_TASK, TASK_NAME, limiterDir } from './paths.mjs'
 import { isWeakPin, validPin } from './pin.mjs'
 
-export function createSettings({ file, config, pin, run, platform = process.platform, version = '', hostname = osHostname }) {
+export function createSettings({ file, appsFile = '', config, pin, run, platform = process.platform, version = '', hostname = osHostname, readText = (f) => readFileSync(f, 'utf8'), age = (f) => Date.now() - statSync(f).mtimeMs, dir = limiterDir() }) {
   const windows = platform === 'win32'
 
   /** 'on' | 'off' | 'missing' (no scheduled task) | null (not Windows). */
@@ -22,11 +26,80 @@ export function createSettings({ file, config, pin, run, platform = process.plat
     }
   }
 
+  /** What the limiter reports (it runs elsewhere, with administrator rights, and writes this file every few seconds). */
+  async function limiterInfo() {
+    if (!windows) return null
+    const statusFile = join(dir, 'limiter-status.json')
+    let status = null
+    let fresh = false
+    try {
+      status = JSON.parse(readText(statusFile))
+      fresh = age(statusFile) < 20_000
+    } catch {
+      status = null
+    }
+    const installed = await run('schtasks.exe', ['/query', '/tn', LIMITER_TASK]).then(() => true, () => false)
+    return { installed, running: fresh, status: fresh ? status : null }
+  }
+
+  /** Every temperature Windows will tell us, as plain lines, to compare with Armoury Crate. */
+  async function sensors() {
+    if (!windows) throw new Error('This works on Windows only.')
+    const lines = []
+    try {
+      const out = await run('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', Buffer.from(SENSOR_REPORT, 'utf16le').toString('base64')], { timeout: 20_000 })
+      lines.push(...out.split(/\r?\n/).map((l) => l.trim()).filter(Boolean))
+    } catch (err) {
+      lines.push(`Windows sensors: ${err.message}`)
+    }
+    try {
+      const out = await run('nvidia-smi.exe', ['--query-gpu=name,temperature.gpu', '--format=csv,noheader'])
+      for (const l of out.split(/\r?\n/).map((x) => x.trim()).filter(Boolean)) lines.push(`NVIDIA ${l.replace(/,\s*/, ': ')} C`)
+    } catch {
+      lines.push('NVIDIA graphics card: not found (an AMD or Intel graphics chip is not limited, only the CPU)')
+    }
+    return lines.slice(0, 40)
+  }
+
+  // The apps you add yourself: { "name on the button": "exact name in the Start menu" }. Same rules as the file you could write by hand.
+  const CONTROL = /[\u0000-\u001f]/
+  function readApps() {
+    try {
+      const raw = JSON.parse(readText(appsFile))
+      return Object.entries(raw).filter(([k, v]) => typeof v === 'string' && k.trim() && k.length <= 30 && v.trim() && v.length <= 60 && !CONTROL.test(k + v)).map(([label, match]) => ({ label: label.trim(), match: match.trim() }))
+    } catch {
+      return []
+    }
+  }
+  /** { op: 'list' } | { op: 'add', label, match } | { op: 'remove', label } -> { apps } */
+  function apps(body) {
+    if (!appsFile) throw new Error('Custom apps are not available here.')
+    let list = readApps()
+    if (body?.op === 'add') {
+      const label = String(body.label ?? '').trim()
+      const match = String(body.match ?? '').trim()
+      if (!label || label.length > 30) throw new Error('Give the app a short name (up to 30 letters).')
+      if (!match || match.length > 60) throw new Error('Type the app name exactly as the Start menu shows it (up to 60 letters).')
+      if (CONTROL.test(label + match)) throw new Error('That name has odd characters.')
+      if (list.length >= 30 && !list.some((a) => a.label.toLowerCase() === label.toLowerCase())) throw new Error('That is plenty of apps: remove one first.')
+      list = list.filter((a) => a.label.toLowerCase() !== label.toLowerCase())
+      list.push({ label, match })
+    } else if (body?.op === 'remove') {
+      const label = String(body.label ?? '').trim().toLowerCase()
+      list = list.filter((a) => a.label.toLowerCase() !== label)
+    } else if (body?.op !== 'list') throw new Error('Unknown request.')
+    if (body.op !== 'list') writeAtomic(appsFile, `${JSON.stringify(Object.fromEntries(list.map((a) => [a.label, a.match])), null, 2)}\n`)
+    return { apps: list }
+  }
+
   return {
+    apps,
+    sensors,
     async get() {
-      const { name, theme, order, pinHours, steamAtStart, steamDelay, startMode, accent, allow } = config
+      const { name, theme, order, pinHours, steamAtStart, steamDelay, startMode, accent, allow, limiterOn, cpuLimit, gpuLimit } = config
       return {
-        values: { name, theme, order, pinHours, steamAtStart, steamDelay, startMode, accent, lan: allow.includes('lan') },
+        values: { name, theme, order, pinHours, steamAtStart, steamDelay, startMode, accent, lan: allow.includes('lan'), limiterOn, cpuLimit, gpuLimit },
+        limiter: await limiterInfo(),
         startupTask: await taskState(),
         host: hostname(),
         hasPin: pin.isSet(),

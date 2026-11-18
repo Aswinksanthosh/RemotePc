@@ -4,7 +4,8 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { POWERSHELL_SNIPPETS } from '../src/actions.mjs'
-import { launcherScript, psArgs, registerTaskScript, removeTaskScript, shortcutsScript, stopRemoteScript } from '../src/windows.mjs'
+import { SENSOR_REPORT, SENSOR_STREAM } from '../src/limiter.mjs'
+import { desktopShortcutScript, launcherScript, limiterLauncherScript, psArgs, registerLimiterTaskScript, registerTaskScript, removeLimiterTaskScript, removeTaskScript, shortcutsScript, stopRemoteScript } from '../src/windows.mjs'
 import { wolScript } from '../src/wol.mjs'
 
 const windows = process.platform === 'win32'
@@ -16,6 +17,12 @@ const scripts = {
   'windows: stop remote': stopRemoteScript,
   'windows: shortcuts': shortcutsScript('C:\\x\\app'),
   'wol: network cards': wolScript,
+  'limiter: sensor stream': SENSOR_STREAM,
+  'limiter: sensor report': SENSOR_REPORT,
+  'limiter: register task': registerLimiterTaskScript('C:\\ProgramData\\RemortStartPc\\limiter-start.ps1'),
+  'limiter: remove task': removeLimiterTaskScript,
+  'limiter: launcher': limiterLauncherScript({ nodePath: 'C:\\Program Files\\nodejs\\node.exe', script: 'C:\\ProgramData\\RemortStartPc\\limiter.mjs', config: 'C:\\Users\\me\\.remortstartpc\\config.json', dir: 'C:\\ProgramData\\RemortStartPc' }),
+  'windows: desktop shortcut': desktopShortcutScript('C:\\Users\\me\\.remortstartpc'),
 }
 
 const PARSE = '$e = $null; $t = $null; [void][System.Management.Automation.Language.Parser]::ParseInput([Console]::In.ReadToEnd(), [ref]$t, [ref]$e); if ($e) { $e | ForEach-Object { $_.Message }; exit 1 }'

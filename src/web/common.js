@@ -31,7 +31,8 @@ if (key) {
 }
 
 async function call(path, body) {
-  const h = { 'content-type': 'application/json' }
+  // This header marks a call from our own page; the PC accepts the settings calls from itself without a key only with it.
+  const h = { 'content-type': 'application/json', 'x-rsp-local': '1' }
   if (key) h.authorization = 'Bearer ' + key
   if (unlock) h['x-unlock'] = unlock
   const r = await fetch(path, { method: 'POST', headers: h, body: JSON.stringify(body || {}) })

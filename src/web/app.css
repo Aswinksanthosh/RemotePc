@@ -222,6 +222,11 @@ select.field{max-width:190px}
 .content.out{opacity:0;transform:translateY(8px);transition-duration:.11s}
 .card.skel{background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.09),rgba(255,255,255,.04));background-size:200% 100%;animation:shimmer 1.2s linear infinite;border-color:var(--line)}
 @keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+
+.set-col{display:flex;flex-direction:column;gap:10px;padding:8px 0}
+.sensor-out{white-space:pre-wrap;font:12px/1.5 ui-monospace,Consolas,monospace;color:#cfe3ee;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:12px;padding:10px}
+.qrbox{margin-top:12px;text-align:center}
+.qrbox .qr{width:min(86vw,300px);height:auto;background:#fff;border-radius:14px;padding:8px;display:block;margin:0 auto 8px}
 [hidden]{display:none!important}
 @keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @keyframes smIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}

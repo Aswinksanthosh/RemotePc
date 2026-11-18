@@ -4,21 +4,24 @@
  * fails tells you what to do next instead of stopping everything it could still finish.
  */
 
-import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { basename, join, resolve } from 'node:path'
 import { createAuth } from './auth.mjs'
 import { loadConfig, saveConfig } from './config.mjs'
 import { createPin, isWeakPin, validPin } from './pin.mjs'
 import { listAddresses, phoneUrl } from './net.mjs'
-import { TASK_NAME } from './paths.mjs'
+import { LIMITER_TASK, TASK_NAME, limiterDir } from './paths.mjs'
 import { qrToConsole, qrToSvg } from './qr.mjs'
 import {
   configureFirewall,
   desktopShortcutScript,
   findTailscale,
   launcherScript,
+  limiterAclArgs,
+  limiterLauncherScript,
   loginTailscale,
   psArgs,
+  registerLimiterTaskScript,
   registerTaskScript,
   shortcutsScript,
   stopRemoteScript,
@@ -238,6 +241,15 @@ export async function runSetup({
   const fresh = !existsSync(paths.config)
   const config = loadConfig(paths.config)
   if (fresh) config.allow = ts.ok ? ['loopback', 'tailscale'] : ['loopback', 'tailscale', 'lan']
+  if (fresh && windows) {
+    // A handheld (ROG Ally) runs hotter by design: its starting limits are 90, a laptop's are 70.
+    const model = await ps('(Get-CimInstance Win32_ComputerSystem).Model').catch(() => '')
+    if (/ally/i.test(String(model))) {
+      config.cpuLimit = 90
+      config.gpuLimit = 90
+      ui.ok('Handheld detected: the temperature limits start at 90.')
+    }
+  }
   config.nodePath = nodePath
   mkdirSync(paths.home, { recursive: true })
   saveConfig(paths.config, config)
@@ -265,6 +277,20 @@ export async function runSetup({
       ui.ok('Start menu shortcuts added (search for Pair-Phone or Fix-It).')
     } catch {
       ui.warn('Could not add Start menu shortcuts. You can still use the .cmd files in the program folder.')
+    }
+    try {
+      const dir = limiterDir(env)
+      await run('schtasks.exe', ['/end', '/tn', LIMITER_TASK]).catch(() => {})
+      mkdirSync(dir, { recursive: true })
+      copyFileSync(join(paths.app, 'src', 'limiter.mjs'), join(dir, 'limiter.mjs'))
+      writeFileSync(join(dir, 'limiter-start.ps1'), limiterLauncherScript({ nodePath, script: join(dir, 'limiter.mjs'), config: paths.config, dir }))
+      // Only administrators may change this folder: the limiter runs with administrator rights.
+      await run('icacls.exe', limiterAclArgs(dir))
+      await ps(registerLimiterTaskScript(join(dir, 'limiter-start.ps1')))
+      await run('schtasks.exe', ['/run', '/tn', LIMITER_TASK]).catch(() => {})
+      ui.ok('Temperature limiter installed (off until you turn it on in Settings).')
+    } catch (err) {
+      ui.warn(`Could not install the temperature limiter (the rest works): ${err.message}`)
     }
     try {
       await ps(desktopShortcutScript(paths.home))

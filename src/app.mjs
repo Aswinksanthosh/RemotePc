@@ -18,6 +18,9 @@ import { connect } from './probe.mjs'
 import { dataPaths, RESTART_CODE } from './paths.mjs'
 import { startServer } from './server.mjs'
 import { installUpdate, repoSlug } from './updater.mjs'
+import { qrToSvg } from './qr.mjs'
+import { newPairing } from './setup.mjs'
+import { networkInterfaces } from 'node:os'
 import { knownPcs, sendMagicPacket } from './wake.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -94,7 +97,11 @@ export async function startApp({
     allow: config.allow,
     auth,
     pin,
-    settings: createSettings({ file: paths.config, config, pin, run: runCommand, platform, version }),
+    pairing: async () => {
+      const p = newPairing({ paths, config, interfaces: networkInterfaces(), label: '' })
+      return { url: p.url, svg: qrToSvg(p.url), label: p.label }
+    },
+    settings: createSettings({ file: paths.config, appsFile: paths.apps, config, pin, run: runCommand, platform, version }),
     actions,
     config,
     others: () => knownPcs(paths.pcs),

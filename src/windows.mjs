@@ -5,7 +5,7 @@
  * quoting of a path can change what runs.
  */
 
-import { FIREWALL_RULE, TASK_NAME } from './paths.mjs'
+import { FIREWALL_RULE, LIMITER_TASK, TASK_NAME } from './paths.mjs'
 
 export const psQuote = (s) => `'${String(s).replace(/'/g, "''")}'`
 const encode = (script) => Buffer.from(script, 'utf16le').toString('base64')
@@ -35,6 +35,40 @@ while ($true) {
 }
 `
 }
+
+// -- the limiter (runs with administrator rights, from a folder only an administrator can change) ----
+
+/** Started by its own task; starts the limiter again if it stops (but not in a tight loop). */
+export function limiterLauncherScript({ nodePath, script, config, dir }) {
+  const status = `${dir}\\limiter-status.json`
+  return `# Started at sign-in by the scheduled task "${LIMITER_TASK}" (administrator rights). Written by the installer.
+$node = ${psQuote(nodePath)}
+Set-Location -LiteralPath ${psQuote(dir)}
+while ($true) {
+  if (-not (Test-Path -LiteralPath $node)) { Start-Sleep -Seconds 30; continue }
+  & $node ${psQuote(script)} --run --config ${psQuote(config)} --status ${psQuote(status)} --dir ${psQuote(dir)}
+  Start-Sleep -Seconds 5
+}
+`
+}
+
+/** Registers the limiter task for this user, with the highest rights (the installer itself runs as administrator). */
+export const registerLimiterTaskScript = (launcher) => String.raw`$name = ${psQuote(LIMITER_TASK)}
+$me = $env:USERDOMAIN + '' + $env:USERNAME
+$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument ('-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + ${psQuote(launcher)} + '"')
+$trigger = New-ScheduledTaskTrigger -AtLogOn -User $me
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
+$principal = New-ScheduledTaskPrincipal -UserId $me -LogonType Interactive -RunLevel Highest
+Register-ScheduledTask -TaskName $name -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force -ErrorAction Stop | Out-Null
+'limiter'`
+
+export const removeLimiterTaskScript = String.raw`Stop-ScheduledTask -TaskName ${psQuote(LIMITER_TASK)} -ErrorAction SilentlyContinue
+Unregister-ScheduledTask -TaskName ${psQuote(LIMITER_TASK)} -Confirm:$false -ErrorAction SilentlyContinue
+Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -and $_.Name -eq 'node.exe' -and $_.CommandLine -match 'limiter\.mjs' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+'removed'`
+
+/** The installer sets the limiter's folder so that only administrators can write to it (well-known account numbers: they work in every language). */
+export const limiterAclArgs = (dir) => [dir, '/inheritance:r', '/grant:r', '*S-1-5-32-544:(OI)(CI)F', '*S-1-5-18:(OI)(CI)F', '*S-1-5-32-545:(OI)(CI)RX', '/T', '/Q']
 
 // -- the scheduled task ----------------------------------------------------------------
 
@@ -86,7 +120,7 @@ $n`
 
 // -- Start menu shortcuts ---------------------------------------------------------------
 
-export const SHORTCUTS = ['Pair-Phone', 'Set-PIN', 'Fix-It', 'Update', 'Uninstall', 'Wake-on-LAN-Setup']
+export const SHORTCUTS = ['Settings', 'Pair-Phone', 'Set-PIN', 'Fix-It', 'Update', 'Uninstall', 'Wake-on-LAN-Setup']
 
 export const shortcutsScript = (appDir) => String.raw`$app = ${psQuote(appDir)}
 $dir = Join-Path ([Environment]::GetFolderPath('Programs')) 'RemortStartPc'

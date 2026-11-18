@@ -40,6 +40,10 @@ export function dataPaths(home = process.env.REMORTSTARTPC_HOME || join(homedir(
   }
 }
 
+/** Where the limiter (it runs with administrator rights) lives: a folder only an administrator can change. */
+export const limiterDir = (env = process.env) => join(env.ProgramData || 'C:\\ProgramData', 'RemortStartPc')
+export const LIMITER_TASK = 'RemortStartPc Limiter'
+
 /** Name of the scheduled task and of the firewall rule. */
 export const TASK_NAME = 'RemortStartPc'
 export const FIREWALL_RULE = 'RemortStartPc'

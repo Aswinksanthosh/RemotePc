@@ -79,3 +79,10 @@ test('switching PCs keeps the header, swipe card and footer on screen and swaps 
   assert.ok(html.includes('<script src="/boot.js"></script>'))
   assert.ok(!css.includes('transition:--a'), 'no colour-variable transition (it repaints the whole page every frame)')
 })
+
+test('the Settings page has the limiter, custom apps and (on the PC only) adding a phone, and uses only the checked routes', () => {
+  const st = read('settings.js')
+  for (const t of ['Temperature limit', 'Check temperature sensors', 'My apps', 'Add app', 'Add a phone', "'/api/settings/apps'", "'/api/settings/sensors'", "'/api/local/pair'", "'/api/settings/restart'", 'limiterOn', 'cpuLimit', 'gpuLimit']) assert.ok(st.includes(t), t)
+  assert.ok(st.includes("['localhost', '127.0.0.1', '[::1]']") && st.includes('if (onThePc) p.append(addPhoneCard())'), 'the QR is only offered on the PC itself')
+  assert.ok(js.includes("'x-rsp-local': '1'"), 'calls say they come from our own page')
+})

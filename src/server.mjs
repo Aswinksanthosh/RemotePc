@@ -18,7 +18,7 @@ import { randomBytes } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { ACTIONS } from './actions.mjs'
-import { isAllowedAddress } from './net.mjs'
+import { classifyAddress, isAllowedAddress } from './net.mjs'
 
 const MAX_BODY = 2048
 
@@ -35,6 +35,18 @@ const STATIC = {
   '/icon-512.png': ['icon-512.png', 'image/png', 'public, max-age=3600'],
   '/apple-touch-icon.png': ['apple-touch-icon.png', 'image/png', 'public, max-age=3600'],
 }
+
+// The Settings page can also be opened ON the PC itself, with no phone key (but with the PIN, if one is set). Only for loopback, only for the
+// settings calls, and only when the request really comes from that page: a custom header (a website cannot add one without being asked
+// first) and a local Host / Origin (so a web page cannot reach it through a trick with names).
+const LOCAL_HOST = /^(127\.0\.0\.1|localhost|\[::1\]):\d+$/
+const LOCAL_ORIGIN = /^http:\/\/(127\.0\.0\.1|localhost|\[::1\]):\d+$/
+const localOnly = (p) => p === '/api/unlock' || p.startsWith('/api/settings') || p.startsWith('/api/local/')
+const isLocalPage = (req, ip) =>
+  classifyAddress(ip) === 'loopback' &&
+  req.headers['x-rsp-local'] === '1' &&
+  LOCAL_HOST.test(String(req.headers.host ?? '')) &&
+  (req.headers.origin === undefined || LOCAL_ORIGIN.test(String(req.headers.origin)))
 
 const CSP = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 
@@ -87,6 +99,7 @@ export async function startServer({
   auth,
   pin = null,
   settings = null,
+  pairing = null,
   actions = null,
   config = {},
   others = () => ({}),
@@ -156,7 +169,7 @@ export async function startServer({
         const f = files.get(path)
         if (!f) return json(res, 404, { error: 'Not found.' })
         const headers = { 'content-type': f.type, 'cache-control': f.cache, 'x-content-type-options': 'nosniff', 'referrer-policy': 'no-referrer' }
-        if (path === '/') Object.assign(headers, { 'content-security-policy': CSP, 'x-frame-options': 'DENY' })
+        if (path === '/' || path === '/settings') Object.assign(headers, { 'content-security-policy': CSP, 'x-frame-options': 'DENY' })
         res.writeHead(200, headers)
         return res.end(f.body)
       }
@@ -164,7 +177,7 @@ export async function startServer({
       if (req.method !== 'POST' || !path.startsWith('/api/')) return json(res, 404, { error: 'Not found.' })
 
       const bearer = /^Bearer (.+)$/.exec(req.headers.authorization ?? '')?.[1]
-      const who = auth.verify(ip, bearer)
+      const who = !bearer && localOnly(path) && isLocalPage(req, ip) ? { ok: true, id: 'local', local: true } : auth.verify(ip, bearer)
       if (!who.ok) return json(res, who.status, { error: who.error })
       const body = await readBody(req)
 
@@ -210,6 +223,16 @@ export async function startServer({
         })
       }
 
+      if (path === '/api/local/pair') {
+        // Shown only on the PC's own screen: the link is the key to the PC.
+        if (!who.local || !pairing) return json(res, 403, { error: 'Open this page on the PC itself to add a phone.' })
+        try {
+          return json(res, 200, await pairing())
+        } catch (err) {
+          return json(res, 400, { error: String(err?.message ?? err).slice(0, 200) })
+        }
+      }
+
       if (path.startsWith('/api/settings')) {
         if (!settings) return json(res, 404, { error: 'No settings here.' })
         try {
@@ -218,6 +241,12 @@ export async function startServer({
             const r = settings.save(body.changes)
             return json(res, 200, { ...r, message: r.restart ? 'Saved. This one applies after the program restarts (use Restart remote).' : 'Saved.' })
           }
+          if (path === '/api/settings/restart') {
+            if (!actions) return json(res, 400, { error: 'Nothing to restart here.' })
+            return json(res, 200, { message: await actions.run('restart_remote') })
+          }
+          if (path === '/api/settings/apps') return json(res, 200, settings.apps(body))
+          if (path === '/api/settings/sensors') return json(res, 200, { lines: await settings.sensors() })
           if (path === '/api/settings/task') return json(res, 200, { state: await settings.setTask(body.on === true) })
           if (path === '/api/settings/pin') {
             const r = settings.changePin(ip, String(body.current ?? ''), String(body.next ?? ''))

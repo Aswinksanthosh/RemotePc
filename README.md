@@ -53,7 +53,7 @@ A **Windows 10 or 11 PC** (signed in as an administrator), an **iPhone or Androi
 | Power icon (tap, or hold and slide) | Lock, Screen off, Sleep, Restart, Turn off, Cancel turn off |
 | Lock / Screen off | Locks the PC / turns the screen off (move the mouse to bring it back) |
 | Steam | Open Steam, Big Picture, pick one of your installed games and start it, close the running game, switch Steam account |
-| Settings (gear, top right) | Start with Windows, open Steam Big Picture at startup, power mode at startup, name, theme, PIN, home Wi-Fi access |
+| Settings (gear, top right; or **Settings** in the Start menu on the PC) | Start with Windows, open Steam Big Picture at startup, power mode at startup, name, theme, PIN, home Wi-Fi access |
 | Theme | Pick one of three looks (Neon, Tactical, Clean). Several PCs? A swipe card above Steam moves between them |
 | Media | Previous, play/pause, next, volume up/down, mute |
 | Headphones | Connect or disconnect a paired Bluetooth device (earbuds) on this PC, so it is free for your phone or another PC |
@@ -116,6 +116,14 @@ More in **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)**.
 ## For the curious
 
 How it works, the files, how to run the tests: [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md). There are no dependencies to install: it is plain Node.js. The tests run with `node --test`.
+
+## Settings on the PC itself
+
+Double-click **Settings** (Start menu, or the desktop folder) to open the same Settings page in a browser **on the PC**. No phone needed, no pairing key; if you set a PIN it asks for it. There you can also **add a phone** (it shows a new QR code), add your own **apps** to the Open apps list, and set the **temperature limiter**.
+
+## Temperature limiter (optional, off by default)
+
+Switch it on in Settings and choose a CPU limit and a graphics card limit in degrees. Below the limits nothing is restricted and the CPU and graphics card boost as usual. Above a limit the speed is lowered a little at a time until it is cool again. A laptop starts at 70, a handheld (ROG Ally) at 90. It needs administrator rights **once, at install time**; run Install.cmd again to add it to an existing install. Read **[docs/SECURITY.md](docs/SECURITY.md)** and the notes in [docs/CUSTOMIZE.md](docs/CUSTOMIZE.md) first: reading the CPU temperature is not exact on every PC, so use **Check temperature sensors** and compare with another monitor.
 
 ## Ideas, feedback, bugs
 

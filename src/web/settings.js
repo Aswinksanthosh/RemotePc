@@ -2,6 +2,8 @@
 // The Settings page. Every change is saved at once; the PC checks each one again before it keeps it.
 // Shared helpers (key, calls, icons, looks, PIN form) are in common.js.
 let state = null
+let appsHost = null
+const onThePc = ['localhost', '127.0.0.1', '[::1]'].indexOf(location.hostname) >= 0
 
 function say2(text, bad) {
   say(text, bad)
@@ -76,6 +78,126 @@ function card(iconName, title, ...rows) {
   const c = el('div', 'card')
   c.append(section(iconName, title))
   c.append(...rows)
+  return c
+}
+
+
+function limiterCard(v) {
+  const l = v.limiter
+  const rows = []
+  rows.push(row('Limit the temperature', 'Below your limits nothing is restricted. Above them the speed is lowered a little at a time, then raised again when it is cool.', sw(v.values.limiterOn, (on) => save({ limiterOn: on }), !l || !l.installed)))
+  if (!l || !l.installed) rows.push(el('div', 'note', 'The limiter is not installed. Run Install.cmd again (it needs administrator rights, once).'))
+  rows.push(row('CPU limit', 'degrees C (50 to 100)', number(v.values.cpuLimit, 50, 100, (n) => save({ cpuLimit: n }))))
+  rows.push(row('Graphics card limit', 'degrees C. NVIDIA cards only; an AMD or Intel graphics chip is not limited.', number(v.values.gpuLimit, 50, 100, (n) => save({ gpuLimit: n }))))
+  const live = el('div', 'note')
+  const st = l && l.status
+  if (v.values.limiterOn && st && st.cpu) {
+    const g = st.gpu ? '  ·  Graphics ' + st.gpu.temp + ' / ' + st.gpu.limit + ' C' + (st.gpu.step ? ' (limited)' : '') : ''
+    live.textContent = 'Now: CPU ' + (st.cpu.temp === null ? '?' : st.cpu.temp) + ' / ' + st.cpu.limit + ' C' + (st.cpu.step ? ' (limited, step ' + st.cpu.step + ' of ' + st.cpu.steps + ')' : '') + g + '  ·  reading: ' + (st.cpu.source || 'none')
+  } else if (v.values.limiterOn) live.textContent = l && l.running ? 'Running.' : 'Switched on, but the limiter is not running right now.'
+  else live.textContent = 'Off.'
+  rows.push(live)
+  const out = el('div', 'sensor-out')
+  out.hidden = true
+  rows.push(rowOnly(btn('Check temperature sensors', async () => {
+    out.hidden = false
+    out.textContent = 'Reading…'
+    try {
+      const j = await call('/api/settings/sensors')
+      out.textContent = j.lines.join('\n')
+    } catch (err) {
+      out.textContent = err.message
+    }
+  }), out))
+  rows.push(el('div', 'note', 'Compare these numbers with what Armoury Crate (or another monitor) shows for the CPU. The limiter uses the first source it finds. LibreHardwareMonitor (free) can give a more exact reading.'))
+  return card('bolt', 'Temperature limit', ...rows)
+}
+
+function rowOnly(...kids) {
+  const r = el('div', 'set-col')
+  r.append(...kids)
+  return r
+}
+
+async function appsCard() {
+  const c = el('div', 'card')
+  c.append(section('grid', 'My apps', 'show up in Open apps'))
+  const list = el('div', 'list')
+  const draw = async (answer) => {
+    let apps = answer
+    if (!apps) {
+      try {
+        apps = (await call('/api/settings/apps', { op: 'list' })).apps
+      } catch (err) {
+        list.textContent = err.message
+        return
+      }
+    }
+    list.textContent = ''
+    if (!apps.length) list.append(el('div', 'empty', 'No apps added yet. Add one below.'))
+    for (const a of apps) {
+      const item = el('div', 'item')
+      const ic = el('div', 'ic')
+      ic.append(el('span', 'letter', a.label.charAt(0).toUpperCase()))
+      const nm = el('div', 'nm', a.label)
+      nm.append(el('small', '', 'Start menu: ' + a.match))
+      item.append(ic, nm)
+      const acts = el('div', 'acts')
+      acts.append(btn('Remove', async () => {
+        try {
+          draw((await call('/api/settings/apps', { op: 'remove', label: a.label })).apps)
+        } catch (err) {
+          say2(err.message, true)
+        }
+      }, false, 'Remove ' + a.label + '?'))
+      item.append(acts)
+      list.append(item)
+    }
+  }
+  c.append(list)
+  const form = el('div', 'pinform')
+  const name = el('input', 'field')
+  name.type = 'text'
+  name.maxLength = 30
+  name.placeholder = 'Name on the button, for example VS Code'
+  const match = el('input', 'field')
+  match.type = 'text'
+  match.maxLength = 60
+  match.placeholder = 'Exact name in the Start menu, for example Visual Studio Code'
+  form.append(name, match, btn('Add app', async () => {
+    try {
+      const j = await call('/api/settings/apps', { op: 'add', label: name.value, match: match.value })
+      name.value = ''
+      match.value = ''
+      say2('Added. It shows in Open apps.')
+      draw(j.apps)
+    } catch (err) {
+      say2(err.message, true)
+    }
+  }, false, undefined, 'go'))
+  c.append(form)
+  c.append(el('div', 'note', 'Type the name exactly as the Windows Start menu shows it. The phone can only press the apps in this list.'))
+  draw()
+  return c
+}
+
+function addPhoneCard() {
+  const c = el('div', 'card')
+  c.append(section('phone', 'Add a phone', 'only on this PC'))
+  const out = el('div', 'qrbox')
+  c.append(btn('Show a new QR code', async () => {
+    out.textContent = ''
+    try {
+      const j = await call('/api/local/pair')
+      const img = document.createElement('img')
+      img.alt = 'QR code: scan it with the phone camera'
+      img.className = 'qr'
+      img.src = URL.createObjectURL(new Blob([j.svg], { type: 'image/svg+xml' }))
+      out.append(img, el('div', 'note', j.label + ': scan this with the phone camera and tap the link. Do not share this picture: it is the key to your PC.'))
+    } catch (err) {
+      out.textContent = err.message
+    }
+  }, false, undefined, 'go'), out)
   return c
 }
 
@@ -173,6 +295,7 @@ function render() {
     startup.push(row('Power mode at startup', 'Set once per boot. Efficiency is good while downloading.', select([['', 'Leave as it is'], ['saver', 'Efficiency'], ['balanced', 'Balanced'], ['gaming', 'Performance']], v.values.startMode, (m) => save({ startMode: m }))))
   } else startup.push(el('div', 'empty', 'Startup options are for Windows PCs.'))
   p.append(card('power', 'Startup', ...startup))
+  if (v.windows) p.append(limiterCard(v))
 
   // -- look -------------------------------------------------------------------------------
   p.append(
@@ -196,6 +319,14 @@ function render() {
     ),
   )
 
+  // -- your own apps, adding a phone (only on the PC) ----------------------------------------
+  if (v.windows) appsHost = el('div')
+  if (appsHost) {
+    p.append(appsHost)
+    appsCard().then((c) => appsHost.append(c))
+  }
+  if (onThePc) p.append(addPhoneCard())
+
   // -- security ---------------------------------------------------------------------------
   p.append(pinCard(v))
 
@@ -205,7 +336,7 @@ function render() {
   if (v.windows) {
     about.push(row('Restart the remote', 'Needed after some changes. The page comes back in about 15 seconds.', btn('Restart', async () => {
       try {
-        const j = await call('/api/do', { action: 'restart_remote' })
+        const j = await call('/api/settings/restart')
         say2(j.message)
       } catch (err) {
         say2(err.message, true)
