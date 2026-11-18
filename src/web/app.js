@@ -32,26 +32,6 @@ async function act(action, arg, extra) {
   setTimeout(refresh, 3000)
 }
 
-// After "Update App": wait 5 seconds, then reload as soon as the program answers again (it takes about 15 seconds to come back).
-function reloadWhenBack() {
-  say('Updating… the page refreshes by itself in about 5 seconds.')
-  const started = Date.now()
-  const poll = async () => {
-    try {
-      const r = await fetch('/health', { cache: 'no-store' })
-      if (r.ok) {
-        location.reload()
-        return
-      }
-    } catch {
-      // Still restarting: try again.
-    }
-    if (Date.now() - started < 90_000) setTimeout(poll, 2000)
-    else say('Still restarting. Reload the page in a moment.', true)
-  }
-  setTimeout(poll, 5000)
-}
-
 // -- buttons --------------------------------------------------------------------------
 
 const HOLD_MS = 800
@@ -726,6 +706,15 @@ function render() {
   gear.addEventListener('click', () => {
     location.href = '/settings?k=' + encodeURIComponent(key)
   })
+  if (!helper) {
+    const upd = el('button', 'b pwr')
+    upd.type = 'button'
+    upd.title = 'Update App'
+    upd.setAttribute('aria-label', 'Update App')
+    upd.append(icon('download'))
+    upd.addEventListener('click', () => confirmBox('Update App?', 'It downloads the newest version and restarts by itself. The page refreshes in a few seconds.', 'Update', () => act('update')))
+    top.append(upd)
+  }
   top.append(gear)
   if (!helper) {
     const pwr = el('button', 'b pwr')
@@ -923,7 +912,7 @@ function render() {
   const parts = []
   if (!helper) {
     const g = el('div', 'grid3')
-    g.append(tile('pulse', 'Status', run('status'), { cls: 'small' }), tile('bolt', 'Update App', run('update'), { sure: 'Update this app? It restarts by itself.', cls: 'small' }))
+    g.append(tile('pulse', 'Status', run('status'), { cls: 'small' }))
     sys.append(g)
   }
   const others = data.others || []

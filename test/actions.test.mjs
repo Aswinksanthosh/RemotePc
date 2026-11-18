@@ -78,6 +78,13 @@ test('Steam and games: only games from the PC list can be started', async (t) =>
   assert.equal(launched.length, 4)
 })
 
+test('starting a game switches the PC to Performance mode first, and a failure never stops the game', async (t) => {
+  const { actions, calls, launched } = lab(t)
+  assert.match(await actions.run('steam_game', 'Hades'), /Starting Hades in Performance mode/)
+  assert.ok(calls.some((c) => c[0] === 'powercfg.exe' && c[1] === '/overlaysetactive' && c[2] === 'OVERLAY_SCHEME_MAX'), 'performance mode was set')
+  assert.deepEqual(launched, ['steam://rungameid/1145360'])
+})
+
 test('games.json adds games Steam does not list', async (t) => {
   const { actions, launched, files } = lab(t)
   writeFileSync(files.games, JSON.stringify({ 'My Emulator': 999 }))

@@ -523,8 +523,10 @@ export function createActions({
         winOnly()
         const game = await findGame(arg)
         if (!game) throw new Error('That game is not in the list of this PC.')
+        // Owner request: games always start in Performance mode. A failure here never stops the game from starting.
+        const boosted = await setMode('gaming').then(() => true, () => false)
         await launch(`steam://rungameid/${game.appid}`)
-        return `Starting ${game.name}. It can take a minute to reach the menu.`
+        return `Starting ${game.name}${boosted ? ' in Performance mode' : ''}. It can take a minute to reach the menu.`
       }
       case 'close_game': {
         const lines = (await ps(CLOSE_GAME, { timeout: 20_000 })).split(/\r?\n/).map((l) => l.trim()).filter(Boolean)

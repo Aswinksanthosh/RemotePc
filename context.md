@@ -134,3 +134,7 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 - Owner: "Remove temp limit from everything". Real cause it never worked: Windows only gave a chassis sensor (_TZ.TZ00 27.9 C, not the CPU) and the GPU (50 C) was under the 70 limit; a true CPU temperature needs a helper such as LibreHardwareMonitor, which the owner declined.
 - Deleted: src/limiter.mjs, its test, settings card + sensors route, config keys (limiterOn/cpuLimit/gpuLimit), doctor check, installer limiter install, ROG Ally 90 default, README/CUSTOMIZE/SECURITY text, preview data.
 - Kept ONLY clean-up: `removeOldLimiter` (setup.mjs) runs at install and Uninstall: restores the CPU/GPU settings with the old ProgramData limiter.mjs --restore, removes the "RemortStartPc Limiter" task and the ProgramData folder. Old config.json keys are ignored. Everything above in this file about the limiter is history.
+
+## Games start in Performance mode; Update App in the top bar (owner, 2026-11-18)
+- steam_game calls setMode("gaming") first (failure ignored), message says "in Performance mode". Not switched back afterwards.
+- "Update App" is an icon button (download arrow) in the top bar of the main page AND the Settings page (hold/confirm); the System tile was removed. reloadWhenBack() now lives in common.js. On the PC Settings page the button opens the Update window (tool route); on a phone it updates and reloads.

@@ -83,6 +83,7 @@ const ICONS = {
   leaf: ['M5 19c0-8 4-14 15-14 0 10-6 14-14 14z', 'M5 19l7-7'],
   balance: ['M12 4v16', 'M6 20h12', 'M5 8h14', 'M5 8l-3 7a3.5 3.5 0 0 0 6 0z', 'M19 8l-3 7a3.5 3.5 0 0 0 6 0z'],
   bolt: ['M13 2L4 14h7l-1 8 9-12h-7z'],
+  download: ['M12 3v12', 'M7 11l5 5 5-5', 'M5 21h14'],
   gamepad: ['M6 9h12a4 4 0 0 1 4 4v2a3 3 0 0 1-5 2l-1-2H8l-1 2a3 3 0 0 1-5-2v-2a4 4 0 0 1 4-4z', 'M8 11v3', 'M6.5 12.5h3'],
   grid: ['M4 4h6v6H4z', 'M14 4h6v6h-6z', 'M4 14h6v6H4z', 'M14 14h6v6h-6z'],
   terminal: ['M4 5h16v14H4z', 'M7 10l3 2-3 2', 'M12 15h5'],
@@ -218,4 +219,24 @@ function footer(feedbackUrl, version, where) {
   }
   f.append(el('p', 'copy', '© 2026 Aswin K Santhosh. Open source under the MIT licence: free to use and share, with this copyright notice kept.'))
   return f
+}
+
+// After "Update App": wait 5 seconds, then reload as soon as the program answers again (it takes about 15 seconds to come back).
+function reloadWhenBack() {
+  say('Updating… the page refreshes by itself in about 5 seconds.')
+  const started = Date.now()
+  const poll = async () => {
+    try {
+      const r = await fetch('/health', { cache: 'no-store' })
+      if (r.ok) {
+        location.reload()
+        return
+      }
+    } catch {
+      // Still restarting: try again.
+    }
+    if (Date.now() - started < 90_000) setTimeout(poll, 2000)
+    else say('Still restarting. Reload the page in a moment.', true)
+  }
+  setTimeout(poll, 5000)
 }

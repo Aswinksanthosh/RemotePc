@@ -43,7 +43,7 @@ A **Windows 10 or 11 PC**, an **iPhone or Android phone**, and a **Google accoun
 | Button | What it does |
 |---|---|
 | Power menu (power icon, top right) and the Power card | Lock, Screen off, Sleep, Restart, Turn off, Cancel turn off. Sleep, Restart and Turn off ask "are you sure?" first |
-| Steam | Open Steam, Big Picture, pick one of your installed games and start it, close the running game, switch Steam account. Every game is started from this drop-down only. Starting asks first |
+| Steam | Open Steam, Big Picture, pick one of your installed games and start it (the PC switches to Performance mode), close the running game, switch Steam account. Every game is started from this drop-down only. Starting asks first |
 | Sound output | Choose where the sound plays (speakers, headphones, monitor) |
 | Bluetooth devices (drop-down) | Connect or disconnect a paired Bluetooth device (earbuds) on this PC, so it is free for your phone or another PC |
 | Media | Previous, play/pause, next, volume up/down, mute |
@@ -52,7 +52,8 @@ A **Windows 10 or 11 PC**, an **iPhone or Android phone**, and a **Google accoun
 | My buttons | Your own buttons that run a command you wrote (optional, see [docs/CUSTOMIZE.md](docs/CUSTOMIZE.md)) |
 | Theme | Pick one of three looks (Neon, Tactical, Clean). Several PCs? A swipe card above Steam moves between them |
 | Settings (cog, top right) | Start with Windows, Steam Big Picture at startup, power mode at startup, name, theme, PIN, home Wi-Fi access |
-| System | PC status (battery, graphics card, uptime) and **Update App** (updates, restarts by itself and refreshes the page) |
+| System | PC status (battery, graphics card, uptime) |
+| Update App (download icon, top bar of every page) | Updates, restarts by itself and refreshes the page |
 
 Risky buttons ask first, and a few need a short hold. Nothing you type on the phone is ever run as a command: the phone can only press buttons that exist. A paired phone can add apps from the laptop's own app list (Settings, My apps). Anyone holding a paired phone can do this, so forget a lost phone at once.
 
@@ -80,7 +81,7 @@ Everyone installs on their own PC and pairs their own phone. Nothing is shared b
 |---|---|
 | Add, change or remove a PIN (optional, extra safety if someone else may hold your phone) | Double-click **Set-PIN** (also in the Start menu) |
 | Pair another phone | Double-click **Pair-Phone** (also in the Start menu), scan the new code |
-| Update to the newest version | Press **Update App** on the phone page (System), or double-click **Update** |
+| Update to the newest version | Press the **Update App** icon (top bar of the page), or double-click **Update** |
 | Something does not work | Double-click **Fix-It**. It checks everything and tells you what to do |
 | Remove it | Double-click **Uninstall** |
 | Add my own buttons or apps (apps are added on the PC) | [docs/CUSTOMIZE.md](docs/CUSTOMIZE.md) |

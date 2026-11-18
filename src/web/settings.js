@@ -290,6 +290,23 @@ function render() {
   const txt = el('div', 'txt')
   txt.append(el('h1', '', 'Settings'), el('div', 'model', name + (v.version ? '  ·  version ' + v.version : '')))
   top.append(back, txt)
+  // Update App sits in the top bar here too (same as on the main page).
+  const upd = btn('Update App', async () => {
+    try {
+      if (onThePc) say2((await call('/api/settings/tool', { tool: 'update' })).message)
+      else {
+        const j = await call('/api/do', { action: 'update' })
+        say2(j.message || 'Updating…')
+        if (/restart/i.test(j.message || '')) reloadWhenBack()
+      }
+    } catch (err) {
+      say2(err.message, true)
+    }
+  }, false, 'Update App?', 'pwr')
+  upd.textContent = ''
+  upd.append(icon('download'))
+  upd.title = 'Update App (hold to confirm)'
+  top.append(upd)
   p.append(top)
 
   // -- startup ----------------------------------------------------------------------------
@@ -367,7 +384,6 @@ function render() {
         say2(err.message, true)
       }
     }, false, sure))
-    about.push(tool('Update App', 'Download the newest version, install it and restart. One button for both.', 'update'))
     about.push(tool('Fix-It', 'Checks everything and tells you what to do.', 'fixit'))
     about.push(tool('Uninstall', 'Removes RemotePc from this PC. Your settings folder is kept.', 'uninstall', 'Uninstall RemotePc?'))
   }
