@@ -793,7 +793,7 @@ function render() {
         ic.append(icon('bluetooth'))
         item.append(ic, el('div', 'nm', name))
         const acts = el('div', 'acts')
-        acts.append(btn('Connect', () => confirmBox('Connect ' + name + '?', 'Sound from this PC moves to it.', 'Connect', () => act('bt_connect', name)), false, undefined, 'go'), btn('Disconnect', () => confirmBox('Disconnect ' + name + '?', 'It stops playing sound from this PC.', 'Disconnect', () => act('bt_disconnect', name))))
+        acts.append(btn('Connect', () => act('bt_connect', name), false, undefined, 'go'), btn('Disconnect', () => act('bt_disconnect', name)))
         item.append(acts)
         list.append(item)
       }

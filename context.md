@@ -103,4 +103,4 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 
 - Owner decision: built-in Open apps list (APP_CANDIDATES) is Spotify only. Everything else is added on the PC (Settings > My apps).
 
-- Owner decision: every crucial action asks first. Confirm box (confirmBox) for Start game, Open Steam, Big Picture, each app, Bluetooth connect/disconnect; hold-to-confirm for power/close game/update/my buttons. Lock, Screen off, media, volume, theme stay one tap.
+- Owner decision: every crucial action asks first. Confirm box (confirmBox) for Start game, Open Steam, Big Picture, each app (NOT Bluetooth: owner said no); hold-to-confirm for power/close game/update/my buttons. Lock, Screen off, media, volume, theme stay one tap.
