@@ -98,3 +98,5 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 
 ## Security rule (owner): phones can NOT add or remove apps
 - /api/settings/apps add/remove and /startapps need the PC-local Settings page (403 for a phone key); a phone may only list. Phone Settings shows a warning: apps can only be added on the PC. Page: Bluetooth devices and Apps are now drop-downs (acc).
+
+- Owner decision: the installer no longer asks for a PIN (no PIN by default; Set-PIN / Settings add one later; RSP_PIN env still works). README updated.

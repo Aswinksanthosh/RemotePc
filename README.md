@@ -35,11 +35,11 @@ A **Windows 10 or 11 PC** (signed in as an administrator), an **iPhone or Androi
 
 5. Click **Yes** when Windows asks. Wait a few minutes while it installs.
 6. A browser page opens for **Tailscale**: sign in with the **same Google account** as on the phone. No page? Open the link the installer prints (it starts with `https://login.tailscale.com`).
-7. When the installer asks, **choose a PIN** (4 to 8 digits, typed twice; `0000` and `1234` are refused). **If you type nothing and just press Enter, there is no PIN at all** (the installer warns you). A **QR code** appears: leave it there.
+7. A **QR code** appears: leave it there. (There is no PIN question: your phone is protected by the secret key in the QR link. You can add a PIN later, see below.)
 
 **On the phone again**
 
-8. Scan the QR code with the **Camera** app, tap the link, type your **PIN**. Your PC's name appears with a green dot.
+8. Scan the QR code with the **Camera** app and tap the link. Your PC's name appears with a green dot.
 9. Add it to the home screen: **iPhone** (Safari) Share, then **Add to Home Screen**. **Android** menu (three dots), then **Add to Home screen**.
 
 **On the PC:** press **Enter** in the installer window. Done. A **Remote Start PC** shortcut to the program folder is now on your Desktop (your settings, `buttons.json` and logs are in it).
@@ -86,7 +86,7 @@ Everyone installs on their own PC and pairs their own phone. Nothing is shared b
 
 | I want to... | Do this |
 |---|---|
-| Change or remove my PIN | Double-click **Set-PIN** (also in the Start menu) |
+| Add, change or remove a PIN (optional, extra safety if someone else may hold your phone) | Double-click **Set-PIN** (also in the Start menu) |
 | Pair another phone | Double-click **Pair-Phone** (also in the Start menu), scan the new code |
 | Update to the newest version | Press **Update App** on the phone page (System), or double-click **Update** |
 | Something does not work | Double-click **Fix-It**. It checks everything and tells you what to do |

@@ -101,7 +101,7 @@ export async function setupPin({ pin, ask, ui, env = {} }) {
     return
   }
   if (!ask) {
-    if (!had) ui.warn('No PIN is set. Double-click Set-PIN to add one.')
+    if (!had) ui.info('No PIN is set. Want one? Double-click Set-PIN any time (Start menu or the desktop folder).')
     return
   }
   ui.heading('Choose a PIN for your phone')
@@ -256,7 +256,8 @@ export async function runSetup({
   saveConfig(paths.config, config)
   writeFileSync(paths.launcher, launcherScript({ nodePath, entry: join(paths.app, 'bin', 'remote.mjs'), home: paths.home }))
   ui.ok(`Phone page on port ${config.port}. Allowed: ${config.allow.join(', ')}.`)
-  await setupPin({ pin: createPin({ file: paths.pin }), ask: askLine, ui, env })
+  // The installer does not ask for a PIN (owner decision): fewer questions. A PIN is added later with Set-PIN or in Settings.
+  await setupPin({ pin: createPin({ file: paths.pin }), ui, env })
   if (!ts.ok && windows) ui.warn('Without Tailscale, the phone must be on the same Wi-Fi as this PC. Run Install again after setting up Tailscale to change that.')
 
   ui.step(4, TOTAL, 'Starting by itself at every sign-in')
