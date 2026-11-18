@@ -6,18 +6,16 @@ import { ask, run } from '../src/system.mjs'
 import { createUi, supportsColor } from '../src/ui.mjs'
 import { join } from 'node:path'
 import { limiterDir } from '../src/paths.mjs'
-import { firewallDeleteArgs, psArgs, removeLimiterTaskScript, removeTaskScript, stopRemoteScript } from '../src/windows.mjs'
+import { removeOldLimiter } from '../src/setup.mjs'
+import { firewallDeleteArgs, psArgs, removeTaskScript, stopRemoteScript } from '../src/windows.mjs'
 
 const paths = dataPaths()
 const ui = createUi({ color: supportsColor() })
 ui.title('Remote Start PC: uninstall')
 if (process.platform === 'win32') {
   await run('powershell.exe', psArgs(stopRemoteScript)).catch(() => {})
-  // The limiter first: put the CPU and GPU speed back as they were, then remove it.
-  const ldir = limiterDir()
-  await run(process.execPath, [join(ldir, 'limiter.mjs'), '--restore', '--dir', ldir]).catch(() => {})
-  await run('powershell.exe', psArgs(removeLimiterTaskScript)).catch(() => {})
-  await run('cmd.exe', ['/c', 'rmdir', '/s', '/q', ldir]).catch(() => {})
+  // An old temperature limiter (removed from the program) is cleaned up too: speed restored, task and folder deleted.
+  await removeOldLimiter({ run, ps: (script) => run('powershell.exe', psArgs(script)), dir: limiterDir(), ui })
   await run('powershell.exe', psArgs(removeTaskScript)).then(() => ui.ok('Automatic start and shortcuts removed.'), (e) => ui.warn(`Could not remove the automatic start: ${e.message}`))
   await run('netsh.exe', firewallDeleteArgs).then(() => ui.ok('Firewall rule removed.'), () => ui.warn('No firewall rule to remove (or administrator rights are needed).'))
 }

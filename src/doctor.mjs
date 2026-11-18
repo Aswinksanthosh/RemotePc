@@ -11,7 +11,7 @@ import { createAuth } from './auth.mjs'
 import { createPin } from './pin.mjs'
 import { scanGames } from './steam.mjs'
 import { regValue } from './steam.mjs'
-import { FIREWALL_RULE, TASK_NAME, limiterDir } from './paths.mjs'
+import { FIREWALL_RULE, TASK_NAME } from './paths.mjs'
 import { findTailscale, tailscaleStatus } from './windows.mjs'
 
 export async function runDoctor({
@@ -76,17 +76,6 @@ export async function runDoctor({
 
   const hasPin = createPin({ file: paths.pin }).isSet()
   add('PIN', hasPin ? 'ok' : 'warn', hasPin ? 'set' : 'no PIN is set (a paired phone opens the remote without asking)', hasPin ? '' : 'Double-click Set-PIN to add one.')
-
-  if (windows && config.limiterOn) {
-    let ok = false
-    try {
-      const st = JSON.parse(readText(join(limiterDir(env), 'limiter-status.json')))
-      ok = Date.now() - Date.parse(st.at) < 30_000
-    } catch {
-      ok = false
-    }
-    add('Temperature limiter', ok ? 'ok' : 'bad', ok ? 'running' : 'is switched on but not running', ok ? '' : 'Run Install.cmd again (it needs administrator rights to set the limiter up).')
-  }
 
   if (windows) {
     try {

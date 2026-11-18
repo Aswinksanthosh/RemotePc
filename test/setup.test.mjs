@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { loadConfig, saveConfig } from '../src/config.mjs'
 import { dataPaths } from '../src/paths.mjs'
-import { cleanupPairingPages, newPairing, pairingPage, runSetup, setupTailscale, showPairingOnScreen, syncApp, waitForHealth } from '../src/setup.mjs'
+import { cleanupPairingPages, newPairing, pairingPage, removeOldLimiter, runSetup, setupTailscale, showPairingOnScreen, syncApp, waitForHealth } from '../src/setup.mjs'
 import { createUi } from '../src/ui.mjs'
 import { configureFirewall, desktopShortcutScript, findTailscale, removeTaskScript, firewallArgs, launcherScript, loginTailscale, psArgs, registerTaskScript, shortcutsScript, stopRemoteScript, tailscaleStatus } from '../src/windows.mjs'
 import { tempDir, writeTree } from './helpers.mjs'
@@ -202,7 +202,7 @@ test('waitForHealth gives up politely and succeeds when the program answers', as
 
 function setupLab(t, extra = {}) {
   const source = tempDir(t)
-  writeTree(source, { 'bin/remote.mjs': '//', 'src/limiter.mjs': '// limiter', 'package.json': '{"name":"remortstartpc"}' })
+  writeTree(source, { 'bin/remote.mjs': '//', 'package.json': '{"name":"remortstartpc"}' })
   const paths = dataPaths(join(tempDir(t), 'home'))
   const cap = capture()
   const calls = []
@@ -243,13 +243,7 @@ test('the whole install on Windows: every step runs, the settings are right, not
   assert.ok(flat.some((c) => c.endsWith('set --unattended')))
   assert.equal(shown.length, 1)
   assert.ok(!cap.logged.join('\n').includes('?k='), 'no pairing key in the install log')
-  // The limiter: copied into a folder only administrators can change, started by an elevated task.
-  assert.equal(readFileSync(join(pd, 'RemortStartPc', 'limiter.mjs'), 'utf8'), '// limiter')
-  assert.ok(flat.some((c) => c.startsWith('icacls.exe') && c.includes('*S-1-5-32-544:(OI)(CI)F') && c.includes('*S-1-5-32-545:(OI)(CI)RX')), 'only administrators may write there')
-  assert.ok(flat.some((c) => c.includes('Register-ScheduledTask') && c.includes('-RunLevel Highest') && c.includes('RemortStartPc Limiter')))
-  const launcherText = readFileSync(join(pd, 'RemortStartPc', 'limiter-start.ps1'), 'utf8')
-  assert.ok(launcherText.includes('--run --config') && launcherText.includes('limiter-status.json'))
-  assert.equal(loadConfig(paths.config).cpuLimit, 70, 'a laptop starts at 70')
+  assert.ok(!flat.some((c) => c.includes('Register-ScheduledTask') && c.includes('RemortStartPc Limiter')), 'the temperature limiter is gone')
 })
 
 test('without Tailscale the home network is allowed so the phone can still connect', async (t) => {
@@ -301,23 +295,17 @@ test('on a system that is not Windows the Windows steps are skipped, not attempt
   assert.equal(r.ok, true)
 })
 
-test('a handheld (ROG Ally) starts with temperature limits of 90', async (t) => {
-  const { args, paths } = setupLab(t, { showPairing: async () => {} })
-  const base = args.run
-  args.run = async (f, a) => (f === 'powershell.exe' && decode(a).includes('Win32_ComputerSystem') ? 'ROG Ally RC71L_RC71L\n' : base(f, a))
-  await runSetup(args)
-  const c = loadConfig(paths.config)
-  assert.deepEqual([c.cpuLimit, c.gpuLimit, c.limiterOn], [90, 90, false])
-})
-
-test('a failing limiter install does not stop the rest of the install', async (t) => {
-  const { args, cap } = setupLab(t, { showPairing: async () => {} })
-  const base = args.run
-  args.run = async (f, a) => {
-    if (f === 'icacls.exe') throw new Error('Access is denied')
-    return base(f, a)
-  }
-  const r = await runSetup(args)
-  assert.match(cap.out.join(''), /Could not install the temperature limiter \(the rest works\): Access is denied/)
-  assert.equal(r.ok, true)
+test('an old temperature limiter is removed: speed restored, task and folder deleted', async () => {
+  const calls = []
+  const removed = []
+  const msgs = []
+  const ui = { ok: (m) => msgs.push(m), warn: (m) => msgs.push(m) }
+  const run = async (f, a) => calls.push([f, ...a].join(' '))
+  const ps = async (script) => calls.push('ps ' + script.slice(0, 40))
+  assert.equal(await removeOldLimiter({ run, ps, dir: 'D:\\pd\\RemortStartPc', exists: () => false, ui, remove: (d) => removed.push(d) }), false, 'nothing to do on a clean PC')
+  assert.equal(await removeOldLimiter({ run, ps, dir: 'D:\\pd\\RemortStartPc', exists: () => true, ui, remove: (d) => removed.push(d) }), true)
+  assert.ok(calls.some((c) => c.includes('--restore')))
+  assert.ok(calls.some((c) => c.startsWith('ps Stop-ScheduledTask')))
+  assert.deepEqual(removed, ['D:\\pd\\RemortStartPc'])
+  assert.match(msgs.join(' '), /old temperature limiter was removed/)
 })

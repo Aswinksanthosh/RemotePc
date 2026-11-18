@@ -129,3 +129,8 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 - Phones MAY now add and remove apps (Settings > My apps) picking from the laptop Start-menu list (/api/settings/startapps, /apps open to any paired phone). The earlier "PC only" rule and the yellow warning were removed. Drop-a-shortcut box still PC only. Update/Fix-It/Uninstall buttons remain PC only.
 
 - My apps card: the typed name/Start-menu fields and "Add app" button were removed (owner); apps are added only by picking from the laptop list (or dropping a shortcut on the PC).
+
+## TEMPERATURE LIMITER REMOVED (owner, 2026-11-18)
+- Owner: "Remove temp limit from everything". Real cause it never worked: Windows only gave a chassis sensor (_TZ.TZ00 27.9 C, not the CPU) and the GPU (50 C) was under the 70 limit; a true CPU temperature needs a helper such as LibreHardwareMonitor, which the owner declined.
+- Deleted: src/limiter.mjs, its test, settings card + sensors route, config keys (limiterOn/cpuLimit/gpuLimit), doctor check, installer limiter install, ROG Ally 90 default, README/CUSTOMIZE/SECURITY text, preview data.
+- Kept ONLY clean-up: `removeOldLimiter` (setup.mjs) runs at install and Uninstall: restores the CPU/GPU settings with the old ProgramData limiter.mjs --restore, removes the "RemortStartPc Limiter" task and the ProgramData folder. Old config.json keys are ignored. Everything above in this file about the limiter is history.

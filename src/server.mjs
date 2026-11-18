@@ -253,7 +253,6 @@ export async function startServer({
           // Owner decision (2026-11-18): a paired phone may add and remove apps, picking from the laptop's own Start menu list.
           if (path === '/api/settings/startapps') return json(res, 200, { names: await settings.startApps() })
           if (path === '/api/settings/apps') return json(res, 200, settings.apps(body))
-          if (path === '/api/settings/sensors') return json(res, 200, { lines: await settings.sensors() })
           if (path === '/api/settings/task') return json(res, 200, { state: await settings.setTask(body.on === true) })
           if (path === '/api/settings/pin') {
             const r = settings.changePin(ip, String(body.current ?? ''), String(body.next ?? ''))

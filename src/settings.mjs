@@ -4,18 +4,17 @@
  */
 
 import { hostname as osHostname } from 'node:os'
-import { readFileSync, statSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { applySettingsPatch, saveConfig } from './config.mjs'
-import { SENSOR_REPORT } from './limiter.mjs'
 import { writeAtomic } from './fsutil.mjs'
-import { LIMITER_TASK, TASK_NAME, limiterDir } from './paths.mjs'
+import { TASK_NAME } from './paths.mjs'
 import { isWeakPin, validPin } from './pin.mjs'
 
 /** The only tools the page can open: fixed names, fixed files. */
 const TOOLS = { update: 'Update.cmd', fixit: 'Fix-It.cmd', uninstall: 'Uninstall.cmd' }
 
-export function createSettings({ file, appsFile = '', config, pin, run, platform = process.platform, version = '', appDir = '', hostname = osHostname, readText = (f) => readFileSync(f, 'utf8'), age = (f) => Date.now() - statSync(f).mtimeMs, dir = limiterDir() }) {
+export function createSettings({ file, appsFile = '', config, pin, run, platform = process.platform, version = '', appDir = '', hostname = osHostname, readText = (f) => readFileSync(f, 'utf8') }) {
   const windows = platform === 'win32'
 
   /** 'on' | 'off' | 'missing' (no scheduled task) | null (not Windows). */
@@ -27,41 +26,6 @@ export function createSettings({ file, appsFile = '', config, pin, run, platform
     } catch {
       return 'missing'
     }
-  }
-
-  /** What the limiter reports (it runs elsewhere, with administrator rights, and writes this file every few seconds). */
-  async function limiterInfo() {
-    if (!windows) return null
-    const statusFile = join(dir, 'limiter-status.json')
-    let status = null
-    let fresh = false
-    try {
-      status = JSON.parse(readText(statusFile))
-      fresh = age(statusFile) < 20_000
-    } catch {
-      status = null
-    }
-    const installed = await run('schtasks.exe', ['/query', '/tn', LIMITER_TASK]).then(() => true, () => false)
-    return { installed, running: fresh, status: fresh ? status : null }
-  }
-
-  /** Every temperature Windows will tell us, as plain lines, to compare with Armoury Crate. */
-  async function sensors() {
-    if (!windows) throw new Error('This works on Windows only.')
-    const lines = []
-    try {
-      const out = await run('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', Buffer.from(SENSOR_REPORT, 'utf16le').toString('base64')], { timeout: 20_000 })
-      lines.push(...out.split(/\r?\n/).map((l) => l.trim()).filter(Boolean))
-    } catch (err) {
-      lines.push(`Windows sensors: ${err.message}`)
-    }
-    try {
-      const out = await run('nvidia-smi.exe', ['--query-gpu=name,temperature.gpu', '--format=csv,noheader'])
-      for (const l of out.split(/\r?\n/).map((x) => x.trim()).filter(Boolean)) lines.push(`NVIDIA ${l.replace(/,\s*/, ': ')} C`)
-    } catch {
-      lines.push('NVIDIA graphics card: not found (an AMD or Intel graphics chip is not limited, only the CPU)')
-    }
-    return lines.slice(0, 40)
   }
 
   // The apps you add yourself: { "name on the button": "exact name in the Start menu" }. Same rules as the file you could write by hand.
@@ -107,12 +71,10 @@ export function createSettings({ file, appsFile = '', config, pin, run, platform
   return {
     apps,
     startApps,
-    sensors,
     async get() {
-      const { name, theme, order, pinHours, steamAtStart, steamDelay, startMode, accent, allow, limiterOn, cpuLimit, gpuLimit } = config
+      const { name, theme, order, pinHours, steamAtStart, steamDelay, startMode, accent, allow } = config
       return {
-        values: { name, theme, order, pinHours, steamAtStart, steamDelay, startMode, accent, lan: allow.includes('lan'), limiterOn, cpuLimit, gpuLimit },
-        limiter: await limiterInfo(),
+        values: { name, theme, order, pinHours, steamAtStart, steamDelay, startMode, accent, lan: allow.includes('lan') },
         startupTask: await taskState(),
         host: hostname(),
         hasPin: pin.isSet(),

@@ -253,22 +253,6 @@ test('restart from the Settings page asks the program to restart', async (t) => 
   assert.deepEqual(calls, ['restart_remote'])
 })
 
-test('the Settings page now also tells about the limiter and can list the sensors', async (t) => {
-  const dir = tempDir(t)
-  const config = normalizeConfig({ limiterOn: true, cpuLimit: 80 })
-  const run = async (f) => (f === 'schtasks.exe' ? 'ok' : f === 'powershell.exe' ? 'Windows thermal zone A: 61.0 C\n' : '62, GeForce RTX 4060\n')
-  const s = createSettings({ file: join(dir, 'config.json'), config, pin: createPin({ file: join(dir, 'pin.json') }), platform: 'win32', run, dir, readText: () => JSON.stringify({ at: 'now', on: true }), age: () => 1000 })
-  const got = await s.get()
-  assert.deepEqual([got.values.limiterOn, got.values.cpuLimit, got.limiter.installed, got.limiter.running], [true, 80, true, true])
-  assert.deepEqual(got.limiter.status, { at: 'now', on: true })
-  const old = createSettings({ file: join(dir, 'c.json'), config, pin: createPin({ file: join(dir, 'p.json') }), platform: 'win32', run, dir, readText: () => '{}', age: () => 60_000 })
-  assert.equal((await old.get()).limiter.running, false, 'an old status means it is not running')
-  assert.equal((await old.get()).limiter.status, null)
-  const lines = await s.sensors()
-  assert.ok(lines.some((l) => l.includes('thermal zone A: 61.0 C')))
-  assert.ok(lines.some((l) => l.startsWith('NVIDIA')))
-})
-
 test('openTool opens only the three fixed tools, on Windows', async () => {
   const runs = []
   const s = createSettings({ file: '/x/config.json', config: { allow: [] }, pin: { isSet: () => false }, run: async (...a) => runs.push(a), platform: 'win32', appDir: 'C:\\app' })

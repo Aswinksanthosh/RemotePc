@@ -16,8 +16,6 @@ This program lets a phone control a PC, so it is worth knowing exactly how it is
 
 **The Settings page on the PC.** It opens without a phone key, but only for requests from this PC itself (loopback), only for the settings calls, and only when the request carries our own header and a local Host and Origin, so a web page you visit cannot use it. If you set a PIN it still asks for it. The buttons that control the PC never work without a paired phone.
 
-**The temperature limiter runs with administrator rights.** That is a real privilege, so it is built narrowly: one small file, copied by the installer into `C:\ProgramData\RemortStartPc`, a folder that only administrators can change (so a normal program or another user cannot swap it for something else). It only reads numbers from your settings (never text that it runs) and runs a few fixed `powercfg` and `nvidia-smi` commands. Without administrator rights at install time, or if you never switch it on, nothing with extra rights is doing anything. Uninstall puts the speed settings back and removes it.
-
 ## What you should know
 
 - **The link in the QR code is the key.** It is shown only on the PC screen (and never written to the install log). It also ends up in the address of the page on your phone, so it is in that browser's history and on your home-screen icon. Do not share screenshots of the address bar or the QR code. If a phone is lost, forget it from another phone or run **Pair-Phone** and use the page's *Paired phones* list.

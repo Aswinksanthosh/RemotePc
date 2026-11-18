@@ -10,7 +10,6 @@
  *   theme    "neon", "tactical" or "clean": the look this PC starts with (empty: ROG neon, TUF tactical, else clean)
  *   order    place in the swipe bar when you own several PCs (0 to 99, lower is further left)
  *   steamAtStart  true: open Steam Big Picture once per boot, steamDelay seconds after the program starts (0 to 300)
- *   limiterOn, cpuLimit, gpuLimit   temperature limiter: lower the CPU and GPU speed only above these temperatures (50 to 100 degrees C)
  *   startMode     "saver", "balanced" or "gaming": set this Windows power mode when the program starts (empty: leave it)
  *   pinHours how long a typed PIN stays valid on a phone (1 to 720, default 12)
  *   nodePath where node.exe is, so the launcher does not depend on PATH
@@ -22,7 +21,7 @@ export const ACCENTS = ['blue', 'pink', 'amber', 'green', 'purple', 'red']
 export const THEMES = ['neon', 'tactical', 'clean']
 export const NETWORKS = ['loopback', 'tailscale', 'lan']
 
-export const DEFAULT_CONFIG = { port: 8791, allow: ['loopback', 'tailscale'], accent: '', name: '', theme: '', order: 0, nodePath: '', pinHours: 12, steamAtStart: false, steamDelay: 0, startMode: '', limiterOn: false, cpuLimit: 70, gpuLimit: 70 }
+export const DEFAULT_CONFIG = { port: 8791, allow: ['loopback', 'tailscale'], accent: '', name: '', theme: '', order: 0, nodePath: '', pinHours: 12, steamAtStart: false, steamDelay: 0, startMode: '' }
 
 export function normalizeConfig(raw) {
   const r = raw && typeof raw === 'object' ? raw : {}
@@ -45,10 +44,6 @@ export function normalizeConfig(raw) {
     steamAtStart: r.steamAtStart === true,
     steamDelay: Number.isInteger(r.steamDelay) && r.steamDelay >= 0 && r.steamDelay <= 300 ? r.steamDelay : 0,
     startMode: ['saver', 'balanced', 'gaming'].includes(r.startMode) ? r.startMode : '',
-    // Temperature limiter: off, or lower the CPU/GPU speed only while they are hotter than these limits (degrees C, 50 to 100).
-    limiterOn: r.limiterOn === true,
-    cpuLimit: Number.isInteger(r.cpuLimit) && r.cpuLimit >= 50 && r.cpuLimit <= 100 ? r.cpuLimit : 70,
-    gpuLimit: Number.isInteger(r.gpuLimit) && r.gpuLimit >= 50 && r.gpuLimit <= 100 ? r.gpuLimit : 70,
     pinHours: Number.isInteger(r.pinHours) && r.pinHours >= 1 && r.pinHours <= 720 ? r.pinHours : DEFAULT_CONFIG.pinHours,
   }
 }
@@ -57,7 +52,7 @@ export const loadConfig = (file) => normalizeConfig(readJson(file, {}))
 export const saveConfig = (file, config) => writeAtomic(file, `${JSON.stringify(normalizeConfig(config), null, 2)}\n`)
 
 /** The settings the Settings page may change, and how each is checked. Anything else is refused. */
-export const EDITABLE = ['limiterOn', 'cpuLimit', 'gpuLimit', 'name', 'theme', 'order', 'pinHours', 'steamAtStart', 'steamDelay', 'startMode', 'accent', 'allow']
+export const EDITABLE = ['name', 'theme', 'order', 'pinHours', 'steamAtStart', 'steamDelay', 'startMode', 'accent', 'allow']
 /** These only take effect after the program restarts. */
 export const NEEDS_RESTART = ['allow']
 
@@ -70,8 +65,6 @@ export function applySettingsPatch(current, patch) {
     if (!EDITABLE.includes(k)) throw new Error(`"${k}" cannot be changed here.`)
     if (k === 'steamAtStart' && typeof v !== 'boolean') throw new Error('Steam at startup is on or off.')
     if (k === 'steamDelay' && !(Number.isInteger(v) && v >= 0 && v <= 300)) throw new Error('The wait is 0 to 300 seconds.')
-    if (k === 'limiterOn' && typeof v !== 'boolean') throw new Error('The limiter is on or off.')
-    if ((k === 'cpuLimit' || k === 'gpuLimit') && !(Number.isInteger(v) && v >= 50 && v <= 100)) throw new Error('A temperature limit is 50 to 100 degrees.')
     if (k === 'order' && !(Number.isInteger(v) && v >= 0 && v <= 99)) throw new Error('The order is a number from 0 to 99.')
     if (k === 'pinHours' && !(Number.isInteger(v) && v >= 1 && v <= 720)) throw new Error('The PIN stays valid for 1 to 720 hours.')
     if (k === 'theme' && v !== '' && !THEMES.includes(v)) throw new Error('Unknown theme.')

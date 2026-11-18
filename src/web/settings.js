@@ -82,36 +82,6 @@ function card(iconName, title, ...rows) {
 }
 
 
-function limiterCard(v) {
-  const l = v.limiter
-  const rows = []
-  rows.push(row('Limit the temperature', 'Below your limits nothing is restricted. Above them the speed is lowered a little at a time, then raised again when it is cool.', sw(v.values.limiterOn, (on) => save({ limiterOn: on }), !l || !l.installed)))
-  if (!l || !l.installed) rows.push(el('div', 'note', 'The limiter is not installed. Run Install.cmd again (it needs administrator rights, once).'))
-  rows.push(row('CPU limit', 'degrees C (50 to 100)', number(v.values.cpuLimit, 50, 100, (n) => save({ cpuLimit: n }))))
-  rows.push(row('Graphics card limit', 'degrees C. NVIDIA cards only; an AMD or Intel graphics chip is not limited.', number(v.values.gpuLimit, 50, 100, (n) => save({ gpuLimit: n }))))
-  const live = el('div', 'note')
-  const st = l && l.status
-  if (v.values.limiterOn && st && st.cpu) {
-    const g = st.gpu ? '  ·  Graphics ' + st.gpu.temp + ' / ' + st.gpu.limit + ' C' + (st.gpu.step ? ' (limited)' : '') : ''
-    live.textContent = 'Now: CPU ' + (st.cpu.temp === null ? '?' : st.cpu.temp) + ' / ' + st.cpu.limit + ' C' + (st.cpu.step ? ' (limited, step ' + st.cpu.step + ' of ' + st.cpu.steps + ')' : '') + g + '  ·  reading: ' + (st.cpu.source || 'none')
-  } else if (v.values.limiterOn) live.textContent = l && l.running ? 'Running.' : 'Switched on, but the limiter is not running right now.'
-  else live.textContent = 'Off.'
-  rows.push(live)
-  const out = el('div', 'sensor-out')
-  out.hidden = true
-  rows.push(rowOnly(btn('Check temperature sensors', async () => {
-    out.hidden = false
-    out.textContent = 'Reading…'
-    try {
-      const j = await call('/api/settings/sensors')
-      out.textContent = j.lines.join('\n')
-    } catch (err) {
-      out.textContent = err.message
-    }
-  }), out))
-  rows.push(el('div', 'note', 'Compare these numbers with what Armoury Crate (or another monitor) shows for the CPU. The limiter uses the first source it finds. LibreHardwareMonitor (free) can give a more exact reading.'))
-  return card('bolt', 'Temperature limit', ...rows)
-}
 
 function rowOnly(...kids) {
   const r = el('div', 'set-col')
@@ -342,7 +312,6 @@ function render() {
     startup.push(row('Power mode at startup', 'Set once per boot. Efficiency is good while downloading.', select([['', 'Leave as it is'], ['saver', 'Efficiency'], ['balanced', 'Balanced'], ['gaming', 'Performance']], v.values.startMode, (m) => save({ startMode: m }))))
   } else startup.push(el('div', 'empty', 'Startup options are for Windows PCs.'))
   p.append(card('power', 'Startup', ...startup))
-  if (v.windows) p.append(limiterCard(v))
 
   // -- look -------------------------------------------------------------------------------
   p.append(

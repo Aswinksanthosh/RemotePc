@@ -5,7 +5,7 @@
 <p>
 <img src="docs/img/phone-home.png" alt="The phone page: power menu, Lock, Screen off, Steam with game picker" width="260">
 <img src="docs/img/phone-more.png" alt="The phone page: Bluetooth devices and Apps drop-downs, media keys, power mode" width="260">
-<img src="docs/img/phone-settings.png" alt="The Settings page: startup, temperature limit" width="260">
+<img src="docs/img/phone-settings.png" alt="The Settings page: startup, apps, PIN" width="260">
 </p>
 
 ## What you need
@@ -51,7 +51,7 @@ A **Windows 10 or 11 PC**, an **iPhone or Android phone**, and a **Google accoun
 | Apps (drop-down) | **Spotify** (if installed) plus any apps you add **on the PC**. Opening an app asks first. Add more in Settings: pick from the apps on the laptop |
 | My buttons | Your own buttons that run a command you wrote (optional, see [docs/CUSTOMIZE.md](docs/CUSTOMIZE.md)) |
 | Theme | Pick one of three looks (Neon, Tactical, Clean). Several PCs? A swipe card above Steam moves between them |
-| Settings (cog, top right) | Start with Windows, Steam Big Picture at startup, power mode at startup, temperature limit, name, theme, PIN, home Wi-Fi access |
+| Settings (cog, top right) | Start with Windows, Steam Big Picture at startup, power mode at startup, name, theme, PIN, home Wi-Fi access |
 | System | PC status (battery, graphics card, uptime) and **Update App** (updates, restarts by itself and refreshes the page) |
 
 Risky buttons ask first, and a few need a short hold. Nothing you type on the phone is ever run as a command: the phone can only press buttons that exist. A paired phone can add apps from the laptop's own app list (Settings, My apps). Anyone holding a paired phone can do this, so forget a lost phone at once.
@@ -117,11 +117,7 @@ Double-click the **RemotePc Settings** shortcut (cog icon) on the Desktop, or **
 
 - **Add a phone** (it shows a new QR code).
 - **Add apps** to the Apps list: search the apps on the PC and press Add, or (on the PC only) drop an app's shortcut on the box. Games are not added here: they live in the Steam drop-down.
-- Press **Update App**, **Fix-It** or **Uninstall**, and set the **temperature limiter**.
-
-## Temperature limiter (optional)
-
-Switch it on in Settings and choose a CPU limit and a graphics card limit in degrees. Below the limits nothing is restricted and the CPU and graphics card boost as usual. Above a limit the speed is lowered a little at a time until it is cool again. A laptop starts at 70, a handheld (ROG Ally) at 90. It needs administrator rights **once, at install time**; run the installer again to add it to an existing install. Read **[docs/SECURITY.md](docs/SECURITY.md)** and the notes in [docs/CUSTOMIZE.md](docs/CUSTOMIZE.md) first: reading the CPU temperature is not exact on every PC, so use **Check temperature sensors** and compare with another monitor.
+- Press **Update App**, **Fix-It** or **Uninstall**.
 
 ## Ideas, feedback, bugs
 

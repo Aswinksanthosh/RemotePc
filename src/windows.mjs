@@ -36,39 +36,14 @@ while ($true) {
 `
 }
 
-// -- the limiter (runs with administrator rights, from a folder only an administrator can change) ----
+// -- the old temperature limiter (removed in a later version): only the clean-up remains, for PCs that still have it ----
 
-/** Started by its own task; starts the limiter again if it stops (but not in a tight loop). */
-export function limiterLauncherScript({ nodePath, script, config, dir }) {
-  const status = `${dir}\\limiter-status.json`
-  return `# Started at sign-in by the scheduled task "${LIMITER_TASK}" (administrator rights). Written by the installer.
-$node = ${psQuote(nodePath)}
-Set-Location -LiteralPath ${psQuote(dir)}
-while ($true) {
-  if (-not (Test-Path -LiteralPath $node)) { Start-Sleep -Seconds 30; continue }
-  & $node ${psQuote(script)} --run --config ${psQuote(config)} --status ${psQuote(status)} --dir ${psQuote(dir)}
-  Start-Sleep -Seconds 5
-}
-`
-}
-
-/** Registers the limiter task for this user, with the highest rights (the installer itself runs as administrator). */
-export const registerLimiterTaskScript = (launcher) => String.raw`$name = ${psQuote(LIMITER_TASK)}
-$me = $env:USERDOMAIN + '' + $env:USERNAME
-$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument ('-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + ${psQuote(launcher)} + '"')
-$trigger = New-ScheduledTaskTrigger -AtLogOn -User $me
-$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
-$principal = New-ScheduledTaskPrincipal -UserId $me -LogonType Interactive -RunLevel Highest
-Register-ScheduledTask -TaskName $name -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force -ErrorAction Stop | Out-Null
-'limiter'`
-
+/** Removes the old limiter task and its leftover process. */
 export const removeLimiterTaskScript = String.raw`Stop-ScheduledTask -TaskName ${psQuote(LIMITER_TASK)} -ErrorAction SilentlyContinue
 Unregister-ScheduledTask -TaskName ${psQuote(LIMITER_TASK)} -Confirm:$false -ErrorAction SilentlyContinue
 Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -and $_.Name -eq 'node.exe' -and $_.CommandLine -match 'limiter\.mjs' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 'removed'`
 
-/** The installer sets the limiter's folder so that only administrators can write to it (well-known account numbers: they work in every language). */
-export const limiterAclArgs = (dir) => [dir, '/inheritance:r', '/grant:r', '*S-1-5-32-544:(OI)(CI)F', '*S-1-5-18:(OI)(CI)F', '*S-1-5-32-545:(OI)(CI)RX', '/T', '/Q']
 
 // -- the scheduled task ----------------------------------------------------------------
 

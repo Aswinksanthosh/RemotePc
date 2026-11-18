@@ -72,7 +72,7 @@ writeFileSync(join(outDir, 'RemotePc-preview.html'), html)
 // The Settings page, with pretend settings kept in memory.
 const settingsStub = `<script>
 // PREVIEW ONLY: pretend settings, kept in this page.
-var pv = { feedback: 'https://github.com/example/remotepc/issues/new', limiter: { installed: true, running: true, status: { at: 'now', on: true, cpu: { temp: 72.5, limit: 70, step: 2, steps: 8, source: 'Windows thermal zones' }, gpu: { temp: 66, limit: 70, step: 0, steps: 7 } } }, values: { name: '', theme: '', order: 2, pinHours: 12, steamAtStart: true, steamDelay: 0, startMode: 'balanced', accent: '', lan: false, limiterOn: true, cpuLimit: 70, gpuLimit: 70 }, startupTask: 'on', host: 'ROG-STRIX', hasPin: true, windows: true, version: '0.1.0' }
+var pv = { feedback: 'https://github.com/example/remotepc/issues/new', values: { name: '', theme: '', order: 2, pinHours: 12, steamAtStart: true, steamDelay: 0, startMode: 'balanced', accent: '', lan: false }, startupTask: 'on', host: 'ROG-STRIX', hasPin: true, windows: true, version: '0.1.0' }
 window.fetch = function (url, opts) {
   var body = {}
   try { body = JSON.parse((opts && opts.body) || '{}') } catch (e) {}
@@ -89,7 +89,6 @@ window.fetch = function (url, opts) {
     if (body.op === 'remove') window.pvApps = window.pvApps.filter(function (a) { return a.label !== body.label })
     return json({ apps: window.pvApps })
   }
-  if (u.indexOf('/api/settings/sensors') >= 0) return json({ lines: ['Windows thermal zone \\_TZ.THRM: 61.0 C', 'Windows thermal zone \\_TZ.TZ00: 47.0 C', 'ACPI thermal zone: not available (needs administrator rights)', 'LibreHardwareMonitor: not running (optional, free, more exact)', 'NVIDIA NVIDIA GeForce RTX 4060 Laptop GPU: 58 C'] })
   if (u.indexOf('/api/local/pair') >= 0) return json({ url: 'http://100.101.102.103:8791/?k=EXAMPLE', label: 'Phone 2', svg: ${JSON.stringify('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="#fff"/><path d="M1 1h3v3H1zM6 1h3v3H6zM1 6h3v3H1zM5 5h1v1H5zM7 6h2v1H7zM6 8h3v1H6z" fill="#000"/></svg>')} })
   if (u.indexOf('/api/settings/restart') >= 0) return json({ message: 'Preview: restarting. Nothing was really done.' })
   if (u.indexOf('/api/settings/task') >= 0) { pv.startupTask = body.on ? 'on' : 'off'; return json({ state: pv.startupTask }) }

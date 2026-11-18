@@ -10,19 +10,17 @@ import { createAuth } from './auth.mjs'
 import { loadConfig, saveConfig } from './config.mjs'
 import { createPin, isWeakPin, validPin } from './pin.mjs'
 import { listAddresses, phoneUrl } from './net.mjs'
-import { LIMITER_TASK, TASK_NAME, limiterDir } from './paths.mjs'
+import { TASK_NAME, limiterDir } from './paths.mjs'
 import { qrToConsole, qrToSvg } from './qr.mjs'
 import {
   configureFirewall,
   desktopShortcutScript,
   findTailscale,
   launcherScript,
-  limiterAclArgs,
-  limiterLauncherScript,
   loginTailscale,
   psArgs,
-  registerLimiterTaskScript,
   registerTaskScript,
+  removeLimiterTaskScript,
   shortcutsScript,
   stopRemoteScript,
   tailscaleStatus,
@@ -242,15 +240,6 @@ export async function runSetup({
   const fresh = !existsSync(paths.config)
   const config = loadConfig(paths.config)
   if (fresh) config.allow = ts.ok ? ['loopback', 'tailscale'] : ['loopback', 'tailscale', 'lan']
-  if (fresh && windows) {
-    // A handheld (ROG Ally) runs hotter by design: its starting limits are 90, a laptop's are 70.
-    const model = await ps('(Get-CimInstance Win32_ComputerSystem).Model').catch(() => '')
-    if (/ally/i.test(String(model))) {
-      config.cpuLimit = 90
-      config.gpuLimit = 90
-      ui.ok('Handheld detected: the temperature limits start at 90.')
-    }
-  }
   config.nodePath = nodePath
   mkdirSync(paths.home, { recursive: true })
   saveConfig(paths.config, config)
@@ -280,20 +269,7 @@ export async function runSetup({
     } catch {
       ui.warn('Could not add Start menu shortcuts. You can still use the .cmd files in the program folder.')
     }
-    try {
-      const dir = limiterDir(env)
-      await run('schtasks.exe', ['/end', '/tn', LIMITER_TASK]).catch(() => {})
-      mkdirSync(dir, { recursive: true })
-      copyFileSync(join(paths.app, 'src', 'limiter.mjs'), join(dir, 'limiter.mjs'))
-      writeFileSync(join(dir, 'limiter-start.ps1'), limiterLauncherScript({ nodePath, script: join(dir, 'limiter.mjs'), config: paths.config, dir }))
-      // Only administrators may change this folder: the limiter runs with administrator rights.
-      await run('icacls.exe', limiterAclArgs(dir))
-      await ps(registerLimiterTaskScript(join(dir, 'limiter-start.ps1')))
-      await run('schtasks.exe', ['/run', '/tn', LIMITER_TASK]).catch(() => {})
-      ui.ok('Temperature limiter installed (off until you turn it on in Settings).')
-    } catch (err) {
-      ui.warn(`Could not install the temperature limiter (the rest works): ${err.message}`)
-    }
+    await removeOldLimiter({ run, ps, dir: limiterDir(env), exists, ui })
     try {
       await ps(desktopShortcutScript(paths.home, paths.app))
       ui.ok('Desktop shortcuts: "RemotePc Settings" (opens Settings) and "Remote Start PC" (the program folder).')
@@ -324,6 +300,24 @@ export async function runSetup({
     ui.warn(err.message)
   }
   return { ok: healthy && Boolean(url), url, healthy, tailscale: ts.ok }
+}
+
+/**
+ * The temperature limiter was removed. A PC that had it installed still has its task and its folder (with administrator-only
+ * files): put the CPU and graphics speed back as they were, then remove the task and the folder. Does nothing if it is not there.
+ */
+export async function removeOldLimiter({ run, ps, dir, exists = existsSync, ui, remove = (d) => rmSync(d, { recursive: true, force: true }) }) {
+  try {
+    if (!exists(dir)) return false
+    if (exists(join(dir, 'limiter.mjs'))) await run(process.execPath, [join(dir, 'limiter.mjs'), '--restore', '--dir', dir]).catch(() => {})
+    await ps(removeLimiterTaskScript).catch(() => {})
+    remove(dir)
+    ui?.ok('The old temperature limiter was removed and your CPU and graphics speed were put back as normal.')
+    return true
+  } catch (err) {
+    ui?.warn(`Could not remove the old temperature limiter folder: ${err.message}`)
+    return false
+  }
 }
 
 /** Shows a pairing on the console and on screen. The link is a secret: it is printed, never logged. */
