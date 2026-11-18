@@ -138,3 +138,5 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 ## Games start in Performance mode; Update App in the top bar (owner, 2026-11-18)
 - steam_game calls setMode("gaming") first (failure ignored), message says "in Performance mode". Not switched back afterwards.
 - "Update App" is an icon button (download arrow) in the top bar of the main page AND the Settings page (hold/confirm); the System tile was removed. reloadWhenBack() now lives in common.js. On the PC Settings page the button opens the Update window (tool route); on a phone it updates and reloads.
+
+- README trimmed (owner): removed "What the buttons do", "Starting the PC when it is turned off", "Share it with a friend", "Everyday things"; "Settings on the PC itself" became "Add your applications" (use the Desktop Settings shortcut > My apps). docs/START-FROM-OFF.md still exists but is no longer linked from the README.
