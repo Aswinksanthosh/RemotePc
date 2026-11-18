@@ -22,7 +22,7 @@ const scripts = {
   'limiter: register task': registerLimiterTaskScript('C:\\ProgramData\\RemortStartPc\\limiter-start.ps1'),
   'limiter: remove task': removeLimiterTaskScript,
   'limiter: launcher': limiterLauncherScript({ nodePath: 'C:\\Program Files\\nodejs\\node.exe', script: 'C:\\ProgramData\\RemortStartPc\\limiter.mjs', config: 'C:\\Users\\me\\.remortstartpc\\config.json', dir: 'C:\\ProgramData\\RemortStartPc' }),
-  'windows: desktop shortcut': desktopShortcutScript('C:\\Users\\me\\.remortstartpc'),
+  'windows: desktop shortcut': desktopShortcutScript('C:\\Users\\me\\.remortstartpc', 'C:\\Users\\me\\.remortstartpc\\app'),
 }
 
 const PARSE = '$e = $null; $t = $null; [void][System.Management.Automation.Language.Parser]::ParseInput([Console]::In.ReadToEnd(), [ref]$t, [ref]$e); if ($e) { $e | ForEach-Object { $_.Message }; exit 1 }'

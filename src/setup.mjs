@@ -294,8 +294,8 @@ export async function runSetup({
       ui.warn(`Could not install the temperature limiter (the rest works): ${err.message}`)
     }
     try {
-      await ps(desktopShortcutScript(paths.home))
-      ui.ok('A "Remote Start PC" shortcut to the program folder is on your Desktop.')
+      await ps(desktopShortcutScript(paths.home, paths.app))
+      ui.ok('Desktop shortcuts: "RemotePc Settings" (opens Settings) and "Remote Start PC" (the program folder).')
     } catch {
       ui.warn('Could not put a shortcut on the Desktop. The folder is ' + paths.home)
     }

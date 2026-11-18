@@ -109,6 +109,8 @@ $dir = Join-Path ([Environment]::GetFolderPath('Programs')) 'RemortStartPc'
 if (Test-Path $dir) { Remove-Item $dir -Recurse -Force }
 $desk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Remote Start PC.lnk'
 if (Test-Path $desk) { Remove-Item $desk -Force }
+$desk2 = Join-Path ([Environment]::GetFolderPath('Desktop')) 'RemotePc Settings.lnk'
+if (Test-Path $desk2) { Remove-Item $desk2 -Force }
 'removed'`
 
 /** Stops a running copy (the launcher and the node program), so files can be replaced. Prints how many were stopped. */
@@ -130,6 +132,7 @@ foreach ($n in @(${SHORTCUTS.map(psQuote).join(', ')})) {
   $s = $ws.CreateShortcut((Join-Path $dir ($n + '.lnk')))
   $s.TargetPath = Join-Path $app ($n + '.cmd')
   $s.WorkingDirectory = $env:USERPROFILE
+  $s.IconLocation = (Join-Path $app 'assets\remotepc.ico')
   $s.Save()
 }
 'ok'`
@@ -138,8 +141,19 @@ foreach ($n in @(${SHORTCUTS.map(psQuote).join(', ')})) {
 
 export const DESKTOP_SHORTCUT = 'Remote Start PC'
 
-export const desktopShortcutScript = (folder) => String.raw`$desktop = [Environment]::GetFolderPath('Desktop')
+export const SETTINGS_SHORTCUT = 'RemotePc Settings'
+
+/** Two Desktop shortcuts: one that opens Settings (with the program icon, window kept out of the way) and one to the program folder. */
+export const desktopShortcutScript = (folder, appDir = '') => String.raw`$desktop = [Environment]::GetFolderPath('Desktop')
 $ws = New-Object -ComObject WScript.Shell
+${appDir ? String.raw`$app = ${psQuote(appDir)}
+$t = $ws.CreateShortcut((Join-Path $desktop (${psQuote(SETTINGS_SHORTCUT)} + '.lnk')))
+$t.TargetPath = Join-Path $app 'Settings.cmd'
+$t.WorkingDirectory = $env:USERPROFILE
+$t.WindowStyle = 7
+$t.IconLocation = (Join-Path $app 'assets\remotepc.ico')
+$t.Description = 'Open the RemotePc settings page'
+$t.Save()` : ''}
 $s = $ws.CreateShortcut((Join-Path $desktop (${psQuote(DESKTOP_SHORTCUT)} + '.lnk')))
 $s.TargetPath = ${psQuote(folder)}
 $s.Description = 'Remote Start PC: settings, your own buttons and logs'
