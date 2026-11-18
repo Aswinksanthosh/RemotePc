@@ -12,7 +12,7 @@
 
 A **Windows 10 or 11 PC** (signed in as an administrator), an **iPhone or Android phone**, and a **Google account**. About 10 minutes.
 
-## Install really in 3 steps
+## Install easily in 3 steps
 
 > [!NOTE]
 > ### 🟦 Step 1: Tailscale, on your phone and your laptop
