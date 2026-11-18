@@ -62,7 +62,7 @@ A **Windows 10 or 11 PC** (signed in as an administrator), an **iPhone or Androi
 | Audio output | Choose where the sound plays (speakers, headphones, monitor) |
 | Open apps | Discord, Spotify, Epic, Chrome, and more, if they are installed. You can add your own |
 | My buttons | Your own buttons that run a command you wrote (optional, see [docs/CUSTOMIZE.md](docs/CUSTOMIZE.md)) |
-| System | PC status (battery, graphics card, uptime) and one-tap **Update** and **Restart remote** |
+| System | PC status (battery, graphics card, uptime) and one-tap **Update App** (updates and restarts by itself) |
 
 Risky buttons (Turn off, Restart, Close game, ...) must be **held** for a moment, or ask "are you sure?". Nothing you type on the phone is ever run as a command: the phone can only press buttons that exist.
 
@@ -88,7 +88,7 @@ Everyone installs on their own PC and pairs their own phone. Nothing is shared b
 |---|---|
 | Change or remove my PIN | Double-click **Set-PIN** (also in the Start menu) |
 | Pair another phone | Double-click **Pair-Phone** (also in the Start menu), scan the new code |
-| Update to the newest version | Press **Update** on the phone page (System), or double-click **Update** |
+| Update to the newest version | Press **Update App** on the phone page (System), or double-click **Update** |
 | Something does not work | Double-click **Fix-It**. It checks everything and tells you what to do |
 | Remove it | Double-click **Uninstall** |
 | Add my own buttons, apps or games | [docs/CUSTOMIZE.md](docs/CUSTOMIZE.md) |

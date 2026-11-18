@@ -239,7 +239,7 @@ export async function startServer({
           if (path === '/api/settings') return json(res, 200, { ...(await settings.get()), feedback: issuesUrl })
           if (path === '/api/settings/save') {
             const r = settings.save(body.changes)
-            return json(res, 200, { ...r, message: r.restart ? 'Saved. This one applies after the program restarts (use Restart remote).' : 'Saved.' })
+            return json(res, 200, { ...r, message: r.restart ? 'Saved. This one applies after the program restarts (use Restart in Settings, About).' : 'Saved.' })
           }
           if (path === '/api/settings/restart') {
             if (!actions) return json(res, 400, { error: 'Nothing to restart here.' })

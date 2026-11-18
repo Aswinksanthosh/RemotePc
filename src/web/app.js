@@ -874,7 +874,7 @@ function render() {
   const parts = []
   if (!helper) {
     const g = el('div', 'grid3')
-    g.append(tile('pulse', 'Status', run('status'), { cls: 'small' }), tile('restart', 'Restart remote', run('restart_remote'), { sure: 'Restart the remote on this PC?', cls: 'small' }), tile('bolt', 'Update', run('update'), { sure: 'Update this app and restart it?', cls: 'small' }))
+    g.append(tile('pulse', 'Status', run('status'), { cls: 'small' }), tile('bolt', 'Update App', run('update'), { sure: 'Update this app? It restarts by itself.', cls: 'small' }))
     sys.append(g)
   }
   const others = data.others || []

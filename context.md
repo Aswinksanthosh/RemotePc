@@ -93,3 +93,5 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 - assets/remotepc.ico (generated, power-ring glyph). Install makes Desktop shortcut "RemotePc Settings" (opens Settings.cmd minimised, with the icon) next to the "Remote Start PC" folder shortcut; Start-menu shortcuts use the icon too; Uninstall removes both. Existing installs: run Install.cmd/installer again to get it.
 
 - Settings button icon on the page is now a real cog (it looked like a brightness sun before). Owner feedback.
+
+- Phone page has ONE tile "Update App" (updates + restarts; the separate Restart tile was removed). PC Settings About card: "Update App" and "Restart" (needed after some settings). Desktop/Start-menu icon is now a cog.
