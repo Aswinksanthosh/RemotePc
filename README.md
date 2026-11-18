@@ -20,7 +20,7 @@ A **Windows 10 or 11 PC**, an **iPhone or Android phone**, and a **Google accoun
 
 > [!TIP]
 > ### 🟩 Step 2: Run the command on the laptop
-> Open any folder, click the **address bar**, type `powershell`, press **Enter**. Paste and press **Enter**:
+> Press the **Windows key**, type `powershell`, press **Enter**. Paste this and press **Enter**:
 >
 > ```powershell
 > irm https://raw.githubusercontent.com/Aswinksanthosh/RemotePc/main/install.ps1 | iex

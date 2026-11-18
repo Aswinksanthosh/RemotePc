@@ -122,3 +122,5 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 - Step 2B screenshot removed from README (owner); the two drawn step pictures were deleted from docs/img.
 
 - REMOVED the Setup.exe (Inno Setup file and release workflow): owner decided the PowerShell command is enough. README install is short: 3 callout boxes only. (If a v0.1.0 release/tag exists on GitHub, the owner can delete it there.)
+
+- README step 2: no address-bar/folder trick any more: install.ps1 uses only %TEMP% and never the current folder (checked), so "Windows key, type powershell, Enter, paste" is enough.
