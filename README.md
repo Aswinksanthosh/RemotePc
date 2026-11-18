@@ -60,7 +60,7 @@ A **Windows 10 or 11 PC** (signed in as an administrator), an **iPhone or Androi
 | Media | Previous, play/pause, next, volume up/down, mute |
 | Headphones | Connect or disconnect a paired Bluetooth device (earbuds) on this PC, so it is free for your phone or another PC |
 | Audio output | Choose where the sound plays (speakers, headphones, monitor) |
-| Open apps | Discord, Spotify, Epic, Chrome, and more, if they are installed. You can add your own |
+| Open apps | Spotify (if installed). Add your own on the PC, in Settings |
 | My buttons | Your own buttons that run a command you wrote (optional, see [docs/CUSTOMIZE.md](docs/CUSTOMIZE.md)) |
 | System | PC status (battery, graphics card, uptime) and one-tap **Update App** (updates and restarts by itself) |
 

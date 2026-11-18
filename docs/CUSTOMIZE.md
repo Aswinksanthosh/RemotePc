@@ -23,7 +23,7 @@ A button runs one command on the PC when you hold it on the phone.
 
 ## Your own apps (`apps.json`)
 
-The **Open apps** list already shows common apps that are installed (Discord, Spotify, Chrome, and more). To add one that is missing, use its name **exactly as the Start menu shows it**:
+The **Open apps** list shows Spotify if it is installed. To add one that is missing, use its name **exactly as the Start menu shows it**:
 
 ```json
 {

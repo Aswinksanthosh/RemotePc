@@ -26,24 +26,7 @@ import {
 
 /** Apps offered on the page when they are installed: [label shown, name in the Start menu (* matches anything)]. */
 export const APP_CANDIDATES = [
-  ['Discord', 'Discord'],
   ['Spotify', 'Spotify'],
-  ['Epic Games', 'Epic Games Launcher'],
-  ['Xbox', 'Xbox'],
-  ['Claude', 'Claude'],
-  ['Chrome', 'Google Chrome'],
-  ['Brave', 'Brave'],
-  ['Edge', 'Microsoft Edge'],
-  ['Firefox', 'Firefox'],
-  ['OBS Studio', 'OBS Studio'],
-  ['VLC', 'VLC media player'],
-  ['WhatsApp', 'WhatsApp*'],
-  ['Telegram', 'Telegram*'],
-  ['Zoom', 'Zoom*'],
-  ['Teams', 'Microsoft Teams*'],
-  ['Armoury Crate', 'Armoury Crate'],
-  ['MyASUS', 'MyASUS'],
-  ['ASUS GlideX', '*Glide*X*'],
 ]
 
 /** Virtual key code and how many times to press it. */

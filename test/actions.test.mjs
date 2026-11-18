@@ -139,12 +139,12 @@ test('an unknown action is refused, and the allow-list is what the page can ask 
 
 test('apps: only installed apps from the list, plus your own', async (t) => {
   const { actions, calls, files } = lab(t)
-  writeFileSync(files.apps, JSON.stringify({ 'My Editor': 'Visual Studio Code', Discord: 'Fake', '': 'x', long: 'y'.repeat(100) }))
+  writeFileSync(files.apps, JSON.stringify({ 'My Editor': 'Visual Studio Code', '': 'x', long: 'y'.repeat(100) }))
   const info = await actions.info()
-  assert.deepEqual(info.apps, ['Discord', 'Spotify', 'My Editor'])
-  const ps = (script) => (script.includes('Start-Process explorer.exe') ? 'Discord' : '')
+  assert.deepEqual(info.apps, ['Spotify', 'My Editor'])
+  const ps = (script) => (script.includes('Start-Process explorer.exe') ? 'Spotify' : '')
   const lab2 = lab(t, { ps: { 'Start-Process explorer.exe': ps } })
-  assert.match(await lab2.actions.run('app', 'discord'), /Opening Discord/)
+  assert.match(await lab2.actions.run('app', 'spotify'), /Opening Spotify/)
   assert.match(decode(lab2.calls.at(-1)), /\$_\.Name -like \$n/)
   await assert.rejects(lab2.actions.run('app', 'powershell'), /Unknown app/)
   await assert.rejects(lab2.actions.run('app', "x'; calc; '"), /Unknown app/)
@@ -230,7 +230,7 @@ test('status joins what it can read, and update is passed through', async (t) =>
 test('cleanModel tidies the model name', () => {
   assert.equal(cleanModel('ASUSTeK COMPUTER INC.|ROG Strix G614JV_G614JV'), 'ROG Strix G614JV')
   assert.equal(cleanModel(''), '')
-  assert.ok(APP_CANDIDATES.length > 5)
+  assert.deepEqual(APP_CANDIDATES.map((a) => a[0]), ['Spotify'])
 })
 
 test('headphones: only a paired device, by exact name, can be connected or disconnected', async (t) => {
