@@ -1,6 +1,6 @@
 # RemotePc
 
-**Control your Windows PC from your phone.** Lock it, put the screen off, restart it, open Steam and start a game, change the volume and sound output, connect your earbuds, open apps, and more. One tap to install, one QR code to pair. No account with us, no cloud, no subscription.
+**Control your Windows PC from your phone.** Lock it, put the screen off, restart it, open Steam and start a game, change the volume and sound output, connect your earbuds, open apps, and more. Three steps to install, one QR code to pair. No account with us, no cloud, no subscription.
 
 <p>
 <img src="docs/img/phone-home.png" alt="The phone page: power menu, Lock, Screen off, Steam with game picker" width="260">
@@ -10,41 +10,32 @@
 
 ## What you need
 
-A **Windows 10 or 11 PC** (signed in as an administrator), an **iPhone or Android phone**, and a **Google account**. About 10 minutes.
+A **Windows 10 or 11 PC**, an **iPhone or Android phone**, and a **Google account**. About 10 minutes.
 
 ## Install easily in 3 steps
 
 > [!NOTE]
-> ### 🟦 Step 1: Tailscale, on your phone and your laptop
-> Tailscale is the private link between them (free).
-> 1. Install the **Tailscale** app: phone (App Store or Google Play) and laptop ([tailscale.com/download](https://tailscale.com/download)).
-> 2. Open it on both and tap **Sign in with Google**. Use the **same Google account** on both. Allow the **VPN** question on the phone.
-> 3. Check it says **Connected**.
+> ### 🟦 Step 1: Tailscale on your phone and laptop
+> Install **Tailscale** on both ([tailscale.com/download](https://tailscale.com/download)). Sign in with the **same Google account**. Check it says **Connected**.
 
 > [!TIP]
-> ### 🟩 Step 2: Install on the laptop (choose one)
-> **A. The Setup file (easiest).** Open the [Releases page](https://github.com/Aswinksanthosh/RemotePc/releases/latest), download **RemotePc-Setup.exe** and double-click it. A blue "Windows protected your PC" box may show (the file is not code-signed): click **More info**, then **Run anyway**.
->
-> **B. The command.** In File Explorer open any folder (for example **Downloads**), click the **address bar**, type `powershell` and press **Enter**. Paste this and press **Enter**:
+> ### 🟩 Step 2: Run the command on the laptop
+> Open any folder, click the **address bar**, type `powershell`, press **Enter**. Paste and press **Enter**:
 >
 > ```powershell
 > irm https://raw.githubusercontent.com/Aswinksanthosh/RemotePc/main/install.ps1 | iex
 > ```
 >
-> Click **Yes** when Windows asks, then wait a few minutes. A **QR code** appears: leave it there.
+> Click **Yes** when Windows asks. A **QR code** appears.
 
 > [!IMPORTANT]
-> ### 🟪 Step 3: Scan the QR code with your phone (Tailscale connected)
-> 1. Scan the QR code with the **Camera** app and tap the link. Your laptop's name appears with a green dot.
-> 2. Save it to your home screen: **iPhone** (Safari): Share, then **Add to Home Screen**. **Android**: menu (three dots), then **Add to Home screen**.
-> 3. Back on the laptop, press **Enter** in the installer window. Done.
+> ### 🟪 Step 3: Scan the QR code with the phone
+> Scan with the **Camera** app and tap the link. Then **Add to Home Screen** (iPhone: Share. Android: menu). Press **Enter** on the laptop. Done.
 
 > [!WARNING]
-> The QR link is a key to your laptop. Never share it or a screenshot of it. Lost a phone? Run **Pair-Phone** on the laptop for a new code, and forget the old phone on the page (Paired phones). There is no PIN question: you can add one later with **Set-PIN**.
+> The QR link is the key to your laptop: never share it. Lost a phone? Run **Pair-Phone**.
 
-*The phone pictures above come from a preview with pretend data, not from a real PC.*
-
-When the installer finishes it prints where everything is: the program is in `C:\Users\<you>\.remortstartpc\app`, your files in `C:\Users\<you>\.remortstartpc`.
+*Phone pictures are a preview with pretend data. The installer prints where your files are (`C:\Users\<you>\.remortstartpc`).*
 
 ## What the buttons do
 
