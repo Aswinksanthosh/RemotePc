@@ -76,3 +76,6 @@ node bin/demo.mjs      # a pretend PC on port 8799; open the address it prints
 ```
 
 Rules: one logical change per commit; run the tests before pushing; keep PowerShell scripts short (heavy logic in Node, where it is tested); keep `.cmd` files ASCII with CRLF (`.gitattributes` has `*.cmd -text`; a test checks it); never edit `src/vendor/qrcode.mjs`.
+
+## Installer text (colour coded)
+- Installer and Fix-It text is colour coded (green = good, cyan = info, yellow = attention, red = danger/problem). Colours only on a real console; install.log stays plain. The PIN question has three points: phone asks every time, 4 to 8 digits, NO PIN if Enter is pressed.

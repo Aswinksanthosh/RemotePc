@@ -104,12 +104,13 @@ export async function setupPin({ pin, ask, ui, env = {} }) {
     if (!had) ui.warn('No PIN is set. Double-click Set-PIN to add one.')
     return
   }
+  ui.heading('Choose a PIN for your phone')
+  ui.point('good', 'The phone asks for it every time it opens the remote, so a stranger holding your unlocked phone cannot use it.')
+  ui.point('info', '4 to 8 digits. Pick something you can remember (not 0000 or 1234).')
+  ui.point('danger', 'If you type NOTHING and just press Enter, there is NO PIN and no password at all.')
   ui.blank()
-  ui.say('  Choose a PIN. The phone asks for it every time it opens the remote, so a stranger holding your unlocked phone cannot use it.')
-  ui.say('  4 to 8 digits. Pick something you can remember (not 0000 or 1234).')
-  ui.say('  If you type NOTHING and just press Enter, there is NO PIN and no password at all.')
   for (let attempt = 0; attempt < 6; attempt++) {
-    const first = (await ask(had ? '  New PIN (or press Enter to keep your current PIN): ' : '  Choose a PIN (press Enter without typing anything = NO PIN, not recommended): ')).trim()
+    const first = (await ask(had ? `  ${ui.paint('cyan bold', 'New PIN')} (or press Enter to keep your current PIN): ` : `  ${ui.paint('cyan bold', 'Choose a PIN')} ${ui.paint('yellow', '(press Enter without typing anything = NO PIN, not recommended)')}: `)).trim()
     if (!first) {
       if (had) ui.ok('Your current PIN stays.')
       else {
@@ -126,7 +127,7 @@ export async function setupPin({ pin, ask, ui, env = {} }) {
       ui.warn('That is too easy to guess (like 0000 or 1234). Pick another.')
       continue
     }
-    const second = (await ask('  Type it again: ')).trim()
+    const second = (await ask(`  ${ui.paint('cyan bold', 'Type it again')}: `)).trim()
     if (second !== first) {
       ui.warn('The two PINs were different. Try again.')
       continue

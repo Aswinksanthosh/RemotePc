@@ -10,12 +10,12 @@ import { appendLog } from '../src/fsutil.mjs'
 import { dataPaths } from '../src/paths.mjs'
 import { cleanupPairingPages, runSetup, showPairingOnScreen } from '../src/setup.mjs'
 import { ask, downloadTo, openTarget, run, waitForEnter } from '../src/system.mjs'
-import { createUi } from '../src/ui.mjs'
+import { createUi, supportsColor } from '../src/ui.mjs'
 
 const args = process.argv.slice(2)
 const argOf = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined)
 const paths = dataPaths()
-const ui = createUi({ log: (line) => appendLog(paths.installLog, `${new Date().toISOString()}  ${line}\n`) })
+const ui = createUi({ color: supportsColor(), log: (line) => appendLog(paths.installLog, `${new Date().toISOString()}  ${line}\n`) })
 
 ui.title('Remote Start PC: setup')
 ui.say('This takes a few minutes. You only do this once.')

@@ -7,10 +7,10 @@ import { dataPaths, TASK_NAME } from '../src/paths.mjs'
 import { run } from '../src/system.mjs'
 import { stopRemoteScript, psArgs } from '../src/windows.mjs'
 import { installUpdate, repoSlug } from '../src/updater.mjs'
-import { createUi } from '../src/ui.mjs'
+import { createUi, supportsColor } from '../src/ui.mjs'
 
 const paths = dataPaths()
-const ui = createUi()
+const ui = createUi({ color: supportsColor() })
 ui.title('Remote Start PC: update')
 let pkg = {}
 try {

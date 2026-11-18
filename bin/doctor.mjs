@@ -5,16 +5,16 @@ import { networkInterfaces } from 'node:os'
 import { runDoctor } from '../src/doctor.mjs'
 import { dataPaths } from '../src/paths.mjs'
 import { run } from '../src/system.mjs'
-import { createUi } from '../src/ui.mjs'
+import { createUi, supportsColor } from '../src/ui.mjs'
 
 const paths = dataPaths()
-const ui = createUi()
+const ui = createUi({ color: supportsColor() })
 ui.title('Fix-It: checking your Remote Start PC')
 const { results, log, problems, up } = await runDoctor({ paths, run, interfaces: networkInterfaces(), exists: existsSync })
 for (const r of results) {
-  const mark = r.level === 'ok' ? '[ OK ]' : r.level === 'warn' ? '[ !! ]' : '[FAIL]'
-  ui.say(`  ${mark} ${r.name}: ${r.detail}`)
-  if (r.fix) ui.say(`         -> ${r.fix}`)
+  const mark = r.level === 'ok' ? ui.paint('green bold', '[ OK ]') : r.level === 'warn' ? ui.paint('yellow bold', '[ !! ]') : ui.paint('red bold', '[FAIL]')
+  ui.say(`  ${mark} ${ui.paint('white bold', r.name)}: ${r.detail}`)
+  if (r.fix) ui.say(`         ${ui.paint('cyan', '->')} ${ui.paint('cyan', r.fix)}`)
 }
 if (!up && log) {
   ui.blank()

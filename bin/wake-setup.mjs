@@ -5,11 +5,11 @@ import { loadConfig } from '../src/config.mjs'
 import { listAddresses } from '../src/net.mjs'
 import { dataPaths } from '../src/paths.mjs'
 import { run } from '../src/system.mjs'
-import { createUi } from '../src/ui.mjs'
+import { createUi, supportsColor } from '../src/ui.mjs'
 import { describeWol, parseWol, wolScript } from '../src/wol.mjs'
 import { psArgs } from '../src/windows.mjs'
 
-const ui = createUi()
+const ui = createUi({ color: supportsColor() })
 ui.title('Remote Start PC: get this PC ready to be started over the network')
 if (process.platform !== 'win32') {
   ui.fail('This part works on Windows only.')

@@ -3,13 +3,13 @@
 import { spawn } from 'node:child_process'
 import { dataPaths } from '../src/paths.mjs'
 import { ask, run } from '../src/system.mjs'
-import { createUi } from '../src/ui.mjs'
+import { createUi, supportsColor } from '../src/ui.mjs'
 import { join } from 'node:path'
 import { limiterDir } from '../src/paths.mjs'
 import { firewallDeleteArgs, psArgs, removeLimiterTaskScript, removeTaskScript, stopRemoteScript } from '../src/windows.mjs'
 
 const paths = dataPaths()
-const ui = createUi()
+const ui = createUi({ color: supportsColor() })
 ui.title('Remote Start PC: uninstall')
 if (process.platform === 'win32') {
   await run('powershell.exe', psArgs(stopRemoteScript)).catch(() => {})

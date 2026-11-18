@@ -7,10 +7,10 @@ import { loadConfig, saveConfig } from '../src/config.mjs'
 import { dataPaths } from '../src/paths.mjs'
 import { cleanupPairingPages, newPairing, showPairingOnScreen } from '../src/setup.mjs'
 import { openTarget, waitForEnter } from '../src/system.mjs'
-import { createUi } from '../src/ui.mjs'
+import { createUi, supportsColor } from '../src/ui.mjs'
 
 const paths = dataPaths()
-const ui = createUi()
+const ui = createUi({ color: supportsColor() })
 cleanupPairingPages(tmpdir())
 
 if (!existsSync(paths.config)) {

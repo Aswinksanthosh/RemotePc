@@ -6,10 +6,10 @@ import { dataPaths } from '../src/paths.mjs'
 import { createPin } from '../src/pin.mjs'
 import { setupPin } from '../src/setup.mjs'
 import { ask } from '../src/system.mjs'
-import { createUi } from '../src/ui.mjs'
+import { createUi, supportsColor } from '../src/ui.mjs'
 
 const paths = dataPaths()
-const ui = createUi()
+const ui = createUi({ color: supportsColor() })
 const pin = createPin({ file: paths.pin })
 ui.title('Remote Start PC: PIN')
 if (process.argv.includes('--remove')) {
