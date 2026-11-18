@@ -60,7 +60,7 @@ A **Windows 10 or 11 PC** (signed in as an administrator), an **iPhone or Androi
 | My buttons | Your own buttons that run a command you wrote (optional, see [docs/CUSTOMIZE.md](docs/CUSTOMIZE.md)) |
 | Theme | Pick one of three looks (Neon, Tactical, Clean). Several PCs? A swipe card above Steam moves between them |
 | Settings (cog, top right) | Start with Windows, Steam Big Picture at startup, power mode at startup, temperature limit, name, theme, PIN, home Wi-Fi access |
-| System | PC status (battery, graphics card, uptime) and **Update App** (updates and restarts by itself) |
+| System | PC status (battery, graphics card, uptime) and **Update App** (updates, restarts by itself and refreshes the page) |
 
 Risky buttons ask first, and a few need a short hold. Nothing you type on the phone is ever run as a command: the phone can only press buttons that exist. **A phone can never add or remove apps**; that is only possible on the PC itself, so a lost phone cannot open a sensitive app.
 

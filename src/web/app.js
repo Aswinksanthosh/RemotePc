@@ -16,6 +16,11 @@ async function act(action, arg, extra) {
   try {
     const j = await call('/api/do', Object.assign({ action, arg }, extra || {}))
     say(j.message || 'Done.')
+    // The program restarts itself after an update: bring the page back by itself once it answers again.
+    if ((action === 'update' || action === 'restart_remote') && /restart/i.test(j.message || '')) {
+      reloadWhenBack()
+      return
+    }
   } catch (err) {
     if (err.status === 401 && err.code === 'pin') {
       unlock = ''
@@ -25,6 +30,26 @@ async function act(action, arg, extra) {
     say(err.message, true)
   }
   setTimeout(refresh, 3000)
+}
+
+// After "Update App": wait 5 seconds, then reload as soon as the program answers again (it takes about 15 seconds to come back).
+function reloadWhenBack() {
+  say('Updating… the page refreshes by itself in about 5 seconds.')
+  const started = Date.now()
+  const poll = async () => {
+    try {
+      const r = await fetch('/health', { cache: 'no-store' })
+      if (r.ok) {
+        location.reload()
+        return
+      }
+    } catch {
+      // Still restarting: try again.
+    }
+    if (Date.now() - started < 90_000) setTimeout(poll, 2000)
+    else say('Still restarting. Reload the page in a moment.', true)
+  }
+  setTimeout(poll, 5000)
 }
 
 // -- buttons --------------------------------------------------------------------------

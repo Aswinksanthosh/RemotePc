@@ -114,3 +114,5 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 
 ## STANDING RULE (owner, 2026-11-18): keep the GitHub README in step with every feature change
 - Every time a feature, button, setting or install step changes: update README.md (description AND the three phone screenshots) in the same commit. Regenerate screenshots: `node scripts/make-preview.mjs /tmp/pv`, serve /tmp/pv with `python3 -m http.server`, Playwright at 390x844 deviceScaleFactor 2 -> docs/img/phone-home.png, phone-more.png (open the .acc-h drop-downs, scroll ~1100), phone-settings.png (settings preview). Also update docs/ pages that mention the changed thing.
+
+- After Update App (or a restart), the phone page waits 5 s, then polls /health every 2 s and reloads itself when the program is back (gives up after 90 s). README screenshots regenerated from a fresh preview build.
