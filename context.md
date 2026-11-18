@@ -118,3 +118,5 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 - After Update App (or a restart), the phone page waits 5 s, then polls /health every 2 s and reloads itself when the program is back (gives up after 90 s). README screenshots regenerated from a fresh preview build.
 
 - Installer "All done" screen prints the program folder (paths.app), the data folder (paths.home) and where the shortcuts are.
+
+- Step 2B screenshot removed from README (owner); the two drawn step pictures were deleted from docs/img.

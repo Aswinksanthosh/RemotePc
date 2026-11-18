@@ -31,8 +31,6 @@ A **Windows 10 or 11 PC** (signed in as an administrator), an **iPhone or Androi
 > irm https://raw.githubusercontent.com/Aswinksanthosh/RemotePc/main/install.ps1 | iex
 > ```
 >
-> ![Open any folder, click the address bar, type powershell, press Enter (illustration)](docs/img/step-1-address-bar.png)
->
 > Click **Yes** when Windows asks, then wait a few minutes. A **QR code** appears: leave it there.
 
 > [!IMPORTANT]
@@ -44,7 +42,7 @@ A **Windows 10 or 11 PC** (signed in as an administrator), an **iPhone or Androi
 > [!WARNING]
 > The QR link is a key to your laptop. Never share it or a screenshot of it. Lost a phone? Run **Pair-Phone** on the laptop for a new code, and forget the old phone on the page (Paired phones). There is no PIN question: you can add one later with **Set-PIN**.
 
-*The pictures are drawings of the steps, not screenshots of your PC.*
+*The phone pictures above come from a preview with pretend data, not from a real PC.*
 
 When the installer finishes it prints where everything is: the program is in `C:\Users\<you>\.remortstartpc\app`, your files in `C:\Users\<you>\.remortstartpc`.
 
