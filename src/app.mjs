@@ -101,7 +101,7 @@ export async function startApp({
       const p = newPairing({ paths, config, interfaces: networkInterfaces(), label: '' })
       return { url: p.url, svg: qrToSvg(p.url), label: p.label }
     },
-    settings: createSettings({ file: paths.config, appsFile: paths.apps, config, pin, run: runCommand, platform, version }),
+    settings: createSettings({ file: paths.config, appsFile: paths.apps, config, pin, run: runCommand, platform, version, appDir: join(here, '..') }),
     actions,
     config,
     others: () => knownPcs(paths.pcs),

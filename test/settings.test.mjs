@@ -268,3 +268,13 @@ test('the Settings page now also tells about the limiter and can list the sensor
   assert.ok(lines.some((l) => l.includes('thermal zone A: 61.0 C')))
   assert.ok(lines.some((l) => l.startsWith('NVIDIA')))
 })
+
+test('openTool opens only the three fixed tools, on Windows', async () => {
+  const runs = []
+  const s = createSettings({ file: '/x/config.json', config: { allow: [] }, pin: { isSet: () => false }, run: async (...a) => runs.push(a), platform: 'win32', appDir: 'C:\\app' })
+  assert.match(await s.openTool('fixit'), /Fix-It/)
+  assert.deepEqual(runs[0].slice(0, 1), ['cmd.exe']); assert.match(runs[0][1][3], /Fix-It\.cmd$/)
+  await assert.rejects(() => s.openTool('format-disk'), /Unknown/)
+  const linux = createSettings({ file: '/x/config.json', config: { allow: [] }, pin: { isSet: () => false }, run: async () => {}, platform: 'linux', appDir: '/app' })
+  await assert.rejects(() => linux.openTool('update'), /Windows/)
+})

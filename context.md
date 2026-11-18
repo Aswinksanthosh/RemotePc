@@ -82,3 +82,6 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 
 ## Setup.exe
 - installer/RemotePc.iss (Inno Setup) wraps install.ps1 into RemotePc-Setup.exe; workflow .github/workflows/release.yml builds it on Windows (push a tag like v0.2.0 -> attached to the Release; or run by hand). Unsigned, so SmartScreen warns (More info > Run anyway). README step 3 = the .exe, PowerShell one-liner = backup. To release: git tag v0.2.0 && git push origin v0.2.0.
+
+## Settings page tools
+- Settings page (on the PC only, not from a phone) About card has Update, Fix-It, Uninstall buttons: POST /api/settings/tool {tool: update|fixit|uninstall}, fixed whitelist in settings.mjs TOOLS, opens the .cmd in its own window.

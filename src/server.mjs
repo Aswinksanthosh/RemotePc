@@ -245,6 +245,11 @@ export async function startServer({
             if (!actions) return json(res, 400, { error: 'Nothing to restart here.' })
             return json(res, 200, { message: await actions.run('restart_remote') })
           }
+          if (path === '/api/settings/tool') {
+            // Opens a window on the PC itself, so only the PC's own Settings page may ask (never a phone).
+            if (!who.local) return json(res, 403, { error: 'Open Settings on the PC itself to use this.' })
+            return json(res, 200, { message: await settings.openTool(String(body.tool ?? '')) })
+          }
           if (path === '/api/settings/apps') return json(res, 200, settings.apps(body))
           if (path === '/api/settings/sensors') return json(res, 200, { lines: await settings.sensors() })
           if (path === '/api/settings/task') return json(res, 200, { state: await settings.setTask(body.on === true) })

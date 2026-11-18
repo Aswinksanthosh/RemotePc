@@ -12,7 +12,10 @@ import { writeAtomic } from './fsutil.mjs'
 import { LIMITER_TASK, TASK_NAME, limiterDir } from './paths.mjs'
 import { isWeakPin, validPin } from './pin.mjs'
 
-export function createSettings({ file, appsFile = '', config, pin, run, platform = process.platform, version = '', hostname = osHostname, readText = (f) => readFileSync(f, 'utf8'), age = (f) => Date.now() - statSync(f).mtimeMs, dir = limiterDir() }) {
+/** The only tools the page can open: fixed names, fixed files. */
+const TOOLS = { update: 'Update.cmd', fixit: 'Fix-It.cmd', uninstall: 'Uninstall.cmd' }
+
+export function createSettings({ file, appsFile = '', config, pin, run, platform = process.platform, version = '', appDir = '', hostname = osHostname, readText = (f) => readFileSync(f, 'utf8'), age = (f) => Date.now() - statSync(f).mtimeMs, dir = limiterDir() }) {
   const windows = platform === 'win32'
 
   /** 'on' | 'off' | 'missing' (no scheduled task) | null (not Windows). */
@@ -119,6 +122,14 @@ export function createSettings({ file, appsFile = '', config, pin, run, platform
       Object.assign(config, r.config)
       saveConfig(file, config)
       return { changed: r.changed, restart: r.restart }
+    },
+    /** Opens Update, Fix-It or Uninstall in their own window on the PC (they need a console, and Uninstall asks Windows for rights). */
+    async openTool(name) {
+      if (!windows) throw new Error('This works on Windows only.')
+      const file = TOOLS[name]
+      if (!file || !appDir) throw new Error('Unknown tool.')
+      await run('cmd.exe', ['/c', 'start', '', join(appDir, file)])
+      return `Opened ${file.replace('.cmd', '')} in a window on the PC.`
     },
     async setTask(on) {
       if (!windows) throw new Error('This works on Windows only.')

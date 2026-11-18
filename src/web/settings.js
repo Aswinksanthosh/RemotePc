@@ -343,6 +343,18 @@ function render() {
       }
     }, false, 'Restart the remote on this PC?')))
   }
+  if (v.windows && onThePc) {
+    const tool = (label, tip, tool, sure) => row(label, tip, btn(label, async () => {
+      try {
+        say2((await call('/api/settings/tool', { tool })).message)
+      } catch (err) {
+        say2(err.message, true)
+      }
+    }, false, sure))
+    about.push(tool('Update', 'Download the newest version and install it.', 'update'))
+    about.push(tool('Fix-It', 'Checks everything and tells you what to do.', 'fixit'))
+    about.push(tool('Uninstall', 'Removes RemotePc from this PC. Your settings folder is kept.', 'uninstall', 'Uninstall RemotePc?'))
+  }
   p.append(card('pulse', 'About', ...about))
   p.append(footer(v.feedback, v.version, 'settings page'))
   app.append(p)
