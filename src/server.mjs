@@ -16,11 +16,28 @@
 import { createServer } from 'node:http'
 import { randomBytes } from 'node:crypto'
 import { readFileSync } from 'node:fs'
+import { hostname as osHostname } from 'node:os'
 import { join } from 'node:path'
 import { ACTIONS } from './actions.mjs'
 import { classifyAddress, isAllowedAddress } from './net.mjs'
 
 const MAX_BODY = 2048
+
+// The home-screen icon takes the colour of this PC's theme (pink neon, amber tactical, blue clean), picked the same way the page picks it:
+// the PC's own theme setting, then its accent, then what its name suggests (ROG: neon, TUF: tactical).
+const ICON_COLOURS = { neon: ['#ff5fae', '#4a1440'], tactical: ['#ffa927', '#3a2a08'], clean: ['#4fb3ff', '#16324a'] }
+const ACCENT_THEME = { pink: 'neon', purple: 'neon', amber: 'tactical', red: 'tactical' }
+export function iconTheme(config, host = osHostname()) {
+  if (ICON_COLOURS[config?.theme]) return config.theme
+  if (ACCENT_THEME[config?.accent]) return ACCENT_THEME[config.accent]
+  const text = config?.name || host || ''
+  return /ROG/i.test(text) ? 'neon' : /TUF/i.test(text) ? 'tactical' : 'clean'
+}
+export const iconSvg = (theme) => {
+  const [a, a2] = ICON_COLOURS[theme] ?? ICON_COLOURS.clean
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a2}"/><stop offset="1" stop-color="#0b1016"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(#g)"/><g fill="none" stroke="${a}" stroke-width="30" stroke-linecap="round"><path d="M256 124v110"/><path d="M170 178a124 124 0 1 0 172 0"/></g></svg>`
+}
+const ICON_FILES = { '/icon-192.png': 'icon-192', '/icon-512.png': 'icon-512', '/apple-touch-icon.png': 'apple-touch-icon' }
 
 const STATIC = {
   '/': ['index.html', 'text/html; charset=utf-8', 'no-cache'],
@@ -29,10 +46,6 @@ const STATIC = {
   '/settings': ['settings.html', 'text/html; charset=utf-8', 'no-cache'],
   '/settings.js': ['settings.js', 'text/javascript; charset=utf-8', 'no-cache'],
   '/common.js': ['common.js', 'text/javascript; charset=utf-8', 'no-cache'],
-  '/icon.svg': ['icon.svg', 'image/svg+xml', 'public, max-age=3600'],
-  '/icon-192.png': ['icon-192.png', 'image/png', 'public, max-age=3600'],
-  '/icon-512.png': ['icon-512.png', 'image/png', 'public, max-age=3600'],
-  '/apple-touch-icon.png': ['apple-touch-icon.png', 'image/png', 'public, max-age=3600'],
 }
 
 // The Settings page can also be opened ON the PC itself, with no phone key (but with the PIN, if one is set). Only for loopback, only for the
@@ -119,6 +132,16 @@ export async function startServer({
       if (path === '/' || path === '/app.js' || path === '/app.css') throw new Error(`The page file ${file} is missing from ${webDir}.`)
     }
   }
+  const icons = new Map()
+  for (const theme of Object.keys(ICON_COLOURS)) {
+    for (const name of Object.values(ICON_FILES)) {
+      try {
+        icons.set(`${name}-${theme}`, readFileSync(join(webDir, 'icons', `${name}-${theme}.png`)))
+      } catch {
+        // A missing icon only means a plainer home-screen shortcut.
+      }
+    }
+  }
   const knownActions = new Set(ACTIONS)
 
   // A typed PIN gives this phone a session token for config.pinHours; it also stops working when the PIN changes.
@@ -164,6 +187,18 @@ export async function startServer({
             },
             { 'content-type': 'application/manifest+json' },
           )
+        }
+        if (path === '/icon.svg' || ICON_FILES[path]) {
+          const theme = iconTheme(config)
+          const headers = { 'x-content-type-options': 'nosniff', 'referrer-policy': 'no-referrer', 'cache-control': 'no-cache' }
+          if (path === '/icon.svg') {
+            res.writeHead(200, { ...headers, 'content-type': 'image/svg+xml' })
+            return res.end(iconSvg(theme))
+          }
+          const png = icons.get(`${ICON_FILES[path]}-${theme}`) ?? icons.get(`${ICON_FILES[path]}-clean`)
+          if (!png) return json(res, 404, { error: 'Not found.' })
+          res.writeHead(200, { ...headers, 'content-type': 'image/png' })
+          return res.end(png)
         }
         const f = files.get(path)
         if (!f) return json(res, 404, { error: 'Not found.' })

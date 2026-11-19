@@ -7,7 +7,7 @@ import { createAuth } from '../src/auth.mjs'
 import { normalizeConfig } from '../src/config.mjs'
 import { createPin } from '../src/pin.mjs'
 import { createSettings } from '../src/settings.mjs'
-import { startServer } from '../src/server.mjs'
+import { iconTheme, startServer } from '../src/server.mjs'
 import { runStartup } from '../src/startup.mjs'
 import { tempDir } from './helpers.mjs'
 
@@ -278,4 +278,28 @@ test('a paired phone can add and remove apps, but an unknown caller cannot', asy
   assert.equal((await (await call({ op: 'list' })).json()).apps.length, 1)
   assert.equal((await call({ op: 'remove', label: 'Notes' })).status, 200)
   assert.equal((await call({ op: 'add', label: 'Bank', match: 'Bank App' }, 'wrong-key')).status, 401)
+})
+
+test('the home-screen icon takes the colour of the PC theme (name, accent or setting)', async (t) => {
+  assert.equal(iconTheme({}, 'ROG-STRIX'), 'neon')
+  assert.equal(iconTheme({}, 'TUF-GAMING'), 'tactical')
+  assert.equal(iconTheme({ name: 'Ally' }, 'DESKTOP-1'), 'clean')
+  assert.equal(iconTheme({ theme: 'tactical', name: 'ROG' }, 'x'), 'tactical', 'the theme setting wins')
+  assert.equal(iconTheme({ accent: 'pink' }, 'x'), 'neon')
+  const dir = tempDir(t)
+  const get = async (config, path) => {
+    const srv = await startServer({ port: 0, host: '127.0.0.1', auth: createAuth({ file: join(dir, 'p.json') }), pin: createPin({ file: join(dir, 'pin.json') }), config, webDir })
+    try {
+      const r = await fetch(`http://127.0.0.1:${srv.port}${path}`)
+      return { status: r.status, type: r.headers.get('content-type'), body: Buffer.from(await r.arrayBuffer()) }
+    } finally {
+      await srv.close()
+    }
+  }
+  const svg = await get(normalizeConfig({ theme: 'tactical' }), '/icon.svg')
+  assert.match(svg.body.toString(), /#ffa927/)
+  const pink = await get(normalizeConfig({ theme: 'neon' }), '/icon-192.png')
+  const blue = await get(normalizeConfig({ theme: 'clean' }), '/icon-192.png')
+  assert.deepEqual([pink.status, pink.type], [200, 'image/png'])
+  assert.notDeepEqual(pink.body, blue.body, 'different colours for different themes')
 })

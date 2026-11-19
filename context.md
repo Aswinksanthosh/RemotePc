@@ -148,3 +148,6 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 ## Phones may add phones; Uninstall removes the PIN (owner, 2026-11-19)
 - /api/local/pair now works for the PC page AND any paired phone (Bearer key); the Settings "Add a phone" card shows on every Settings page. Anyone holding a paired phone can pair another one: forget lost phones at once.
 - bin/uninstall.mjs always deletes pin.json so a reinstall never brings an old PIN back (even if the rest of the data folder is kept).
+
+## Theme-coloured home-screen icons (owner, 2026-11-19)
+- The icon (icon.svg, icon-192/512.png, apple-touch-icon.png) is served per request in the colour of THIS PC theme: pink (neon), amber (tactical), blue (clean). Theme = config.theme, else accent (pink/purple->neon, amber/red->tactical), else name/hostname (ROG->neon, TUF->tactical, else clean). Files: src/web/icons/<name>-<theme>.png (generated with Pillow: gradient tinted square + power glyph), SVG built in server.mjs. An existing home-screen shortcut keeps its old icon: remove it and Add to Home Screen again. To make the Ally a different colour set its theme in Settings.
