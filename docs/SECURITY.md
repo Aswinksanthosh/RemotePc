@@ -18,7 +18,7 @@ This program lets a phone control a PC, so it is worth knowing exactly how it is
 
 ## What you should know
 
-- **The link in the QR code is the key.** It is shown only on the PC screen (and never written to the install log). It also ends up in the address of the page on your phone, so it is in that browser's history and on your home-screen icon. Do not share screenshots of the address bar or the QR code. If a phone is lost, forget it from another phone or run **Pair-Phone** and use the page's *Paired phones* list.
+- **The link in the QR code is the key.** It is shown on the PC screen, or on a paired phone's Settings page when you add another phone (and never written to the install log). It also ends up in the address of the page on your phone, so it is in that browser's history and on your home-screen icon. Do not share screenshots of the address bar or the QR code. If a phone is lost, forget it from another phone or run **Pair-Phone** and use the page's *Paired phones* list.
 - **Prefer Tailscale.** Over Tailscale the traffic is encrypted end to end. On the plain home network (`lan`) the page is plain HTTP, so anyone on that same Wi-Fi could see the key as it passes. Use `lan` only at home, on a network you control.
 - **Protect your Tailscale account** with two-step sign-in: anyone who can sign in to it can join your private network (they still need a paired key to do anything).
 - **Updating runs code from GitHub.** The **Update App** button downloads the newest version of this project from the repository named in `package.json` and runs it. You are trusting the owner of that repository. If you want to review changes first, fork the project, change `repository` in `package.json`, and update from your fork.

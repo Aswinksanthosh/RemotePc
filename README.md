@@ -34,7 +34,7 @@ A **Windows 10 or 11 PC**, an **iPhone or Android phone**, and a **Google accoun
 > Scan it with the **Camera** app and tap the link. Then **Add to Home Screen** (iPhone: Share. Android: menu). Press **Enter** on the laptop. Done.
 
 > [!WARNING]
-> The QR link is the key to your laptop: never share it or a picture of it. Lost a phone? Run **Pair-Phone** for a new code.
+> The QR link is the key to your laptop: never share it or a picture of it. Lost a phone? Forget it on the page (Paired phones). To add another phone, use **Settings**, then **Add a phone**, from any paired phone, or run **Pair-Phone** on the laptop.
 
 *Phone pictures are a preview with pretend data. The installer prints where your files are (`C:\Users\<you>\.remortstartpc`).*
 
