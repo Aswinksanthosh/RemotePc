@@ -223,13 +223,15 @@ test('with a PIN set, the local page asks for it too', async (t) => {
   assert.equal((await local('/api/settings', {}, { 'x-unlock': token })).status, 200)
 })
 
-test('adding a phone from the PC shows its link (only locally), a phone key cannot ask for it', async (t) => {
+test('adding a phone shows its link, from the PC itself or from a paired phone, never for an unknown caller', async (t) => {
   const { local, key, port } = await localServer(t)
   const r = await (await local('/api/local/pair')).json()
   assert.equal(r.label, 'Phone 2')
   assert.ok(r.url.includes('?k=') && r.svg.startsWith('<svg'))
   const viaPhone = await fetch(`http://127.0.0.1:${port}/api/local/pair`, { method: 'POST', headers: { authorization: `Bearer ${key}`, 'x-rsp-local': '1' } })
-  assert.equal(viaPhone.status, 403)
+  assert.equal(viaPhone.status, 200)
+  const nobody = await fetch(`http://127.0.0.1:${port}/api/local/pair`, { method: 'POST', headers: { authorization: 'Bearer wrong-key' } })
+  assert.equal(nobody.status, 401)
 })
 
 test('custom apps: add, list, replace, remove, with checks', async (t) => {

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Removes the automatic start, the firewall rule and the shortcuts. Uninstall.cmd runs this.
 import { spawn } from 'node:child_process'
+import { rmSync } from 'node:fs'
 import { dataPaths } from '../src/paths.mjs'
 import { ask, run } from '../src/system.mjs'
 import { createUi, supportsColor } from '../src/ui.mjs'
@@ -18,6 +19,13 @@ if (process.platform === 'win32') {
   await removeOldLimiter({ run, ps: (script) => run('powershell.exe', psArgs(script)), dir: limiterDir(), ui })
   await run('powershell.exe', psArgs(removeTaskScript)).then(() => ui.ok('Automatic start and shortcuts removed.'), (e) => ui.warn(`Could not remove the automatic start: ${e.message}`))
   await run('netsh.exe', firewallDeleteArgs).then(() => ui.ok('Firewall rule removed.'), () => ui.warn('No firewall rule to remove (or administrator rights are needed).'))
+}
+// The PIN is always removed (owner decision): a reinstall never brings an old PIN back, even when the rest is kept.
+try {
+  rmSync(paths.pin, { force: true })
+  ui.ok('The PIN was removed.')
+} catch {
+  ui.warn('Could not remove the PIN file: ' + paths.pin)
 }
 const answer = (await ask(`\n  Also delete the program and your settings and paired phones in ${paths.home}? Type yes to delete, or press Enter to keep them: `)).toLowerCase()
 if (answer === 'yes' || answer === 'y') {

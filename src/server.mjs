@@ -223,8 +223,8 @@ export async function startServer({
       }
 
       if (path === '/api/local/pair') {
-        // Shown only on the PC's own screen: the link is the key to the PC.
-        if (!who.local || !pairing) return json(res, 403, { error: 'Open this page on the PC itself to add a phone.' })
+        // Owner decision (2026-11-19): the PC's own page AND an already paired phone may add a new phone. The link is the key to the PC.
+        if (!pairing) return json(res, 404, { error: 'Adding a phone is not available here.' })
         try {
           return json(res, 200, await pairing())
         } catch (err) {

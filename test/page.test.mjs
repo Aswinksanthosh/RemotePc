@@ -81,6 +81,6 @@ test('the header and footer stay on screen and only the cards are swapped', () =
 test('the Settings page has custom apps and (on the PC only) adding a phone, and uses only the checked routes', () => {
   const st = read('settings.js')
   for (const t of ['My apps', 'Add a phone', "'/api/settings/apps'", "'/api/local/pair'", "'/api/settings/restart'"]) assert.ok(st.includes(t), t)
-  assert.ok(st.includes("['localhost', '127.0.0.1', '[::1]']") && st.includes('if (onThePc) p.append(addPhoneCard())'), 'the QR is only offered on the PC itself')
+  assert.ok(st.includes("['localhost', '127.0.0.1', '[::1]']") && st.includes('p.append(addPhoneCard())'), 'the add-phone card is on every Settings page')
   assert.ok(js.includes("'x-rsp-local': '1'"), 'calls say they come from our own page')
 })

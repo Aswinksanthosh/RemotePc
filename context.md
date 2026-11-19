@@ -144,3 +144,7 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 ## PC switching REMOVED (owner, 2026-11-19: "it is glitching")
 - Deleted: the swipe card between laptops, the #from/&t hand-over, skeleton, boot.js, pager CSS, the "Place in the swipe bar" setting. Each laptop is now its own page / own home-screen shortcut (owner makes 3 shortcuts: ROG, TUF, Ally).
 - Kept: the "Other PCs" drop-down with Start (Wake-on-LAN) only for PCs that have a mac in pcs.json (no Open button). config `order` and pcs.json order/theme are still parsed but unused. Older notes above about the swipe card are history.
+
+## Phones may add phones; Uninstall removes the PIN (owner, 2026-11-19)
+- /api/local/pair now works for the PC page AND any paired phone (Bearer key); the Settings "Add a phone" card shows on every Settings page. Anyone holding a paired phone can pair another one: forget lost phones at once.
+- bin/uninstall.mjs always deletes pin.json so a reinstall never brings an old PIN back (even if the rest of the data folder is kept).

@@ -200,7 +200,7 @@ function pickerBox(draw) {
 
 function addPhoneCard() {
   const c = el('div', 'card')
-  c.append(section('phone', 'Add a phone', 'only on this PC'))
+  c.append(section('phone', 'Add a phone', 'shows a QR code for the new phone'))
   const out = el('div', 'qrbox')
   c.append(btn('Show a new QR code', async () => {
     out.textContent = ''
@@ -357,7 +357,7 @@ function render() {
     p.append(appsHost)
     appsCard().then((c) => appsHost.append(c))
   }
-  if (onThePc) p.append(addPhoneCard())
+  p.append(addPhoneCard())
 
   // -- security ---------------------------------------------------------------------------
   p.append(pinCard(v))
