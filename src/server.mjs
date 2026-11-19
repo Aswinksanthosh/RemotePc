@@ -114,6 +114,7 @@ export async function startServer({
   pin = null,
   settings = null,
   pairing = null,
+  diagnostics = null,
   actions = null,
   config = {},
   others = () => ({}),
@@ -233,6 +234,16 @@ export async function startServer({
         return json(res, 200, { token })
       }
       if (pin?.isSet() && !unlocked(req.headers['x-unlock'], who.id)) return json(res, 401, { error: 'Enter your PIN.', code: 'pin' })
+
+      if (path === '/api/diagnostics') {
+        // The Fix-It report, for the phone: a paired phone (and its PIN, if one is set) can read how this PC is doing.
+        if (!diagnostics) return json(res, 404, { error: 'Diagnostics are not available here.' })
+        try {
+          return json(res, 200, await diagnostics())
+        } catch (err) {
+          return json(res, 500, { error: String(err?.message ?? err).slice(0, 200) })
+        }
+      }
 
       if (path === '/api/state') {
         // If reading the PC's details fails, the page still opens with the buttons (and the problem is in the log).

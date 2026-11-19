@@ -377,6 +377,8 @@ async function ensureGameArt(node, game, has) {
   }
 }
 
+let lastReport = null
+
 // -- the page ---------------------------------------------------------------------------
 
 // -- looks ---------------------------------------------------------------------------------------
@@ -742,7 +744,37 @@ function render() {
   if (!helper) {
     const g = el('div', 'grid3')
     g.append(tile('pulse', 'Status', run('status'), { cls: 'small' }))
+    g.append(tile('wrench', 'Diagnostics', async () => {
+      say('Checking this PC…')
+      try {
+        const j = await call('/api/diagnostics')
+        lastReport = j.lines.join('\n')
+        say(j.problems ? j.problems + ' thing' + (j.problems === 1 ? '' : 's') + ' to fix. The report is under System.' : 'Everything looks fine. The report is under System.')
+      } catch (err) {
+        lastReport = null
+        say(err.message, true)
+      }
+      lastSig = ''
+      refresh()
+    }, { cls: 'small' }))
     sys.append(g)
+    if (lastReport) {
+      const box = el('div', 'sensor-out', lastReport)
+      sys.append(box, rowOf(
+        btn('Copy report', () => {
+          try {
+            navigator.clipboard.writeText(lastReport).then(() => say('Report copied.'), () => say('Could not copy: select the text instead.', true))
+          } catch (e) {
+            say('Could not copy: select the text instead.', true)
+          }
+        }),
+        btn('Close report', () => {
+          lastReport = null
+          lastSig = ''
+          refresh()
+        }),
+      ))
+    }
   }
   const others = (data.others || []).filter((o) => o.canWake)
   if (others.length) {

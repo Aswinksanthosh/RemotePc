@@ -165,3 +165,6 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 - NOT VERIFIED ON REAL HARDWARE (ROG/TUF/Ally). On the Ally the wattage (SPL/sPPT/fPPT, ids 0x001200A0/A3/C1) is separate in G-Helper, so the mode may change fans/profile but not exactly the TDP. Settings "Power mode at startup" still shows the Windows names.
 
 - Fix-It (doctor.mjs) now has an "ASUS performance mode" line on ASUS PCs: probe (can ATKACPI be opened) + get (current mode). Use it to diagnose "button did nothing" (owner: pressed it on the Ally, nothing changed).
+
+## Diagnostics from the phone (owner, 2026-11-19)
+- System card: "Diagnostics" tile -> POST /api/diagnostics (paired phone + PIN) -> runDoctor lines (same as Fix-It incl. the ASUS check and the log tail); shown in a box under System with Copy report / Close report. app.mjs passes `diagnostics` to startServer.

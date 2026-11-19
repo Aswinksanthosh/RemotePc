@@ -17,6 +17,7 @@ import { runCommand } from './actions.mjs'
 import { connect } from './probe.mjs'
 import { dataPaths, RESTART_CODE } from './paths.mjs'
 import { startServer } from './server.mjs'
+import { runDoctor } from './doctor.mjs'
 import { installUpdate, latestSha, repoSlug } from './updater.mjs'
 import { qrToSvg } from './qr.mjs'
 import { newPairing } from './setup.mjs'
@@ -105,6 +106,16 @@ export async function startApp({
     pairing: async () => {
       const p = newPairing({ paths, config, interfaces: networkInterfaces(), label: '' })
       return { url: p.url, svg: qrToSvg(p.url), label: p.label }
+    },
+    diagnostics: async () => {
+      const d = await runDoctor({ paths, run: runCommand, interfaces: networkInterfaces(), fetchFn })
+      const lines = []
+      for (const r of d.results) {
+        lines.push(`${r.level === 'ok' ? '[ OK ]' : r.level === 'warn' ? '[ !! ]' : '[FAIL]'} ${r.name}: ${r.detail}`)
+        if (r.fix) lines.push(`        -> ${r.fix}`)
+      }
+      if (d.log) lines.push('', 'Last lines of the remote log:', ...d.log.split('\n').map((l) => `  ${l}`))
+      return { lines, problems: d.problems }
     },
     settings: createSettings({ file: paths.config, appsFile: paths.apps, config, pin, run: runCommand, platform, version, appDir: join(here, '..') }),
     actions,

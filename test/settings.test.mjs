@@ -318,3 +318,20 @@ test('the home-screen icon takes the colour of the PC theme (name, accent or set
   assert.match(manifest.body.toString(), /"name":"TUF"/)
   assert.match(manifest.body.toString(), /icon-192-tactical\.png/)
 })
+
+test('diagnostics: a paired phone gets the Fix-It report, an unknown caller does not', async (t) => {
+  const dir = tempDir(t)
+  const auth = createAuth({ file: join(dir, 'p.json') })
+  const { key } = auth.add('Phone')
+  const srv = await startServer({
+    port: 0, host: '127.0.0.1', auth, pin: createPin({ file: join(dir, 'pin.json') }), config: normalizeConfig({}), webDir,
+    diagnostics: async () => ({ lines: ['[ OK ] Windows: Windows', '[ !! ] ASUS performance mode: x'], problems: 0 }),
+  })
+  t.after(() => srv.close())
+  const post = (k) => fetch(`http://127.0.0.1:${srv.port}/api/diagnostics`, { method: 'POST', headers: { 'content-type': 'application/json', ...(k ? { authorization: `Bearer ${k}` } : {}) }, body: '{}' })
+  const ok = await post(key)
+  assert.equal(ok.status, 200)
+  assert.deepEqual((await ok.json()).lines.length, 2)
+  assert.equal((await post('wrong-key')).status, 401)
+  assert.equal((await post('')).status, 401)
+})
