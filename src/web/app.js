@@ -761,12 +761,9 @@ function render() {
     if (lastReport) {
       const box = el('div', 'sensor-out', lastReport)
       sys.append(box, rowOf(
-        btn('Copy report', () => {
-          try {
-            navigator.clipboard.writeText(lastReport).then(() => say('Report copied.'), () => say('Could not copy: select the text instead.', true))
-          } catch (e) {
-            say('Could not copy: select the text instead.', true)
-          }
+        btn('Copy report', async () => {
+          if (await copyText(lastReport)) say('Report copied.')
+          else say('Could not copy: touch and hold the text to select it instead.', true)
         }),
         btn('Close report', () => {
           lastReport = null

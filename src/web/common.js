@@ -240,3 +240,35 @@ function reloadWhenBack() {
   }
   setTimeout(poll, 5000)
 }
+
+// Copies text. The page is plain http (over Tailscale), where the modern clipboard call is not allowed, so a hidden text box and the old
+// copy command are the fallback. Returns true when it worked.
+async function copyText(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+  } catch (e) {
+    // Fall through to the old way.
+  }
+  const t = document.createElement('textarea')
+  t.value = text
+  t.setAttribute('readonly', '')
+  t.style.position = 'fixed'
+  t.style.top = '0'
+  t.style.left = '0'
+  t.style.opacity = '0'
+  document.body.append(t)
+  t.focus()
+  t.select()
+  t.setSelectionRange(0, text.length)
+  let ok = false
+  try {
+    ok = document.execCommand('copy')
+  } catch (e) {
+    ok = false
+  }
+  t.remove()
+  return ok
+}
