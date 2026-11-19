@@ -697,13 +697,14 @@ function render() {
 
     // -- power mode ------------------------------------------------------------------------
     const mode = el('div', 'card')
-    mode.append(section('bolt', 'Power mode', 'Windows'))
+    // On an ASUS laptop (ROG, TUF, Ally) these are the Armoury Crate modes; everywhere else the Windows power modes.
+    mode.append(section('bolt', 'Power mode', pc.asus ? 'ASUS' : 'Windows'))
     const seg = el('div', 'seg')
-    for (const [k, label, ic] of [['saver', 'Efficiency', 'leaf'], ['balanced', 'Balanced', 'balance'], ['gaming', 'Performance', 'bolt']]) {
+    for (const [k, label, ic] of (pc.asus ? [['saver', 'Silent', 'leaf'], ['balanced', 'Performance', 'balance'], ['gaming', 'Turbo', 'bolt']] : [['saver', 'Efficiency', 'leaf'], ['balanced', 'Balanced', 'balance'], ['gaming', 'Performance', 'bolt']])) {
       seg.append(tile(ic, label, run('mode_' + k), { cls: pc.mode === k ? 'on' : '' }))
     }
     mode.append(seg)
-    mode.append(el('div', 'note', 'Efficiency for downloads, Performance for games.'))
+    mode.append(el('div', 'note', pc.asus ? 'Silent for downloads and quiet play, Performance for most games, Turbo when it is hot and loud is fine. Starting a game switches to Performance.' : 'Efficiency for downloads, Performance for games.'))
     p.append(mode)
 
     // -- apps and your own buttons ---------------------------------------------------------
