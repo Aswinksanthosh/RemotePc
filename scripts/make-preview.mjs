@@ -13,7 +13,7 @@ mkdirSync(outDir, { recursive: true })
 
 const base = {
   version: '0.1.0', control: true, mode: 'balanced', gameArt: [], buttons: ['my tests', 'open code'],
-  headphones: ['OnePlus Buds Pro', 'AirPods Pro'], outputs: ['Speakers (Realtek Audio)', 'OnePlus Buds Pro Stereo', 'Monitor (HDMI)'],
+  headphones: ['OnePlus Buds Pro', 'AirPods Pro'], btConnected: ['OnePlus Buds Pro'], outputs: ['Speakers (Realtek Audio)', 'OnePlus Buds Pro Stereo', 'Monitor (HDMI)'],
   apps: ['Spotify'],
 }
 const pcs = {

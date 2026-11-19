@@ -160,7 +160,8 @@ if ($g.Count) {
 
 // Bluetooth headphones. Paired devices are listed from Windows; connecting or disconnecting asks Windows to
 // switch the audio services (music, calls) of ONE device, found by its exact name. Nothing else is touched.
-const BT_LIST = String.raw`Get-PnpDevice -Class Bluetooth -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -match '^BTHENUM\\DEV_' -and $_.FriendlyName } | ForEach-Object { $_.FriendlyName } | Sort-Object -Unique`
+// One line per paired device: its name, a tab, and whether Windows says it is connected right now (any of its entries counts).
+const BT_LIST = String.raw`Get-PnpDevice -Class Bluetooth -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -match '^BTHENUM\\DEV_' -and $_.FriendlyName } | ForEach-Object { $c = (Get-PnpDeviceProperty -InstanceId $_.InstanceId -KeyName '{83DA6326-97A6-4088-9453-A1923F573B29} 15' -ErrorAction SilentlyContinue).Data; $_.FriendlyName + [char]9 + [string]([bool]$c) } | Sort-Object -Unique`
 
 const btScript = (name, connect) => String.raw`$name = ${psQuote(name)}
 $connect = ${connect ? '$true' : '$false'}
@@ -489,10 +490,27 @@ export function createActions({
   const listLines = (script, max) =>
     ps(script, { timeout: 15_000 }).then(
       // eslint-disable-next-line no-control-regex -- control characters are removed on purpose
-      (o) => o.split(/\r?\n/).map((l) => l.trim()).filter((l) => l && l.length <= max && !/[\u0000-\u001f]/.test(l)).slice(0, 20),
+      (o) => o.split(/\r?\n/).map((l) => l.trim()).filter((l) => l && l.length <= max && !/[\u0000-\u0008\u000a-\u001f]/.test(l)).slice(0, 20),
       () => [],
     )
-  const listHeadphones = memo(60_000, () => (platform === 'win32' ? listLines(BT_LIST, 40) : []), now)
+  // Paired devices with their connection state. Cached for a few seconds only: a connection changes quickly and the page shows it.
+  const btCache = { at: -Infinity, value: [] }
+  async function listBluetooth(fresh = false) {
+    if (platform !== 'win32') return []
+    if (!fresh && now() - btCache.at < 5_000) return btCache.value
+    const lines = await listLines(BT_LIST, 60)
+    const byName = new Map()
+    for (const l of lines) {
+      const [rawName, state] = l.split('\t')
+      const name = (rawName ?? '').trim()
+      if (!name || name.length > 40) continue
+      byName.set(name, byName.get(name) === true || /^true$/i.test((state ?? '').trim()))
+    }
+    btCache.value = [...byName].map(([name, connected]) => ({ name, connected }))
+    btCache.at = now()
+    return btCache.value
+  }
+  const listHeadphones = async () => (await listBluetooth()).map((d) => d.name)
   const outCache = { at: -Infinity, value: [] }
   async function listOutputs() {
     if (platform !== 'win32') return []
@@ -580,8 +598,19 @@ export function createActions({
         const name = (await listHeadphones()).find((n) => n.toLowerCase() === String(arg ?? '').toLowerCase().trim())
         if (!name) throw new Error('That device is not paired with this PC.')
         const out = (await ps(btScript(name, connect), { timeout: 30_000 })).trim().split(/\r?\n/).at(-1)
-        if (out === 'ok') return connect ? `Connecting ${name}. Open its case or take it out if it does not connect in 10 seconds. It must not be busy with another device.` : `${name} disconnected from this PC. It is free for your phone or another device now.`
-        throw new Error(out === 'notfound' ? 'Windows no longer lists that device.' : 'Windows refused (are the earphones in range and awake?).')
+        if (out !== 'ok') throw new Error(out === 'notfound' ? 'Windows no longer lists that device.' : 'Windows refused (are the earphones in range and awake?).')
+        // Windows needs a few seconds: look until the device really shows the new state (up to about 8 seconds), then say what is true.
+        let now2 = false
+        for (let i = 0; i < 8; i++) {
+          await sleep(1000)
+          const d = (await listBluetooth(true)).find((x) => x.name === name)
+          if (d && d.connected === connect) {
+            now2 = true
+            break
+          }
+        }
+        if (connect) return now2 ? `${name} is connected.` : `Asked Windows to connect ${name}, but it is not connected yet. Open its case or take it out; it must not be busy with another device.`
+        return now2 ? `${name} is disconnected. It is free for your phone or another device now.` : `Asked Windows to disconnect ${name}; it still shows as connected.`
       }
       case 'audio_set': {
         const name = (await listOutputs()).find((n) => n.toLowerCase() === String(arg ?? '').toLowerCase().trim())
@@ -688,7 +717,8 @@ export function createActions({
         gameArt: await artList(),
         buttons: Object.keys(buttons()),
         mode: readMode(),
-        headphones: await listHeadphones(),
+        headphones: (await listBluetooth()).map((d) => d.name),
+        btConnected: (await listBluetooth()).filter((d) => d.connected).map((d) => d.name),
         outputs: await listOutputs(),
         apps: [...(await appChoices()).values()].map((c) => c.label),
         steam: steam ? { user: steam.user, playing: steam.playing, id: steam.id, avatar: Boolean(steam.id && steam.path), accounts: steam.accounts.map(({ id, name }) => ({ id, name })) } : null,

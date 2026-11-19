@@ -647,20 +647,24 @@ function render() {
     if (!heads.length) btIn.append(el('div', 'empty', 'No paired Bluetooth devices found. Pair your earbuds with this PC in Windows first.'))
     else {
       const list = el('div', 'list')
+      const on = pc.btConnected || []
       for (const name of heads) {
-        const item = el('div', 'item stack')
+        const isOn = on.includes(name)
+        const item = el('div', 'item stack' + (isOn ? ' connected' : ''))
         const ic = el('div', 'ic')
         ic.append(icon('bluetooth'))
-        item.append(ic, el('div', 'nm', name))
+        const nm = el('div', 'nm', name)
+        nm.append(el('small', 'btstat' + (isOn ? ' on' : ''), isOn ? 'Connected' : 'Not connected'))
+        item.append(ic, nm)
         const acts = el('div', 'acts')
-        acts.append(btn('Connect', () => act('bt_connect', name), false, undefined, 'go'), btn('Disconnect', () => act('bt_disconnect', name)))
+        acts.append(btn('Connect', () => act('bt_connect', name), false, undefined, isOn ? '' : 'go'), btn('Disconnect', () => act('bt_disconnect', name), false, undefined, isOn ? 'go' : ''))
         item.append(acts)
         list.append(item)
       }
       btIn.append(list)
       btIn.append(el('div', 'note', 'Earbuds must be in range and not busy with another device. Disconnect frees them for your phone.'))
     }
-    bt.append(acc('bt', heads.length ? 'Bluetooth devices (' + heads.length + ')' : 'Bluetooth devices', btIn, 'bluetooth'))
+    bt.append(acc('bt', heads.length ? 'Bluetooth devices (' + ((pc.btConnected || []).length ? (pc.btConnected || []).length + ' connected of ' : '') + heads.length + ')' : 'Bluetooth devices', btIn, 'bluetooth'))
     const btCard = bt
 
     // -- sound output ----------------------------------------------------------------------

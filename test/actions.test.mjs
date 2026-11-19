@@ -240,15 +240,29 @@ test('cleanModel tidies the model name', () => {
   assert.deepEqual(APP_CANDIDATES.map((a) => a[0]), ['Spotify'])
 })
 
-test('headphones: only a paired device, by exact name, can be connected or disconnected', async (t) => {
-  const { actions, calls } = lab(t, { ps: { 'ForEach-Object { $_.FriendlyName }': (s) => (s.includes('AudioEndpoint') ? 'Speakers (Realtek)\nBuds Stereo\n' : 'AirPods\nBuds\n'), BluetoothSetServiceState: 'ok\n' } })
-  const info = await actions.info()
+test('headphones: only a paired device, by exact name, can be connected or disconnected, and the real state is reported', async (t) => {
+  let airpodsConnected = false
+  const { actions, calls } = lab(t, {
+    ps: {
+      'Get-PnpDeviceProperty': () => `AirPods\t${airpodsConnected ? 'True' : 'False'}\nAirPods\tFalse\nBuds\tTrue\n`,
+      'AudioEndpoint': 'Speakers (Realtek)\nBuds Stereo\n',
+      BluetoothSetServiceState: () => {
+        airpodsConnected = !airpodsConnected
+        return 'ok\n'
+      },
+    },
+  })
+  let info = await actions.info()
   assert.deepEqual(info.headphones, ['AirPods', 'Buds'])
+  assert.deepEqual(info.btConnected, ['Buds'], 'only a device Windows reports as connected')
   assert.deepEqual(info.outputs, ['Speakers (Realtek)', 'Buds Stereo'])
-  assert.match(await actions.run('bt_connect', 'airpods'), /Connecting AirPods/)
-  assert.match(decode(calls.at(-1)), /\$name = 'AirPods'[\s\S]*\$connect = \$true/)
-  assert.match(await actions.run('bt_disconnect', 'Buds'), /disconnected from this PC/)
+  assert.equal(await actions.run('bt_connect', 'airpods'), 'AirPods is connected.')
+  assert.match(decode(calls.find((c) => c[0] === 'powershell.exe' && decode(c).includes('$connect = $true'))), /\$name = 'AirPods'/)
+  assert.match(await actions.run('bt_disconnect', 'AirPods'), /AirPods is disconnected/)
   for (const bad of ["x'; calc; '", 'A Mouse', '', undefined]) await assert.rejects(actions.run('bt_connect', bad), /not paired/)
+  // When Windows never shows the new state the answer is honest about it.
+  const stuck = lab(t, { ps: { 'Get-PnpDeviceProperty': 'Buds\tFalse\n', BluetoothSetServiceState: 'ok\n' } })
+  assert.match(await stuck.actions.run('bt_connect', 'Buds'), /not connected yet/)
 })
 
 test('audio output: only an active playback device, by exact name', async (t) => {
