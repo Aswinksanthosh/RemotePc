@@ -12,7 +12,8 @@ import { createPin } from './pin.mjs'
 import { scanGames } from './steam.mjs'
 import { regValue } from './steam.mjs'
 import { FIREWALL_RULE, TASK_NAME } from './paths.mjs'
-import { findTailscale, tailscaleStatus } from './windows.mjs'
+import { asusScript } from './actions.mjs'
+import { findTailscale, psArgs, tailscaleStatus } from './windows.mjs'
 
 export async function runDoctor({
   paths,
@@ -84,6 +85,27 @@ export async function runDoctor({
       add('Steam', steam ? 'ok' : 'warn', steam ? `${games.length} installed game${games.length === 1 ? '' : 's'} found` : 'Steam not found (the Steam buttons stay empty)')
     } catch {
       add('Steam', 'warn', 'Steam not found (the Steam buttons stay empty)')
+    }
+  }
+
+  if (windows) {
+    // ASUS laptops (ROG, TUF, Ally): can this program reach the Armoury Crate performance mode? Shown only on ASUS PCs.
+    try {
+      const maker = (await run('powershell.exe', psArgs('(Get-CimInstance Win32_ComputerSystem).Manufacturer'))).trim()
+      if (/asus/i.test(maker)) {
+        const last = async (op) => (await run('powershell.exe', psArgs(asusScript(op)), { timeout: 20_000 }).catch((e) => `error ${e.message}`)).trim().split(/\r?\n/).at(-1)
+        const probe = await last('probe')
+        if (probe !== 'yes') {
+          add('ASUS performance mode', 'warn', `the ASUS device (ATKACPI) cannot be opened (${probe || 'no answer'})`, 'The Silent/Performance/Turbo buttons stay on the Windows modes. Install or repair Armoury Crate (ASUS System Control Interface), or the program may need administrator rights.')
+        } else {
+          const mode = await last('get')
+          const n = /^mode:(\d+)$/.exec(mode)?.[1]
+          const name = { 0: 'Performance', 1: 'Turbo', 2: 'Silent' }[n]
+          add('ASUS performance mode', name ? 'ok' : 'warn', name ? `reachable, the laptop is in ${name} mode` : `device opens but the mode could not be read (${mode})`, name ? '' : 'Send this line to the developer.')
+        }
+      }
+    } catch {
+      // Not an ASUS PC, or PowerShell is not available: nothing to show.
     }
   }
 

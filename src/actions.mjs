@@ -195,7 +195,7 @@ public static class RspBt {
 // ASUS laptops (ROG, TUF, Ally): the performance mode of Armoury Crate (Silent, Performance, Turbo) is one number in the laptop's firmware,
 // reached through the ASUS driver device \\.\ATKACPI, the same way the open-source G-Helper does it. 0 = Performance, 1 = Turbo, 2 = Silent.
 // "probe" only checks that the device opens, "get" reads the current mode, "set" writes one. Nothing else is touched.
-const asusScript = (op, value = 0) => String.raw`$op = ${psQuote(op)}
+export const asusScript = (op, value = 0) => String.raw`$op = ${psQuote(op)}
 $val = ${Number(value) | 0}
 Add-Type -TypeDefinition @'
 using System;
