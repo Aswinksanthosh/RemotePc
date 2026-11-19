@@ -7,7 +7,7 @@ import { createAuth } from '../src/auth.mjs'
 import { normalizeConfig } from '../src/config.mjs'
 import { createPin } from '../src/pin.mjs'
 import { createSettings } from '../src/settings.mjs'
-import { iconTheme, startServer } from '../src/server.mjs'
+import { iconTheme, shortcutName, startServer } from '../src/server.mjs'
 import { runStartup } from '../src/startup.mjs'
 import { tempDir } from './helpers.mjs'
 
@@ -308,6 +308,13 @@ test('the home-screen icon takes the colour of the PC theme (name, accent or set
   assert.ok(!page.body.toString().includes('{{ICON}}'))
   const themed = await get(normalizeConfig({ theme: 'clean' }), '/apple-touch-icon-tactical.png')
   assert.deepEqual([themed.status, themed.type], [200, 'image/png'])
-  const manifest = await get(normalizeConfig({ theme: 'tactical' }), '/manifest.webmanifest')
+  assert.equal(shortcutName({}, 'ROG-STRIX'), 'ROG-STRIX')
+  assert.equal(shortcutName({ name: 'My <b>Ally</b>' }, 'x'), 'My bAllyb')
+  assert.equal(shortcutName({}, ''), 'Remote PC')
+  const named = await get(normalizeConfig({ name: 'TUF' }), '/')
+  assert.match(named.body.toString(), /<title>TUF<\/title>/)
+  assert.match(named.body.toString(), /apple-mobile-web-app-title" content="TUF"/)
+  const manifest = await get(normalizeConfig({ theme: 'tactical', name: 'TUF' }), '/manifest.webmanifest')
+  assert.match(manifest.body.toString(), /"name":"TUF"/)
   assert.match(manifest.body.toString(), /icon-192-tactical\.png/)
 })

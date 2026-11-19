@@ -33,6 +33,8 @@ export function iconTheme(config, host = osHostname()) {
   const text = config?.name || host || ''
   return /ROG/i.test(text) ? 'neon' : /TUF/i.test(text) ? 'tactical' : 'clean'
 }
+/** The shortcut on the home screen is named after this PC: its own name from Settings, else the computer name. Plain text, short. */
+export const shortcutName = (config, host = osHostname()) => String(config?.name || host || 'Remote PC').replace(/[^\p{L}\p{N} ._-]/gu, '').trim().slice(0, 30) || 'Remote PC'
 export const iconSvg = (theme) => {
   const [a, a2] = ICON_COLOURS[theme] ?? ICON_COLOURS.clean
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a2}"/><stop offset="1" stop-color="#0b1016"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(#g)"/><g fill="none" stroke="${a}" stroke-width="30" stroke-linecap="round"><path d="M256 124v110"/><path d="M170 178a124 124 0 1 0 172 0"/></g></svg>`
@@ -173,8 +175,8 @@ export async function startServer({
             res,
             200,
             {
-              name: 'Remote PC',
-              short_name: 'Remote',
+              name: shortcutName(config),
+              short_name: shortcutName(config),
               start_url: paired ? `/?k=${key}` : '/',
               scope: '/',
               display: 'standalone',
@@ -209,7 +211,7 @@ export async function startServer({
         if (path === '/' || path === '/settings') Object.assign(headers, { 'content-security-policy': CSP, 'x-frame-options': 'DENY' })
         res.writeHead(200, headers)
         // The pages name the icon of this PC's theme in their address (see above).
-        return res.end(path === '/' || path === '/settings' ? f.body.toString('utf8').replaceAll('{{ICON}}', iconTheme(config)) : f.body)
+        return res.end(path === '/' || path === '/settings' ? f.body.toString('utf8').replaceAll('{{ICON}}', iconTheme(config)).replaceAll('{{NAME}}', shortcutName(config)) : f.body)
       }
 
       if (req.method !== 'POST' || !path.startsWith('/api/')) return json(res, 404, { error: 'Not found.' })
