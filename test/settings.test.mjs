@@ -302,4 +302,12 @@ test('the home-screen icon takes the colour of the PC theme (name, accent or set
   const blue = await get(normalizeConfig({ theme: 'clean' }), '/icon-192.png')
   assert.deepEqual([pink.status, pink.type], [200, 'image/png'])
   assert.notDeepEqual(pink.body, blue.body, 'different colours for different themes')
+  // The page names the icon with the theme in the address, so a phone never keeps an old picture of another colour.
+  const page = await get(normalizeConfig({ theme: 'neon' }), '/')
+  assert.match(page.body.toString(), /apple-touch-icon-neon\.png/)
+  assert.ok(!page.body.toString().includes('{{ICON}}'))
+  const themed = await get(normalizeConfig({ theme: 'clean' }), '/apple-touch-icon-tactical.png')
+  assert.deepEqual([themed.status, themed.type], [200, 'image/png'])
+  const manifest = await get(normalizeConfig({ theme: 'tactical' }), '/manifest.webmanifest')
+  assert.match(manifest.body.toString(), /icon-192-tactical\.png/)
 })

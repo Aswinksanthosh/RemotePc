@@ -162,7 +162,7 @@ export async function startServer({
     if (!isAllowedAddress(ip, allow)) return json(res, 403, { error: 'This network is not allowed.' })
     try {
       const url = new URL(req.url ?? '/', 'http://pc')
-      const path = url.pathname
+      let path = url.pathname
 
       if (req.method === 'GET') {
         if (path === '/health') return json(res, 200, { ok: true, app: 'remortstartpc', version })
@@ -181,15 +181,18 @@ export async function startServer({
               background_color: '#0b1016',
               theme_color: '#0b1016',
               icons: [
-                { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-                { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+                { src: `/icon-192-${iconTheme(config)}.png`, sizes: '192x192', type: 'image/png' },
+                { src: `/icon-512-${iconTheme(config)}.png`, sizes: '512x512', type: 'image/png' },
               ],
             },
             { 'content-type': 'application/manifest+json' },
           )
         }
-        if (path === '/icon.svg' || ICON_FILES[path]) {
-          const theme = iconTheme(config)
+        const themed = /^\/(icon-192|icon-512|apple-touch-icon|icon)-(neon|tactical|clean)\.(png|svg)$/.exec(path)
+        if (path === '/icon.svg' || ICON_FILES[path] || themed) {
+          // The theme is also part of the address (/icon-neon.svg): a phone then never reuses an old picture of another colour.
+          const theme = themed ? themed[2] : iconTheme(config)
+          if (themed) path = themed[1] === 'icon' ? '/icon.svg' : `/${themed[1]}.png`
           const headers = { 'x-content-type-options': 'nosniff', 'referrer-policy': 'no-referrer', 'cache-control': 'no-cache' }
           if (path === '/icon.svg') {
             res.writeHead(200, { ...headers, 'content-type': 'image/svg+xml' })
@@ -205,7 +208,8 @@ export async function startServer({
         const headers = { 'content-type': f.type, 'cache-control': f.cache, 'x-content-type-options': 'nosniff', 'referrer-policy': 'no-referrer' }
         if (path === '/' || path === '/settings') Object.assign(headers, { 'content-security-policy': CSP, 'x-frame-options': 'DENY' })
         res.writeHead(200, headers)
-        return res.end(f.body)
+        // The pages name the icon of this PC's theme in their address (see above).
+        return res.end(path === '/' || path === '/settings' ? f.body.toString('utf8').replaceAll('{{ICON}}', iconTheme(config)) : f.body)
       }
 
       if (req.method !== 'POST' || !path.startsWith('/api/')) return json(res, 404, { error: 'Not found.' })
