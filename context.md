@@ -168,3 +168,5 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 
 ## Diagnostics from the phone (owner, 2026-11-19)
 - System card: "Diagnostics" tile -> POST /api/diagnostics (paired phone + PIN) -> runDoctor lines (same as Fix-It incl. the ASUS check and the log tail); shown in a box under System with Copy report / Close report. app.mjs passes `diagnostics` to startServer.
+
+- FIRST REAL REPORT (Ally, 2026-11-19): ATKACPI opens fine from the normal remote (no admin needed), but reading 0x00120075 returned 3 while Armoury Crate was on Performance (owner had switched Turbo -> Performance). G-Helper constants: FullSpeed=3, Manual=4, so the Ally likely uses another numbering/another device id. Need: run Diagnostics with Armoury Crate in Silent / Performance / Turbo and compare the value. The set (0/1/2) did nothing visible on the Ally. Fix-It now prints the raw value.
