@@ -28,7 +28,6 @@ const STATIC = {
   '/app.css': ['app.css', 'text/css; charset=utf-8', 'no-cache'],
   '/settings': ['settings.html', 'text/html; charset=utf-8', 'no-cache'],
   '/settings.js': ['settings.js', 'text/javascript; charset=utf-8', 'no-cache'],
-  '/boot.js': ['boot.js', 'text/javascript; charset=utf-8', 'no-cache'],
   '/common.js': ['common.js', 'text/javascript; charset=utf-8', 'no-cache'],
   '/icon.svg': ['icon.svg', 'image/svg+xml', 'public, max-age=3600'],
   '/icon-192.png': ['icon-192.png', 'image/png', 'public, max-age=3600'],

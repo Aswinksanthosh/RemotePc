@@ -52,21 +52,13 @@ PCs you can **Start** (Wake-on-LAN) and **Open** from the page. Easiest to add w
 
 `mac` (to start it) and `page` (to open its own remote page) are both optional, but you need at least one. `broadcast` (like `"192.168.1.255"`) is optional and only needed if starting does not work. See [START-FROM-OFF.md](START-FROM-OFF.md).
 
-## Two laptops, one button each (the switch bar)
+## One shortcut per laptop
 
-If you own two PCs that both run this, the page can show a bar at the bottom with one button per PC. Tapping the other one opens **its own** page (each PC keeps its own pairing and PIN). On each PC, list the other one in `pcs.json` with its page address (its Tailscale address, port 8791):
-
-```json
-{ "TUF": { "page": "http://100.101.102.103:8791" } }
-```
-
-Do the same on the other PC, listing the first. The page then shows a **swipe card** above Steam: swipe it sideways (or tap a name) and the page slides to the other PC while the colours change into that PC's look. With **no** other PCs listed, the card never appears, so a single-PC setup stays clean.
-
-Optional, in each entry: `"order": 1` (lower is further left; ties go by name) and `"theme": "tactical"` (the look to change into). Put `"order"` in this PC's own `config.json` too.
+Each laptop has its own page and its own pairing. Pair your phone with each one (run **Pair-Phone** on that laptop) and save each page to your home screen as its own shortcut. There is no switching between laptops inside one page.
 
 ## The Settings page
 
-The **gear** at the top right of the page opens a separate Settings page. Every control saves at once: start with Windows, open Steam Big Picture at startup (and how long to wait), set a power mode at startup, the name and starting theme of the PC, its place in the swipe card, change or remove the PIN, how long a typed PIN stays valid, and whether your home Wi-Fi may connect (that one applies after a restart). The startup things happen **once per boot**, not every time the remote restarts. The same settings live in `config.json` below, if you prefer to edit the file.
+The **gear** at the top right of the page opens a separate Settings page. Every control saves at once: start with Windows, open Steam Big Picture at startup (and how long to wait), set a power mode at startup, the name and starting theme of the PC, change or remove the PIN, how long a typed PIN stays valid, and whether your home Wi-Fi may connect (that one applies after a restart). The startup things happen **once per boot**, not every time the remote restarts. The same settings live in `config.json` below, if you prefer to edit the file.
 
 ## Settings (`config.json`)
 
@@ -91,5 +83,4 @@ The program reads it when it starts, so sign out of Windows and back in (or rest
 | `theme` | The look this PC starts with: `neon`, `tactical` or `clean`. Empty means automatic: neon for "ROG" PCs, tactical for "TUF" PCs, otherwise clean. Each phone can pick another one in the **Theme** card on the page. |
 | `steamAtStart`, `steamDelay` | `true` opens Steam Big Picture once per boot, `steamDelay` seconds (0 to 300) after the program starts. |
 | `startMode` | `saver`, `balanced` or `gaming`: the Windows power mode to set once per boot. Empty leaves it alone. |
-| `order` | Place in the swipe card when you own several PCs (0 to 99, lower is further left). |
 | `pinHours` | How many hours a typed PIN stays valid on a phone (1 to 720, default 12). |

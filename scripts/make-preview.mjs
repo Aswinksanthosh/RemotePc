@@ -61,7 +61,7 @@ document.getElementById('pv2').onclick = function () { previewOne = true; lastSi
 
 let html = read('index.html')
 html = html.replace('<link rel="stylesheet" href="/app.css">', `<style>${read('app.css')}</style>`)
-html = html.replace(/<link rel="(icon|apple-touch-icon)"[^>]*>\n?/g, '').replace('<script src="/boot.js"></script>\n', '')
+html = html.replace(/<link rel="(icon|apple-touch-icon)"[^>]*>\n?/g, '')
 // The preview is already "paired": give the page a key without reading the address or storage.
 const fakeKey = (code) => code.replace('if (key) {\n  // The home-screen shortcut', "key = 'preview-key-0123456789abcdef0123'\nif (key) {\n  // The home-screen shortcut")
 const common = fakeKey(read('common.js'))

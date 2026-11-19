@@ -49,18 +49,18 @@ test('the page has a PIN screen and sends the PIN session with every call', () =
   assert.ok(/inputMode = 'numeric'/.test(js) && /autocomplete = 'off'/.test(js))
 })
 
-test('the page has three looks, a swipe card for several PCs, and a hand-over animation', () => {
+test('the page has three looks', () => {
   for (const t of ['neon', 'tactical', 'clean']) assert.ok(js.includes(`['${t}'`), t)
-  assert.ok(js.includes('function pagerCard') && js.includes("'swipe to change PC'"))
+  assert.ok(!js.includes('pagerCard') && !css.includes('.pager'), 'the PC-switching swipe card is gone')
   assert.ok(js.includes("localStorage.setItem('rsp_theme:'"))
-  for (const c of ['body[data-theme=neon]', 'body[data-theme=tactical]', '.pager.enter-right', '.pager.dragging', '@property --a']) assert.ok(css.includes(c), c)
+  for (const c of ['body[data-theme=neon]', 'body[data-theme=tactical]', '@property --a']) assert.ok(css.includes(c), c)
   assert.ok(!/class="nav"/.test(html), 'the old bottom bar is gone')
 })
 
 test('the Settings page only changes what the server allows, and every control saves through the checked route', () => {
   const settings = read('settings.js')
   assert.ok(settings.includes("'/api/settings/save'") && settings.includes("'/api/settings/pin'") && settings.includes("'/api/settings/task'"))
-  for (const k of ['steamAtStart', 'steamDelay', 'startMode', 'theme', 'order', 'pinHours', 'name', 'lan']) assert.ok(settings.includes(k), k)
+  for (const k of ['steamAtStart', 'steamDelay', 'startMode', 'theme', 'pinHours', 'name', 'lan']) assert.ok(settings.includes(k), k)
   assert.ok(!/localStorage\.setItem\('rsp_k'/.test(settings), 'the key is handled in common.js only')
 })
 
@@ -72,11 +72,9 @@ test('the footer has the copyright line and a feedback drop-down that only opens
   assert.ok(!/password\s*[:=]\s*['"]|localStorage\.getItem\('rsp_k'\)[^;]*encodeURIComponent/.test(js.slice(js.indexOf('function footer'))), 'the key never goes into a feedback link')
 })
 
-test('switching PCs keeps the header, swipe card and footer on screen and swaps only the cards; the next page paints its shell at once', () => {
-  for (const t of ['function ensureShell', 'function placePager', 'function commitContent', 'function showSkeleton', 'card._set', 'sh.foot.dataset.sig']) assert.ok(js.includes(t), t)
-  assert.ok(js.includes("'#from='") && js.includes("encodeURIComponent(JSON.stringify(l.map("), 'the address carries the look and the list of PCs')
-  assert.ok(read('boot.js').includes('document.body.dataset.theme'), 'the look is set before the first paint')
-  assert.ok(html.includes('<script src="/boot.js"></script>'))
+test('the header and footer stay on screen and only the cards are swapped', () => {
+  for (const t of ['function ensureShell', 'function commitContent', 'sh.foot.dataset.sig']) assert.ok(js.includes(t), t)
+  assert.ok(!js.includes("'#from='"), 'no hand-over between PC pages any more')
   assert.ok(!css.includes('transition:--a'), 'no colour-variable transition (it repaints the whole page every frame)')
 })
 

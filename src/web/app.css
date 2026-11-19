@@ -157,24 +157,6 @@ body[data-theme=tactical] .b,body[data-theme=tactical] .item,body[data-theme=tac
 body[data-theme=tactical] .b.tile,body[data-theme=tactical] .b{text-transform:uppercase;letter-spacing:.06em;font-weight:700;font-size:.82rem}
 body[data-theme=tactical] .b.pwr{clip-path:none;border-radius:3px}
 body[data-theme=tactical] .avatar{border-radius:3px}
-/* the swipe card for several PCs */
-.pager{touch-action:pan-y;-webkit-user-select:none;user-select:none;cursor:grab;display:flex;align-items:center;gap:8px;padding:10px}
-.pager .arrow{flex:0 0 40px;height:44px;border:1px solid var(--line);border-radius:var(--rb);background:var(--a2);color:var(--a);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
-.pager .arrow:disabled{opacity:.25;cursor:default}
-.pager .arrow svg.i{width:22px;height:22px}
-.pager .mid{flex:1;min-width:0;text-align:center}
-.pills{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
-.pill{font:inherit;color:var(--muted);background:transparent;border:1px solid transparent;border-radius:var(--rb);padding:8px 16px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all .3s}
-.pill.on{color:#06121c;background:var(--a);border-color:transparent;box-shadow:0 0 20px -4px var(--a)}
-.pill svg.i{width:18px;height:18px}
-.pager .hint{font-size:.7rem;color:var(--muted);margin-top:2px;letter-spacing:.14em;text-transform:uppercase}
-/* Only the swipe card moves: it follows the finger, then flies out fast; the next PC's card flies in. The rest of the page stays still. */
-.pager{transition:transform .2s cubic-bezier(.2,.9,.3,1),opacity .2s;will-change:transform}
-.pager.dragging{transition:none}
-.pager.enter-right{animation:pagerInR .28s cubic-bezier(.2,.9,.3,1) both}
-.pager.enter-left{animation:pagerInL .28s cubic-bezier(.2,.9,.3,1) both}
-@keyframes pagerInR{from{opacity:0;transform:translateX(115%)}to{opacity:1;transform:none}}
-@keyframes pagerInL{from{opacity:0;transform:translateX(-115%)}to{opacity:1;transform:none}}
 /* the theme choice */
 .themes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .swatch{font:inherit;color:#fff;border:2px solid transparent;border-radius:14px;padding:0;cursor:pointer;overflow:hidden;background:#0b141c;text-align:center}
@@ -215,13 +197,11 @@ select.field{max-width:190px}
 .fb-note{color:var(--muted);font-size:.76rem;padding:2px 2px 0}
 .copy{color:var(--muted);font-size:.74rem;margin:14px 6px 0;line-height:1.5}
 
-/* the persistent shell: header, swipe card and footer stay; only .content is swapped */
-.top-host,.pager-host,.foot-host{display:block}
-.pager-host:empty,.foot-host:empty{display:none}
+/* the persistent shell: header and footer stay; only .content is swapped */
+.top-host,.foot-host{display:block}
+.foot-host:empty{display:none}
 .content{display:flex;flex-direction:column;gap:14px;transition:opacity .18s ease,transform .18s ease}
 .content.out{opacity:0;transform:translateY(8px);transition-duration:.11s}
-.card.skel{background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.09),rgba(255,255,255,.04));background-size:200% 100%;animation:shimmer 1.2s linear infinite;border-color:var(--line)}
-@keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
 
 .set-col{display:flex;flex-direction:column;gap:10px;padding:8px 0}
 .sensor-out{white-space:pre-wrap;font:12px/1.5 ui-monospace,Consolas,monospace;color:#cfe3ee;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:12px;padding:10px}

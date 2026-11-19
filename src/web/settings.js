@@ -348,7 +348,6 @@ function render() {
           render()
         }
       })),
-      row('Place in the swipe bar', 'when you own several PCs: lower is further left', number(v.values.order, 0, 99, (n) => save({ order: n }))),
     ),
   )
 

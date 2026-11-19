@@ -380,192 +380,19 @@ async function ensureGameArt(node, game, has) {
 // -- the page ---------------------------------------------------------------------------
 
 // -- looks ---------------------------------------------------------------------------------------
-// -- several PCs: a swipe card and a hand-over between their pages ---------------------------------
-// After a swipe to another PC (a different page address) the new page is told, in the address after the #, which look and which
-// list of PCs to paint at once, so its first picture already matches what was on screen: no blank flash.
-let enterInfo = null
-try {
-  const h = new URLSearchParams(location.hash.slice(1))
-  if (h.get('from') === 'left' || h.get('from') === 'right') {
-    let list = null
-    try {
-      const raw = JSON.parse(h.get('l') || 'null')
-      if (Array.isArray(raw) && raw.length >= 2 && raw.length <= 8 && raw.every((x) => Array.isArray(x) && typeof x[0] === 'string' && x[0].length <= 30)) {
-        list = raw.map((x, i) => ({ name: x[0], theme: THEMES.some((t) => t[0] === x[1]) ? x[1] : 'clean', order: Number(x[2]) || 0, self: i === Number(h.get('i')) }))
-        if (!list.some((x) => x.self)) list = null
-      }
-    } catch (e) {
-      list = null
-    }
-    enterInfo = { dir: h.get('from'), t: THEMES.some((t) => t[0] === h.get('t')) ? h.get('t') : '', list }
-  }
-} catch (e) {
-  // No hand-over.
-}
-
-function pcsInOrder(pc, others) {
-  const list = [{ name: pc.name, theme: themeOf(pc), order: pc.order || 0, self: true }]
-  for (const o of others) if (o.page) list.push({ name: o.name, theme: o.theme || guessTheme(o.name), order: o.order || 0, page: o.page })
-  return list.sort((x, y) => x.order - y.order || x.name.localeCompare(y.name))
-}
-
-let going = false
-let pagerEl = null
-let switching = false
-// The persistent part of the page: header, swipe card and footer stay on screen; only the cards between them are swapped.
+// The persistent part of the page: header and footer stay on screen; only the cards between them are swapped.
 let shell = null
 function ensureShell() {
   const app = $('app')
   if (shell && app.contains(shell.panel)) return shell
   app.textContent = ''
   const panel = el('div', 'panel')
-  shell = { panel, top: el('div', 'top-host'), pagerHost: el('div', 'pager-host'), content: el('div', 'content'), foot: el('div', 'foot-host') }
-  panel.append(shell.top, shell.pagerHost, shell.content, shell.foot)
+  shell = { panel, top: el('div', 'top-host'), content: el('div', 'content'), foot: el('div', 'foot-host') }
+  panel.append(shell.top, shell.content, shell.foot)
   app.append(panel)
-  pagerEl = null
   return shell
 }
 
-// The swipe card flies out, the cards fade, the colours change under the faded cards; then the next PC's page opens and paints the
-// same card and colours at once, so the jump between two pages looks like one smooth movement.
-function go(target, dir, list) {
-  if (going || !target || target.self) return
-  if (!target.page && !window.__navigate) return
-  going = true
-  switching = true
-  if (pagerEl) {
-    pagerEl._leaving = dir
-    pagerEl.classList.remove('dragging')
-    pagerEl.style.transition = 'transform .18s cubic-bezier(.5,0,1,1), opacity .18s'
-    pagerEl.style.transform = 'translateX(' + (dir > 0 ? '-115%' : '115%') + ')'
-    pagerEl.style.opacity = '0'
-  }
-  if (shell) shell.content.classList.add('out')
-  if (navigator.vibrate) navigator.vibrate(12)
-  setTimeout(() => {
-    going = false
-    if (window.__navigate) window.__navigate(target, dir)
-    else {
-      const l = list || []
-      const hash = '#from=' + (dir > 0 ? 'right' : 'left') + '&t=' + target.theme + '&i=' + l.findIndex((x) => x.name === target.name) + '&l=' + encodeURIComponent(JSON.stringify(l.map((x) => [x.name, x.theme, x.order])))
-      location.href = target.page + hash
-    }
-  }, 190)
-}
-
-function pagerCard(list, meIndex, enterDir) {
-  const card = el('div', 'card pager' + (enterDir ? ' enter-' + enterDir : ''))
-  const pillEls = []
-  const prev = el('button', 'arrow')
-  prev.type = 'button'
-  prev.setAttribute('aria-label', 'Previous PC')
-  const left = icon('next')
-  left.style.transform = 'scaleX(-1)'
-  prev.append(left)
-  prev.disabled = meIndex === 0
-  const next = el('button', 'arrow')
-  next.type = 'button'
-  next.setAttribute('aria-label', 'Next PC')
-  next.append(icon('next'))
-  next.disabled = meIndex === list.length - 1
-  const mid = el('div', 'mid')
-  const pills = el('div', 'pills')
-  list.forEach((x, i) => {
-    const b = el('button', 'pill' + (i === meIndex ? ' on' : ''))
-    b.type = 'button'
-    b.append(icon('laptop'), el('span', '', x.name))
-    b.addEventListener('click', () => go(list[i], i - meIndex, list))
-    pillEls.push(b)
-    pills.append(b)
-  })
-  mid.append(pills, el('div', 'hint', 'swipe to change PC'))
-  card.append(prev, mid, next)
-  prev.addEventListener('click', () => go(list[meIndex - 1], -1, list))
-  next.addEventListener('click', () => go(list[meIndex + 1], 1, list))
-  // Swipe: the card follows the finger; past 60 px (or a quick flick) it changes PC, otherwise it snaps back.
-  let x0 = 0
-  let y0 = 0
-  let t0 = 0
-  let on = false
-  let moved = false
-  card.addEventListener('pointerdown', (e) => {
-    if (e.button || going) return
-    on = true
-    moved = false
-    x0 = e.clientX
-    y0 = e.clientY
-    t0 = Date.now()
-  })
-  card.addEventListener('pointermove', (e) => {
-    if (!on) return
-    const dx = e.clientX - x0
-    const dy = e.clientY - y0
-    if (!moved && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
-      moved = true
-      card.classList.add('dragging')
-      try {
-        card.setPointerCapture(e.pointerId)
-      } catch (x) {
-        // Not every browser allows it.
-      }
-    }
-    if (!moved) return
-    // Resist pulling toward a side that has no PC (rubber band).
-    const free = (dx < 0 && list[meIndex + 1]) || (dx > 0 && list[meIndex - 1])
-    card.style.transform = 'translateX(' + Math.round(dx * (free ? 0.9 : 0.25)) + 'px)'
-  })
-  const end = (e) => {
-    if (!on) return
-    on = false
-    card.classList.remove('dragging')
-    if (!moved) return
-    const dx = e.clientX - x0
-    const fast = Math.abs(dx) > 25 && Date.now() - t0 < 250
-    const to = meIndex + (dx < 0 ? 1 : -1)
-    if ((Math.abs(dx) > 60 || fast) && list[to]) go(list[to], dx < 0 ? 1 : -1, list)
-    else card.style.transform = ''
-  }
-  card.addEventListener('pointerup', end)
-  card.addEventListener('pointercancel', () => {
-    on = false
-    card.classList.remove('dragging')
-    card.style.transform = ''
-  })
-  // A drag must not count as a tap on a name.
-  card.addEventListener('click', (e) => {
-    if (moved) {
-      e.stopPropagation()
-      e.preventDefault()
-      moved = false
-    }
-  }, true)
-  pagerEl = card
-  // Updates the card in place (a new place in the list, new addresses) instead of building a new one: no flicker.
-  card._set = (l, m) => {
-    list = l
-    meIndex = m
-    pillEls.forEach((b, i) => b.classList.toggle('on', i === m))
-    prev.disabled = m === 0
-    next.disabled = m === l.length - 1
-    if (card._leaving) {
-      // Came back from a fly-out: fly in from the other side.
-      const d = card._leaving
-      card._leaving = 0
-      card.style.transition = 'none'
-      card.style.transform = 'translateX(' + (d > 0 ? '115%' : '-115%') + ')'
-      card.style.opacity = '0'
-      void card.offsetWidth
-      card.style.transition = 'transform .28s cubic-bezier(.2,.9,.3,1), opacity .2s'
-      card.style.transform = ''
-      card.style.opacity = '1'
-      setTimeout(() => {
-        card.style.transition = ''
-        card.style.opacity = ''
-      }, 320)
-    }
-  }
-  return card
-}
 
 function themeCard(pc) {
   const card = el('div', 'card')
@@ -683,8 +510,6 @@ function render() {
   const sh = ensureShell()
   const p = el('div', 'content')
   const helper = !pc.control
-  const others0 = data.others || []
-  const order = pcsInOrder(pc, others0)
   const run = (action, arg) => () => act(action, arg)
   offerUpdate(pc)
 
@@ -733,7 +558,6 @@ function render() {
     top.append(pwr)
   }
   sh.top.replaceChildren(top)
-  placePager(sh, order, helper)
   let powerCard = null
   let mediaCard = null
 
@@ -915,7 +739,7 @@ function render() {
     g.append(tile('pulse', 'Status', run('status'), { cls: 'small' }))
     sys.append(g)
   }
-  const others = data.others || []
+  const others = (data.others || []).filter((o) => o.canWake)
   if (others.length) {
     const list = el('div', 'list')
     for (const o of others) {
@@ -927,7 +751,6 @@ function render() {
       item.append(ic, nm)
       const acts = el('div', 'acts')
       if (o.canWake) acts.append(btn('Start', () => act('wake', undefined, { pc: o.key }), false, undefined, 'go'))
-      if (o.page) acts.append(btn('Open', () => { location.href = o.page }))
       item.append(acts)
       list.append(item)
     }
@@ -966,67 +789,10 @@ function render() {
   commitContent(sh, p, myTheme)
 }
 
-function placePager(sh, order, helper) {
-  const me = order.findIndex((x) => x.self)
-  if (helper || order.length < 2) {
-    sh.pagerHost.textContent = ''
-    pagerEl = null
-    return
-  }
-  const sig = order.map((x) => x.name).join(',')
-  if (pagerEl && sh.pagerHost.contains(pagerEl) && pagerEl.dataset.sig === sig) {
-    pagerEl._set(order, me)
-    return
-  }
-  const dir = enterInfo && enterInfo.dir
-  const card = pagerCard(order, me, dir)
-  card.dataset.sig = sig
-  sh.pagerHost.replaceChildren(card)
-}
-
-// Swaps the cards. After a PC change the old cards fade out first, the colours change while they are invisible, then the new ones fade in:
-// no big repaint is ever visible. A normal refresh just replaces them.
+// Swaps the cards (the header and footer stay).
 function commitContent(sh, p, myTheme) {
-  const swap = () => {
-    sh.content.replaceChildren(...p.childNodes)
-    setTheme(myTheme)
-    sh.content.classList.remove('out', 'skel-on')
-  }
-  if (switching || enterInfo) {
-    switching = false
-    enterInfo = null
-    if (sh.content.classList.contains('out') && !sh.content.classList.contains('skel-on')) setTimeout(swap, 110)
-    else {
-      sh.content.classList.add('out')
-      void sh.content.offsetWidth
-      swap()
-    }
-  } else swap()
-}
-
-// The first picture after a hand-over from another PC: its look, its name and the swipe card in place, grey blocks where the cards will be.
-function showSkeleton(info) {
-  if (!info.list) return
-  const me = info.list.find((x) => x.self)
-  const sh = ensureShell()
-  if (info.t) setTheme(info.t)
-  const top = el('div', 'top')
-  const txt = el('div', 'txt')
-  txt.append(el('h1', '', me.name))
-  const chip = el('div', 'chip')
-  chip.append(el('span', 'dot'), el('span', '', 'connecting…'))
-  txt.append(chip)
-  top.append(txt)
-  sh.top.replaceChildren(top)
-  const card = pagerCard(info.list, info.list.findIndex((x) => x.self), info.dir)
-  card.dataset.sig = info.list.map((x) => x.name).join(',')
-  sh.pagerHost.replaceChildren(card)
-  sh.content.replaceChildren(...[210, 150, 120].map((h) => {
-    const b = el('div', 'card skel')
-    b.style.height = h + 'px'
-    return b
-  }))
-  sh.content.classList.add('skel-on')
+  sh.content.replaceChildren(...p.childNodes)
+  setTheme(myTheme)
 }
 
 async function refresh() {
@@ -1099,7 +865,6 @@ document.addEventListener('visibilitychange', () => {
 
 if (!key) pairScreen(false)
 else {
-  if (enterInfo) showSkeleton(enterInfo)
   refresh()
   schedule()
 }
