@@ -64,6 +64,9 @@ export const ACTIONS = [
   'status',
   'update',
   'restart_remote',
+  'mode_saver',
+  'mode_balanced',
+  'mode_gaming',
   'volume_set',
   'mute_set',
   'bt_connect',
@@ -287,6 +290,13 @@ const BATTERY = String.raw`$b = Get-CimInstance Win32_Battery -ErrorAction Silen
 if ($b) { "$($b.EstimatedChargeRemaining)|$($b.BatteryStatus)" }`
 
 
+/** Windows power modes (the "Power mode" slider). The overlay is the Windows 11 slider; the plan is the older fallback. */
+const MODES = {
+  saver: { name: 'Efficiency', overlay: 'OVERLAY_SCHEME_MIN', plan: 'a1841308-3541-4fab-bc81-f71556f20b4a' },
+  balanced: { name: 'Balanced', overlay: 'OVERLAY_SCHEME_NONE', plan: '381b4222-f694-41f0-9685-ff5bb260df2e' },
+  gaming: { name: 'Performance', overlay: 'OVERLAY_SCHEME_MAX', plan: '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c' },
+}
+
 const START_NAMES = String.raw`Get-StartApps | ForEach-Object { $_.Name }`
 
 const startAppScript = (name, exact) => String.raw`$n = ${psQuote(name)}
@@ -509,6 +519,38 @@ export function createActions({
       (o) => o.split(/\r?\n/).map((l) => l.trim()).filter((l) => l && l.length <= max && !/[\u0000-\u0008\u000a-\u001f]/.test(l)).slice(0, 20),
       () => [],
     )
+  // The page shows which power mode was chosen last (Windows does not tell us the slider position simply).
+  const readMode = () => {
+    try {
+      const m = readText(files.mode).trim()
+      return Object.hasOwn(MODES, m) ? m : ''
+    } catch {
+      return ''
+    }
+  }
+  async function setMode(mode) {
+    winOnly()
+    const m = MODES[mode]
+    try {
+      await run('powercfg.exe', ['/overlaysetactive', m.overlay])
+    } catch {
+      try {
+        await run('powercfg.exe', ['/setactive', m.plan])
+      } catch {
+        // "High performance" is hidden on some PCs; make a copy of it and use that.
+        const copy = mode === 'gaming' ? /([0-9a-f]{8}-[0-9a-f-]{27})/i.exec(await run('powercfg.exe', ['/duplicatescheme', m.plan]).catch(() => ''))?.[1] : null
+        if (!copy) throw new Error('Windows would not change the power mode on this PC.')
+        await run('powercfg.exe', ['/setactive', copy])
+      }
+    }
+    try {
+      writeAtomic(files.mode, mode)
+    } catch {
+      // Only the highlight on the page is lost.
+    }
+    return `${m.name} power mode.`
+  }
+
   // The sound level of the default speaker, read for the page's slider (cached a few seconds) and set from it.
   const volCache = { at: -Infinity, value: null }
   const parseVol = (out) => {
@@ -623,6 +665,10 @@ export function createActions({
         return update()
       case 'restart_remote':
         return restart()
+      case 'mode_saver':
+      case 'mode_balanced':
+      case 'mode_gaming':
+        return setMode(action.slice(5))
       case 'volume_set': {
         // The phone sends the level as text ("55"); anything but 1 to 3 digits from 0 to 100 is refused.
         const text = String(arg ?? '')
@@ -760,6 +806,7 @@ export function createActions({
         games: games.map((g) => g.name),
         gameArt: await artList(),
         buttons: Object.keys(buttons()),
+        mode: readMode(),
         volume: await readVolume(),
         headphones: (await listBluetooth()).map((d) => d.name),
         btConnected: (await listBluetooth()).filter((d) => d.connected).map((d) => d.name),

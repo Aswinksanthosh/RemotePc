@@ -307,3 +307,27 @@ test('volume: a real level 0 to 100, read for the slider and set from it, plus m
   const plain = lab(t, { ps: { RspVol: 'nonsense\n' } })
   assert.equal((await plain.actions.info()).volume, null)
 })
+
+test('power modes: the right Windows command, remembered for the page, with fallbacks', async (t) => {
+  const { actions, calls, home } = lab(t)
+  const modeFile = join(home, 'mode.txt')
+  const mk = (run) => createActions({ files: { buttons: join(home, 'b.json'), apps: join(home, 'a.json'), games: join(home, 'g.json'), switchLog: join(home, 's.log'), mode: modeFile }, run, platform: 'win32', readdir: readdirSync, sleep: async () => {}, hostname: () => 'PC' })
+  const a = mk(async (f, args) => (calls.push([f, ...args]), ''))
+  assert.equal(await a.run('mode_saver'), 'Efficiency power mode.')
+  assert.deepEqual(calls.filter((c) => c[0] === 'powercfg.exe').at(-1), ['powercfg.exe', '/overlaysetactive', 'OVERLAY_SCHEME_MIN'])
+  assert.equal(readFileSync(modeFile, 'utf8'), 'saver')
+  assert.equal((await a.info()).mode, 'saver')
+  await a.run('mode_gaming')
+  assert.deepEqual(calls.filter((c) => c[0] === 'powercfg.exe').at(-1), ['powercfg.exe', '/overlaysetactive', 'OVERLAY_SCHEME_MAX'])
+  const b = mk(async (f, args) => {
+    if (args[0] === '/overlaysetactive') throw new Error('no overlay')
+    calls.push([f, ...args])
+    return ''
+  })
+  await b.run('mode_balanced')
+  assert.deepEqual(calls.filter((c) => c[0] === 'powercfg.exe').at(-1), ['powercfg.exe', '/setactive', '381b4222-f694-41f0-9685-ff5bb260df2e'])
+  assert.ok(actions)
+  // Starting a game never changes the power mode.
+  await a.run('steam_game', 'Hades').catch(() => {})
+  assert.ok(!calls.some((c) => c[0] === 'powercfg.exe' && c[1] === '/overlaysetactive' && calls.indexOf(c) > calls.length))
+})

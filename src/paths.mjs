@@ -34,6 +34,7 @@ export function dataPaths(home = process.env.REMORTSTARTPC_HOME || join(homedir(
     apps: join(home, 'apps.json'),
     games: join(home, 'games.json'),
     pcs: join(home, 'pcs.json'),
+    mode: join(home, 'power-mode.txt'),
     switchLog: join(home, 'steam-switch.log'),
     startup: join(home, 'startup.json'),
   }

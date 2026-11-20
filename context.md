@@ -184,3 +184,5 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 
 ## POWER MODE SWITCHING REMOVED (owner, 2026-11-20: "Dont use any modes switching here")
 - Removed everything: the Power mode card (Silent/Performance/Turbo and the Windows modes), actions mode_saver/balanced/gaming, the ASUS ATKACPI code, the Fix-It ASUS line, the "Power mode at startup" setting + config startMode + startup step, the "games start in Performance" switch, power-mode.txt. Reason: the ASUS write never changed the firmware mode on the owner laptops (value stayed 3) and the owner chose to drop it. Older notes above about modes are history. Old config.json startMode is ignored.
+
+- RESTORED (owner, 2026-11-20): ONLY the plain Windows power mode card (Efficiency / Balanced / Performance, actions mode_*, power-mode.txt highlight). NOT restored: any ASUS/Armoury code, the Fix-It ASUS line, the startup mode setting, or the game-start boost.

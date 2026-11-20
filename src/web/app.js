@@ -744,6 +744,17 @@ function render() {
 
     p.append(mediaCard)
 
+    // -- power mode (the Windows power mode slider) ----------------------------------------
+    const mode = el('div', 'card')
+    mode.append(section('bolt', 'Power mode', 'Windows'))
+    const seg = el('div', 'seg')
+    for (const [k, label, ic] of [['saver', 'Efficiency', 'leaf'], ['balanced', 'Balanced', 'balance'], ['gaming', 'Performance', 'bolt']]) {
+      seg.append(tile(ic, label, run('mode_' + k), { cls: pc.mode === k ? 'on' : '' }))
+    }
+    mode.append(seg)
+    mode.append(el('div', 'note', 'Efficiency for downloads, Performance for games.'))
+    p.append(mode)
+
     // -- apps and your own buttons ---------------------------------------------------------
     const apps = pc.apps || []
     if (apps.length) {
