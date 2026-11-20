@@ -83,7 +83,7 @@ export async function startApp({
   const actions =
     platform === 'win32'
       ? createActions({
-          files: { buttons: paths.buttons, apps: paths.apps, games: paths.games, switchLog: paths.switchLog, mode: paths.mode },
+          files: { buttons: paths.buttons, apps: paths.apps, games: paths.games, switchLog: paths.switchLog },
           version,
           update,
           updateInfo: () => ({ ...updateState }),
@@ -146,7 +146,7 @@ export async function startApp({
     setTimeout(() => check().catch(() => {}), 30_000).unref?.()
     setTimeout(() => check().catch(() => {}), 5 * 60_000).unref?.()
   }
-  // Things to do once per boot (set on the Settings page): a power mode, Steam Big Picture.
+  // Things to do once per boot (set on the Settings page): Steam Big Picture.
   runStartup({ config, actions, stampFile: paths.startup, read: (f) => readFileSync(f, 'utf8'), write: (f, t) => writeAtomic(f, t), log }).catch(() => {})
 
   return { server, paths, config, auth, close: server.close }

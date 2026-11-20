@@ -12,13 +12,13 @@ const outDir = process.argv[2] || '.'
 mkdirSync(outDir, { recursive: true })
 
 const base = {
-  version: '0.1.0', control: true, asus: true, volume: { level: 62, muted: false }, mode: 'balanced', gameArt: [], buttons: ['my tests', 'open code'],
+  version: '0.1.0', control: true, volume: { level: 62, muted: false }, gameArt: [], buttons: ['my tests', 'open code'],
   headphones: ['OnePlus Buds Pro', 'AirPods Pro'], btConnected: ['OnePlus Buds Pro'], outputs: ['Speakers (Realtek Audio)', 'OnePlus Buds Pro Stereo', 'Monitor (HDMI)'],
   apps: ['Spotify'],
 }
 const pcs = {
   ROG: { ...base, name: 'ROG', model: 'ROG Strix G16', order: 2, games: ['Counter-Strike 2', 'Hades', 'Portal 2', 'PUBG: BATTLEGROUNDS'], steam: { user: 'DemoPlayer', playing: '', id: '1', avatar: false, accounts: [{ id: '1', name: 'DemoPlayer' }, { id: '2', name: 'Second Account' }] } },
-  TUF: { ...base, name: 'TUF', model: 'TUF Gaming A15', order: 1, mode: 'gaming', games: ['Elden Ring', 'Hollow Knight', 'Rocket League'], steam: { user: 'TufPlayer', playing: 'Elden Ring', id: '3', avatar: false, accounts: [] } },
+  TUF: { ...base, name: 'TUF', model: 'TUF Gaming A15', order: 1, games: ['Elden Ring', 'Hollow Knight', 'Rocket League'], steam: { user: 'TufPlayer', playing: 'Elden Ring', id: '3', avatar: false, accounts: [] } },
 }
 const stub = `<script>
 // PREVIEW ONLY: pretend answers instead of a real PC. Your two laptops are both inside this one file.
@@ -26,20 +26,17 @@ var previewPcs = ${JSON.stringify(pcs)}
 var previewSelf = 'ROG'
 var previewOne = false
 window.previewDelay = window.previewDelay || 0
-var previewModes = { ROG: 'balanced', TUF: 'gaming' }
 window.fetch = function (url, opts) {
   var body = {}
   try { body = JSON.parse((opts && opts.body) || '{}') } catch (e) {}
   var json = function (o) { return new Promise(function (ok) { setTimeout(function () { ok(new Response(JSON.stringify(o), { status: 200, headers: { 'content-type': 'application/json' } })) }, window.previewDelay) }) }
   if (String(url).indexOf('/api/state') >= 0) {
     var pc = JSON.parse(JSON.stringify(previewPcs[previewSelf]))
-    pc.mode = previewModes[previewSelf]
     var other = previewSelf === 'ROG' ? 'TUF' : 'ROG'
     return json({ pc: pc, version: '0.1.0', feedback: 'https://github.com/example/remotepc/issues/new', phones: [{ id: 'a', label: 'My phone', current: true, connected: true, lastSeen: Date.now() }, { id: 'b', label: 'Partner phone', current: false, connected: true, lastSeen: Date.now() - 40000 }, { id: 'c', label: 'Old tablet', current: false, connected: false, lastSeen: Date.now() - 5 * 3600 * 1000 }],
       others: previewOne ? [] : [{ key: other, name: other, canWake: true, page: 'https://example.invalid/' + other, online: true, order: previewPcs[other].order }] })
   }
   if (String(url).indexOf('/api/do') >= 0) {
-    if (/^mode_/.test(body.action)) previewModes[previewSelf] = body.action.slice(5)
     return json({ message: 'Preview: ' + body.action + (body.arg ? ' (' + body.arg + ')' : '') + '. Nothing was really done.' })
   }
   return Promise.resolve(new Response(null, { status: 204 }))

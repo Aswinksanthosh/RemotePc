@@ -111,11 +111,11 @@ import { applySettingsPatch, DEFAULT_CONFIG, normalizeConfig } from '../src/conf
 
 test('settings patches: only the allowed ones, each checked, restart flagged', () => {
   const base = normalizeConfig({})
-  assert.deepEqual(applySettingsPatch(base, { steamAtStart: true, steamDelay: 5, theme: 'neon', name: 'Desk', startMode: 'saver' }).config.steamDelay, 5)
+  assert.deepEqual(applySettingsPatch(base, { steamAtStart: true, steamDelay: 5, theme: 'neon', name: 'Desk' }).config.steamDelay, 5)
   const r = applySettingsPatch(base, { allow: ['loopback', 'tailscale', 'lan'] })
   assert.equal(r.restart, true)
   assert.equal(applySettingsPatch(base, { theme: 'neon' }).restart, false)
-  for (const bad of [{ port: 80 }, { nodePath: 'x' }, { steamAtStart: 'yes' }, { steamDelay: 999 }, { steamDelay: 1.5 }, { theme: 'sparkly' }, { startMode: 'turbo' }, { allow: ['internet'] }, { order: -1 }, { pinHours: 0 }, { name: 5 }, { constructor: 1 }]) {
+  for (const bad of [{ port: 80 }, { nodePath: 'x' }, { steamAtStart: 'yes' }, { steamDelay: 999 }, { steamDelay: 1.5 }, { theme: 'sparkly' }, { allow: ['internet'] }, { order: -1 }, { pinHours: 0 }, { name: 5 }, { constructor: 1 }]) {
     assert.throws(() => applySettingsPatch(base, bad), /./, JSON.stringify(bad))
   }
   assert.throws(() => applySettingsPatch(base, null), /Nothing to save/)

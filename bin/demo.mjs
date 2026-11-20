@@ -24,7 +24,6 @@ const info = {
   games: ['Counter-Strike 2', 'Hades', 'Portal 2', 'PUBG: BATTLEGROUNDS'],
   gameArt: [],
   buttons: ['my tests', 'open code'],
-  mode: 'balanced',
   headphones: ['OnePlus Buds Pro', 'AirPods Pro'],
   outputs: ['Speakers (Realtek Audio)', 'OnePlus Buds Pro Stereo', 'Monitor (HDMI)'],
   apps: ['Discord', 'Spotify', 'Chrome', 'Epic Games', 'OBS Studio', 'Claude'],

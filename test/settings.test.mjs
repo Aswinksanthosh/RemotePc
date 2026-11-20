@@ -79,11 +79,11 @@ function boot(t, config, calls, { now = 1_800_000_000_000, uptimeS = 300, saved 
   return { go, waits, stamp: () => stamp }
 }
 
-test('startup: a power mode and Steam Big Picture are done once per boot, not at every program restart', async (t) => {
+test('startup: Steam Big Picture is done once per boot, not at every program restart', async (t) => {
   const calls = []
-  const b = boot(t, normalizeConfig({ steamAtStart: true, steamDelay: 4, startMode: 'saver' }), calls)
-  assert.deepEqual(await b.go(), { mode: 'set', steam: 'started' })
-  assert.deepEqual(calls, ['mode_saver', 'steam_bigpicture'])
+  const b = boot(t, normalizeConfig({ steamAtStart: true, steamDelay: 4 }), calls)
+  assert.deepEqual(await b.go(), { steam: 'started' })
+  assert.deepEqual(calls, ['steam_bigpicture'])
   assert.deepEqual(b.waits, [4000])
   assert.deepEqual(await b.go(), {}, 'the same boot: nothing again')
   const later = boot(t, normalizeConfig({ steamAtStart: true }), calls, { now: 1_800_000_000_000 + 4 * 3600 * 1000, saved: b.stamp() })

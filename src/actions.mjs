@@ -64,9 +64,6 @@ export const ACTIONS = [
   'status',
   'update',
   'restart_remote',
-  'mode_saver',
-  'mode_balanced',
-  'mode_gaming',
   'volume_set',
   'mute_set',
   'bt_connect',
@@ -194,49 +191,6 @@ public static class RspBt {
 '@
 [RspBt]::Run([Convert]::ToUInt64($hex, 16), $connect)`
 
-// ASUS laptops (ROG, TUF, Ally): the performance mode of Armoury Crate (Silent, Performance, Turbo) is one number in the laptop's firmware,
-// reached through the ASUS driver device \\.\ATKACPI, the same way the open-source G-Helper does it. 0 = Performance, 1 = Turbo, 2 = Silent.
-// "probe" only checks that the device opens, "get" reads the current mode, "set" writes one. Nothing else is touched.
-export const asusScript = (op, value = 0) => String.raw`$op = ${psQuote(op)}
-$val = ${Number(value) | 0}
-Add-Type -TypeDefinition @'
-using System;
-using System.Runtime.InteropServices;
-public static class RspAsus {
-  [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)] static extern IntPtr CreateFile(string f, uint access, uint share, IntPtr sec, uint create, uint flags, IntPtr tmpl);
-  [DllImport("kernel32.dll", SetLastError = true)] static extern bool DeviceIoControl(IntPtr h, uint code, byte[] inBuf, uint inLen, byte[] outBuf, uint outLen, ref uint returned, IntPtr ov);
-  [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr h);
-  static byte[] Call(IntPtr h, uint method, byte[] args) {
-    byte[] b = new byte[8 + args.Length];
-    BitConverter.GetBytes(method).CopyTo(b, 0);
-    BitConverter.GetBytes((uint)args.Length).CopyTo(b, 4);
-    Array.Copy(args, 0, b, 8, args.Length);
-    byte[] o = new byte[16]; uint r = 0;
-    if (!DeviceIoControl(h, 0x0022240C, b, (uint)b.Length, o, (uint)o.Length, ref r, IntPtr.Zero)) return null;
-    return o;
-  }
-  public static string Run(string op, int val) {
-    IntPtr h = CreateFile("\\\\.\\ATKACPI", 0xC0000000, 3, IntPtr.Zero, 3, 0x80, IntPtr.Zero);
-    if (h == new IntPtr(-1)) return "no";
-    try {
-      if (op == "probe") return "yes";
-      byte[] a = new byte[8];
-      BitConverter.GetBytes((uint)0x00120075).CopyTo(a, 0);
-      if (op == "get") {
-        byte[] o = Call(h, 0x53545344, a);
-        return o == null ? "fail" : "mode:" + (BitConverter.ToInt32(o, 0) - 65536);
-      }
-      BitConverter.GetBytes((uint)val).CopyTo(a, 4);
-      byte[] r = Call(h, 0x53564544, a);
-      if (r == null) return "fail";
-      int status = BitConverter.ToInt32(r, 0);
-      return status == 1 ? "ok" : "fail:" + status;
-    } finally { CloseHandle(h); }
-  }
-}
-'@
-[RspAsus]::Run($op, $val)`
-
 // Master volume of the default speaker: read and set as a real level (0 to 100), plus mute. Windows Core Audio, no key presses.
 const volumeScript = (op, level = 0) => String.raw`$op = ${psQuote(op)}
 $level = ${Math.max(0, Math.min(100, Number(level) | 0))}
@@ -332,12 +286,6 @@ public static class RspAudio {
 const BATTERY = String.raw`$b = Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue | Select-Object -First 1
 if ($b) { "$($b.EstimatedChargeRemaining)|$($b.BatteryStatus)" }`
 
-/** Windows power modes (the "Power mode" slider). The overlay is the Windows 11 slider; the plan is the older fallback. */
-const MODES = {
-  saver: { name: 'Efficiency', overlay: 'OVERLAY_SCHEME_MIN', plan: 'a1841308-3541-4fab-bc81-f71556f20b4a' },
-  balanced: { name: 'Balanced', overlay: 'OVERLAY_SCHEME_NONE', plan: '381b4222-f694-41f0-9685-ff5bb260df2e' },
-  gaming: { name: 'Performance', overlay: 'OVERLAY_SCHEME_MAX', plan: '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c' },
-}
 
 const START_NAMES = String.raw`Get-StartApps | ForEach-Object { $_.Name }`
 
@@ -553,66 +501,6 @@ export function createActions({
 
   const buttons = () => knownButtons(files.buttons, readText)
 
-  // ASUS laptops: the Armoury Crate modes. Only offered when the ASUS device opens; everything else keeps the Windows power modes.
-  const ASUS_VALUE = { saver: 2, balanced: 0, gaming: 1 }
-  const ASUS_NAME = { saver: 'Silent', balanced: 'Performance', gaming: 'Turbo' }
-  // Offered only when the ASUS device opens AND the laptop answers with a mode number this program knows (0 to 4). Anything else keeps the
-  // plain Windows buttons, so a button never pretends to work.
-  const asusSupported = memo(10 * 60_000, async () => {
-    if (platform !== 'win32') return false
-    const last = (o) => o.trim().split(/\r?\n/).at(-1)
-    if ((await ps(asusScript('probe'), { timeout: 15_000 }).then(last, () => '')) !== 'yes') return false
-    const n = /^mode:(\d+)$/.exec(await ps(asusScript('get'), { timeout: 15_000 }).then(last, () => ''))?.[1]
-    // 0 Performance, 1 Turbo, 2 Silent; 3 and 4 are the other firmware modes (full speed, manual): the buttons must still be offered then,
-    // otherwise a laptop sitting in one of them could never be switched back.
-    return n !== undefined && Number(n) <= 4
-  }, now)
-  async function asusCurrent() {
-    if (!(await asusSupported())) return ''
-    const out = await ps(asusScript('get'), { timeout: 15_000 }).then((o) => o.trim().split(/\r?\n/).at(-1), () => '')
-    const n = /^mode:(\d+)$/.exec(out)?.[1]
-    return Object.keys(ASUS_VALUE).find((k) => String(ASUS_VALUE[k]) === n) ?? ''
-  }
-
-  // The page shows which power mode was chosen last (Windows does not tell us the slider position simply).
-  const readMode = () => {
-    try {
-      const m = readText(files.mode).trim()
-      return Object.hasOwn(MODES, m) ? m : ''
-    } catch {
-      return ''
-    }
-  }
-  async function setMode(mode, asusValue) {
-    winOnly()
-    const m = MODES[mode]
-    try {
-      await run('powercfg.exe', ['/overlaysetactive', m.overlay])
-    } catch {
-      try {
-        await run('powercfg.exe', ['/setactive', m.plan])
-      } catch {
-        // "High performance" is hidden on some PCs; make a copy of it and use that.
-        const copy = mode === 'gaming' ? /([0-9a-f]{8}-[0-9a-f-]{27})/i.exec(await run('powercfg.exe', ['/duplicatescheme', m.plan]).catch(() => ''))?.[1] : null
-        if (!copy) throw new Error('Windows would not change the power mode on this PC.')
-        await run('powercfg.exe', ['/setactive', copy])
-      }
-    }
-    try {
-      writeAtomic(files.mode, mode)
-    } catch {
-      // Only the highlight on the page is lost.
-    }
-    // On an ASUS laptop the firmware mode (Armoury Crate) follows. The Windows mode above is already set, so a failure here is only reported.
-    if (await asusSupported()) {
-      const value = asusValue ?? ASUS_VALUE[mode]
-      const out = await ps(asusScript('set', value), { timeout: 15_000 }).then((o) => o.trim().split(/\r?\n/).at(-1), () => 'fail')
-      const shown = asusValue === undefined ? ASUS_NAME[mode] : ['Performance', 'Turbo', 'Silent'][asusValue]
-      if (out === 'ok') return `${shown} mode.`
-      return `${m.name} power mode is set, but the ASUS ${shown} mode did not switch (${out}).`
-    }
-    return `${m.name} power mode.`
-  }
 
   // Paired Bluetooth devices and active playback devices, looked up from Windows and cached briefly.
   const listLines = (script, max) =>
@@ -690,10 +578,8 @@ export function createActions({
         winOnly()
         const game = await findGame(arg)
         if (!game) throw new Error('That game is not in the list of this PC.')
-        // Owner request: games always start in Performance mode. A failure here never stops the game from starting.
-        const boosted = await setMode('gaming', 0).then((m) => !/did not switch/.test(m), () => false)
         await launch(`steam://rungameid/${game.appid}`)
-        return `Starting ${game.name}${boosted ? ' in Performance mode' : ''}. It can take a minute to reach the menu.`
+        return `Starting ${game.name}. It can take a minute to reach the menu.`
       }
       case 'close_game': {
         const lines = (await ps(CLOSE_GAME, { timeout: 20_000 })).split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
@@ -737,10 +623,6 @@ export function createActions({
         return update()
       case 'restart_remote':
         return restart()
-      case 'mode_saver':
-      case 'mode_balanced':
-      case 'mode_gaming':
-        return setMode(action.slice(5))
       case 'volume_set': {
         // The phone sends the level as text ("55"); anything but 1 to 3 digits from 0 to 100 is refused.
         const text = String(arg ?? '')
@@ -879,8 +761,6 @@ export function createActions({
         gameArt: await artList(),
         buttons: Object.keys(buttons()),
         volume: await readVolume(),
-        asus: await asusSupported(),
-        mode: (await asusCurrent()) || readMode(),
         headphones: (await listBluetooth()).map((d) => d.name),
         btConnected: (await listBluetooth()).filter((d) => d.connected).map((d) => d.name),
         outputs: await listOutputs(),
@@ -917,8 +797,6 @@ export const POWERSHELL_SNIPPETS = {
   battery: BATTERY,
   startNames: START_NAMES,
   startApp: startAppScript("Some 'App'", false),
-  asusProbe: asusScript('probe'),
-  asusSet: asusScript('set', 1),
   volumeGet: volumeScript('get'),
   volumeSet: volumeScript('set', 40),
   btList: BT_LIST,

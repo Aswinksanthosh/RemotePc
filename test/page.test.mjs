@@ -60,7 +60,7 @@ test('the page has three looks', () => {
 test('the Settings page only changes what the server allows, and every control saves through the checked route', () => {
   const settings = read('settings.js')
   assert.ok(settings.includes("'/api/settings/save'") && settings.includes("'/api/settings/pin'") && settings.includes("'/api/settings/task'"))
-  for (const k of ['steamAtStart', 'steamDelay', 'startMode', 'theme', 'pinHours', 'name', 'lan']) assert.ok(settings.includes(k), k)
+  for (const k of ['steamAtStart', 'steamDelay', 'theme', 'pinHours', 'name', 'lan']) assert.ok(settings.includes(k), k)
   assert.ok(!/localStorage\.setItem\('rsp_k'/.test(settings), 'the key is handled in common.js only')
 })
 

@@ -78,13 +78,6 @@ test('Steam and games: only games from the PC list can be started', async (t) =>
   assert.equal(launched.length, 4)
 })
 
-test('starting a game switches the PC to Performance mode first, and a failure never stops the game', async (t) => {
-  const { actions, calls, launched } = lab(t)
-  assert.match(await actions.run('steam_game', 'Hades'), /Starting Hades in Performance mode/)
-  assert.ok(calls.some((c) => c[0] === 'powercfg.exe' && c[1] === '/overlaysetactive' && c[2] === 'OVERLAY_SCHEME_MAX'), 'performance mode was set')
-  assert.deepEqual(launched, ['steam://rungameid/1145360'])
-})
-
 test('games.json adds games Steam does not list', async (t) => {
   const { actions, launched, files } = lab(t)
   writeFileSync(files.games, JSON.stringify({ 'My Emulator': 999 }))
@@ -279,67 +272,10 @@ test('restart remote asks the program to restart itself', async (t) => {
   assert.equal(restarted, 1)
 })
 
-test('power modes: the right Windows command, remembered for the page, with fallbacks', async (t) => {
-  const { actions, calls, home } = lab(t)
-  const modeFile = join(home, 'mode.txt')
-  const a = createActions({ files: { buttons: join(home, 'b.json'), apps: join(home, 'a.json'), games: join(home, 'g.json'), switchLog: join(home, 's.log'), mode: modeFile }, run: async (f, args) => (calls.push([f, ...args]), ''), platform: 'win32', readdir: readdirSync, sleep: async () => {}, hostname: () => 'PC' })
-  assert.equal(await a.run('mode_saver'), 'Efficiency power mode.')
-  assert.deepEqual(calls.filter((c) => c[0] === 'powercfg.exe').at(-1), ['powercfg.exe', '/overlaysetactive', 'OVERLAY_SCHEME_MIN'])
-  assert.equal(readFileSync(modeFile, 'utf8'), 'saver')
-  assert.equal((await a.info()).mode, 'saver')
-  await a.run('mode_gaming')
-  assert.deepEqual(calls.filter((c) => c[0] === 'powercfg.exe').at(-1), ['powercfg.exe', '/overlaysetactive', 'OVERLAY_SCHEME_MAX'])
-  const b = createActions({ files: { buttons: join(home, 'b.json'), apps: join(home, 'a.json'), games: join(home, 'g.json'), switchLog: join(home, 's.log'), mode: modeFile }, run: async (f, args) => { if (args[0] === '/overlaysetactive') throw new Error('no overlay'); calls.push([f, ...args]); return '' }, platform: 'win32', readdir: readdirSync, sleep: async () => {}, hostname: () => 'PC' })
-  await b.run('mode_balanced')
-  assert.deepEqual(calls.filter((c) => c[0] === 'powercfg.exe').at(-1), ['powercfg.exe', '/setactive', '381b4222-f694-41f0-9685-ff5bb260df2e'])
-  assert.ok(actions)
-})
-
 test('info tells the page whether an update is waiting', async (t) => {
   const a = lab(t, { extra: { updateInfo: () => ({ available: true, boot: 'abc' }) } })
   assert.deepEqual((await a.actions.info()).update, { available: true, boot: 'abc' })
   assert.deepEqual((await lab(t).actions.info()).update, { available: false, boot: '' })
-})
-
-test('ASUS laptops: the Armoury Crate mode follows the button, and a PC without the ASUS device keeps only the Windows modes', async (t) => {
-  let asusMode = 0
-  const asus = lab(t, {
-    ps: {
-      RspAsus: (script) => {
-        if (script.includes("$op = 'probe'")) return 'yes\n'
-        if (script.includes("$op = 'get'")) return `mode:${asusMode}\n`
-        asusMode = Number(/\$val = (\d+)/.exec(script)[1])
-        return 'ok\n'
-      },
-    },
-  })
-  assert.equal((await asus.actions.info()).asus, true)
-  assert.equal(await asus.actions.run('mode_gaming'), 'Turbo mode.')
-  assert.equal(asusMode, 1)
-  assert.equal((await asus.actions.info()).mode, 'gaming', 'the page shows what the laptop really says')
-  assert.equal(await asus.actions.run('mode_saver'), 'Silent mode.')
-  assert.equal(asusMode, 2)
-  assert.equal(await asus.actions.run('mode_balanced'), 'Performance mode.')
-  assert.equal(asusMode, 0)
-  // Starting a game: Windows best performance + ASUS Performance (not Turbo).
-  await asus.actions.run('steam_game', 'Hades')
-  assert.equal(asusMode, 0)
-  // A refusal is reported, the Windows mode stays set.
-  const refuse = lab(t, { ps: { RspAsus: (script) => (script.includes("$op = 'probe'") ? 'yes\n' : script.includes("$op = 'get'") ? 'mode:0\n' : 'fail:0\n') } })
-  assert.match(await refuse.actions.run('mode_gaming'), /did not switch/)
-  // Mode 3 (full speed / manual): the ASUS buttons are still offered, so the laptop can be switched out of it.
-  const three = lab(t, { ps: { RspAsus: (script) => (script.includes("$op = 'probe'") ? 'yes\n' : script.includes("$op = 'get'") ? 'mode:3\n' : 'ok\n') } })
-  assert.equal((await three.actions.info()).asus, true)
-  assert.equal((await three.actions.info()).mode, '', 'no button is highlighted for a mode that has none')
-  // An unknown number: plain Windows buttons, the ASUS write is never tried.
-  const weird = lab(t, { ps: { RspAsus: (script) => (script.includes("$op = 'probe'") ? 'yes\n' : script.includes("$op = 'get'") ? 'mode:9\n' : 'ok\n') } })
-  assert.equal((await weird.actions.info()).asus, false)
-  assert.match(await weird.actions.run('mode_gaming'), /^Performance power mode\.$/)
-  assert.ok(!weird.calls.some((c) => c[0] === 'powershell.exe' && decode(c).includes("$op = 'set'")))
-  // No ASUS device: plain Windows behaviour.
-  const plain = lab(t, { ps: { RspAsus: 'no\n' } })
-  assert.equal((await plain.actions.info()).asus, false)
-  assert.match(await plain.actions.run('mode_gaming'), /power mode/)
 })
 
 test('volume: a real level 0 to 100, read for the slider and set from it, plus mute', async (t) => {

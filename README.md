@@ -4,7 +4,7 @@
 
 <p>
 <img src="docs/img/phone-home.png" alt="The phone page: power menu, Lock, Screen off, Steam with game picker" width="260">
-<img src="docs/img/phone-more.png" alt="The phone page: Bluetooth devices and Apps drop-downs, media keys, power mode" width="260">
+<img src="docs/img/phone-more.png" alt="The phone page: Bluetooth devices and Apps drop-downs, media and volume" width="260">
 <img src="docs/img/phone-settings.png" alt="The Settings page: startup, apps, PIN" width="260">
 </p>
 

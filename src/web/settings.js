@@ -326,7 +326,6 @@ function render() {
     )
     startup.push(row('Open Steam Big Picture at startup', 'Once per boot, as soon as the remote starts. Works in Xbox full screen mode too.', sw(v.values.steamAtStart, (on) => save({ steamAtStart: on }))))
     startup.push(row('Wait before opening it', 'seconds (0 is at once)', number(v.values.steamDelay, 0, 300, (n) => save({ steamDelay: n }))))
-    startup.push(row('Power mode at startup', 'Set once per boot. Efficiency is good while downloading.', select([['', 'Leave as it is'], ['saver', 'Efficiency'], ['balanced', 'Balanced'], ['gaming', 'Performance']], v.values.startMode, (m) => save({ startMode: m }))))
   } else startup.push(el('div', 'empty', 'Startup options are for Windows PCs.'))
   p.append(card('power', 'Startup', ...startup))
 

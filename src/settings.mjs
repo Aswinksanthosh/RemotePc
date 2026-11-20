@@ -72,9 +72,9 @@ export function createSettings({ file, appsFile = '', config, pin, run, platform
     apps,
     startApps,
     async get() {
-      const { name, theme, order, pinHours, steamAtStart, steamDelay, startMode, accent, allow } = config
+      const { name, theme, order, pinHours, steamAtStart, steamDelay, accent, allow } = config
       return {
-        values: { name, theme, order, pinHours, steamAtStart, steamDelay, startMode, accent, lan: allow.includes('lan') },
+        values: { name, theme, order, pinHours, steamAtStart, steamDelay, accent, lan: allow.includes('lan') },
         startupTask: await taskState(),
         host: hostname(),
         hasPin: pin.isSet(),

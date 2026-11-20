@@ -1,6 +1,5 @@
 /**
  * What the program does by itself when the PC starts (set on the Settings page):
- *   - set a Windows power mode (config.startMode)
  *   - open Steam Big Picture (config.steamAtStart, after config.steamDelay seconds)
  * Each is done ONCE PER BOOT: restarting only the remote (the Restart button, an update) does not repeat them.
  * The boot is recognised by the minute the PC started, kept in startup.json.
@@ -38,16 +37,6 @@ export async function runStartup({
     }
   }
 
-  if (config.startMode && !done.has('mode')) {
-    mark('mode')
-    try {
-      log(`[remote] startup: ${await actions.run(`mode_${config.startMode}`)}`)
-      result.mode = 'set'
-    } catch (err) {
-      log(`[remote] startup: could not set the power mode: ${err.message}`)
-      result.mode = 'failed'
-    }
-  }
   if (config.steamAtStart && !done.has('steam')) {
     mark('steam')
     await sleep(config.steamDelay * 1000)
