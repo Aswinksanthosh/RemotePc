@@ -163,11 +163,14 @@ if ($g.Count) {
 // Bluetooth headphones. Paired devices are listed from Windows; connecting or disconnecting asks Windows to
 // switch the audio services (music, calls) of ONE device, found by its exact name. Nothing else is touched.
 // One line per paired device: its name, a tab, and whether Windows says it is connected right now (any of its entries counts).
-export const BT_LIST = String.raw`Get-PnpDevice -Class Bluetooth -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -match '^BTHENUM\\DEV_' -and $_.FriendlyName } | ForEach-Object { $c = (Get-PnpDeviceProperty -InstanceId $_.InstanceId -KeyName '{83DA6326-97A6-4088-9453-A1923F573B29} 15' -ErrorAction SilentlyContinue).Data; $_.FriendlyName + [char]9 + [string]([bool]$c) } | Sort-Object -Unique`
+export const BT_LIST = String.raw`Get-PnpDevice -Class Bluetooth -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -match '^(BTHENUM|BTHLE)\\DEV_' -and $_.FriendlyName } | ForEach-Object { $c = (Get-PnpDeviceProperty -InstanceId $_.InstanceId -KeyName '{83DA6326-97A6-4088-9453-A1923F573B29} 15' -ErrorAction SilentlyContinue).Data; $_.FriendlyName + [char]9 + [string]([bool]$c) } | Sort-Object -Unique`
+
+// The simple older check (names only, no connection state): used when the first one finds nothing, so the list is never empty by accident.
+export const BT_NAMES = String.raw`Get-PnpDevice -Class Bluetooth -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -match '^(BTHENUM|BTHLE)\\DEV_' -and $_.FriendlyName } | ForEach-Object { $_.FriendlyName } | Sort-Object -Unique`
 
 const btScript = (name, connect) => String.raw`$name = ${psQuote(name)}
 $connect = ${connect ? '$true' : '$false'}
-$dev = Get-PnpDevice -Class Bluetooth -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -match '^BTHENUM\\DEV_' -and $_.FriendlyName -eq $name } | Select-Object -First 1
+$dev = Get-PnpDevice -Class Bluetooth -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -match '^(BTHENUM|BTHLE)\\DEV_' -and $_.FriendlyName -eq $name } | Select-Object -First 1
 if (-not $dev) { 'notfound'; exit }
 $hex = [regex]::Match($dev.InstanceId, 'DEV_([0-9A-Fa-f]{12})').Groups[1].Value
 Add-Type -TypeDefinition @'
@@ -577,7 +580,8 @@ export function createActions({
   async function listBluetooth(fresh = false) {
     if (platform !== 'win32') return []
     if (!fresh && now() - btCache.at < 5_000) return btCache.value
-    const lines = await listLines(BT_LIST, 60)
+    let lines = await listLines(BT_LIST, 60)
+    if (!lines.length) lines = (await listLines(BT_NAMES, 60)).map((n) => `${n}\tFalse`)
     const byName = new Map()
     for (const l of lines) {
       const [rawName, state] = l.split('\t')
@@ -847,6 +851,7 @@ export const POWERSHELL_SNIPPETS = {
   volumeGet: volumeScript('get'),
   volumeSet: volumeScript('set', 40),
   btList: BT_LIST,
+  btNames: BT_NAMES,
   btConnect: btScript('Some Buds', true),
   audioList: AUDIO_LIST,
   audioSet: audioScript('Some Speakers'),

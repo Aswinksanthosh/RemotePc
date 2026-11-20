@@ -331,3 +331,10 @@ test('power modes: the right Windows command, remembered for the page, with fall
   await a.run('steam_game', 'Hades').catch(() => {})
   assert.ok(!calls.some((c) => c[0] === 'powercfg.exe' && c[1] === '/overlaysetactive' && calls.indexOf(c) > calls.length))
 })
+
+test('bluetooth list: falls back to the simple check when the detailed one finds nothing', async (t) => {
+  const { actions } = lab(t, { ps: { 'Get-PnpDeviceProperty': '', 'ForEach-Object { $_.FriendlyName }': 'realme Buds Air 3S\nSRS-XB100\n' } })
+  const info = await actions.info()
+  assert.deepEqual(info.headphones, ['realme Buds Air 3S', 'SRS-XB100'])
+  assert.deepEqual(info.btConnected, [])
+})
