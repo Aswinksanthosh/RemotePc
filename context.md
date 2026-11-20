@@ -189,3 +189,5 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 
 ## Buy me a coffee button (owner, 2026-11-20, copied from the French notes)
 - Same yellow button as French-Notes (index.html .coffee-btn) in the footer of the phone page and the Settings page, and a Support line in the README. The link lives in package.json "funding.url" (a public Stripe payment link, already public in the French repo); app.mjs passes it as coffeeUrl; server.mjs safeCoffeeUrl only lets https://buy.stripe.com | ko-fi.com | www.buymeacoffee.com through; the page gets it as `coffee` in /api/state and /api/settings. To change it: edit funding.url.
+
+- Diagnostics/Fix-It now has a "Bluetooth devices" line (count, connected count, seconds the check took, names) because the TUF page showed "No paired Bluetooth devices found" and an empty list can mean none paired OR the 15 s PowerShell check failed/timed out. Pending: owner to send that line from the TUF.

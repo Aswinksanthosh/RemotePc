@@ -12,7 +12,8 @@ import { createPin } from './pin.mjs'
 import { scanGames } from './steam.mjs'
 import { regValue } from './steam.mjs'
 import { FIREWALL_RULE, TASK_NAME } from './paths.mjs'
-import { findTailscale, tailscaleStatus } from './windows.mjs'
+import { BT_LIST } from './actions.mjs'
+import { findTailscale, psArgs, tailscaleStatus } from './windows.mjs'
 
 export async function runDoctor({
   paths,
@@ -84,6 +85,20 @@ export async function runDoctor({
       add('Steam', steam ? 'ok' : 'warn', steam ? `${games.length} installed game${games.length === 1 ? '' : 's'} found` : 'Steam not found (the Steam buttons stay empty)')
     } catch {
       add('Steam', 'warn', 'Steam not found (the Steam buttons stay empty)')
+    }
+  }
+
+  if (windows) {
+    // Bluetooth: how many paired devices does Windows list, and how long did the question take? (An empty list on the page is either "none" or a failed check.)
+    const t0 = Date.now()
+    try {
+      const out = await run('powershell.exe', psArgs(BT_LIST), { timeout: 40_000 })
+      const names = [...new Set(out.split(/\r?\n/).map((l) => l.split('\t')[0].trim()).filter(Boolean))]
+      const secs = ((Date.now() - t0) / 1000).toFixed(1)
+      const on = out.split(/\r?\n/).filter((l) => /\tTrue$/i.test(l.trim())).length
+      add('Bluetooth devices', names.length ? 'ok' : 'warn', names.length ? `${names.length} paired (${on} connected), took ${secs} s: ${names.slice(0, 8).join(', ')}` : `none listed (took ${secs} s)`, names.length ? '' : 'Pair your earbuds with this PC in Windows (Settings, Bluetooth) first. If they are paired, send this line.')
+    } catch (err) {
+      add('Bluetooth devices', 'warn', `the check failed after ${((Date.now() - t0) / 1000).toFixed(1)} s: ${String(err.message).slice(0, 120)}`, 'Send this line to the developer.')
     }
   }
 

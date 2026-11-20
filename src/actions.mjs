@@ -163,7 +163,7 @@ if ($g.Count) {
 // Bluetooth headphones. Paired devices are listed from Windows; connecting or disconnecting asks Windows to
 // switch the audio services (music, calls) of ONE device, found by its exact name. Nothing else is touched.
 // One line per paired device: its name, a tab, and whether Windows says it is connected right now (any of its entries counts).
-const BT_LIST = String.raw`Get-PnpDevice -Class Bluetooth -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -match '^BTHENUM\\DEV_' -and $_.FriendlyName } | ForEach-Object { $c = (Get-PnpDeviceProperty -InstanceId $_.InstanceId -KeyName '{83DA6326-97A6-4088-9453-A1923F573B29} 15' -ErrorAction SilentlyContinue).Data; $_.FriendlyName + [char]9 + [string]([bool]$c) } | Sort-Object -Unique`
+export const BT_LIST = String.raw`Get-PnpDevice -Class Bluetooth -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -match '^BTHENUM\\DEV_' -and $_.FriendlyName } | ForEach-Object { $c = (Get-PnpDeviceProperty -InstanceId $_.InstanceId -KeyName '{83DA6326-97A6-4088-9453-A1923F573B29} 15' -ErrorAction SilentlyContinue).Data; $_.FriendlyName + [char]9 + [string]([bool]$c) } | Sort-Object -Unique`
 
 const btScript = (name, connect) => String.raw`$name = ${psQuote(name)}
 $connect = ${connect ? '$true' : '$false'}
