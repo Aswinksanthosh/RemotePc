@@ -500,7 +500,15 @@ export function createActions({
   // ASUS laptops: the Armoury Crate modes. Only offered when the ASUS device opens; everything else keeps the Windows power modes.
   const ASUS_VALUE = { saver: 2, balanced: 0, gaming: 1 }
   const ASUS_NAME = { saver: 'Silent', balanced: 'Performance', gaming: 'Turbo' }
-  const asusSupported = memo(10 * 60_000, () => (platform === 'win32' ? ps(asusScript('probe'), { timeout: 15_000 }).then((o) => o.trim().split(/\r?\n/).at(-1) === 'yes', () => false) : false), now)
+  // Offered only when the ASUS device opens AND the laptop answers with a mode number this program knows (0, 1 or 2). A laptop that
+  // answers something else (the ROG Ally said 3) keeps the plain Windows buttons, so a button never pretends to work.
+  const asusSupported = memo(10 * 60_000, async () => {
+    if (platform !== 'win32') return false
+    const last = (o) => o.trim().split(/\r?\n/).at(-1)
+    if ((await ps(asusScript('probe'), { timeout: 15_000 }).then(last, () => '')) !== 'yes') return false
+    const n = /^mode:(\d+)$/.exec(await ps(asusScript('get'), { timeout: 15_000 }).then(last, () => ''))?.[1]
+    return n === '0' || n === '1' || n === '2'
+  }, now)
   async function asusCurrent() {
     if (!(await asusSupported())) return ''
     const out = await ps(asusScript('get'), { timeout: 15_000 }).then((o) => o.trim().split(/\r?\n/).at(-1), () => '')

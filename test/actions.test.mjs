@@ -325,8 +325,13 @@ test('ASUS laptops: the Armoury Crate mode follows the button, and a PC without 
   await asus.actions.run('steam_game', 'Hades')
   assert.equal(asusMode, 0)
   // A refusal is reported, the Windows mode stays set.
-  const refuse = lab(t, { ps: { RspAsus: (script) => (script.includes("$op = 'probe'") ? 'yes\n' : 'fail:0\n') } })
+  const refuse = lab(t, { ps: { RspAsus: (script) => (script.includes("$op = 'probe'") ? 'yes\n' : script.includes("$op = 'get'") ? 'mode:0\n' : 'fail:0\n') } })
   assert.match(await refuse.actions.run('mode_gaming'), /did not switch/)
+  // An unknown number (the ROG Ally answered 3): plain Windows buttons, the ASUS write is never tried.
+  const weird = lab(t, { ps: { RspAsus: (script) => (script.includes("$op = 'probe'") ? 'yes\n' : script.includes("$op = 'get'") ? 'mode:3\n' : 'ok\n') } })
+  assert.equal((await weird.actions.info()).asus, false)
+  assert.match(await weird.actions.run('mode_gaming'), /^Performance power mode\.$/)
+  assert.ok(!weird.calls.some((c) => c[0] === 'powershell.exe' && decode(c).includes("$op = 'set'")))
   // No ASUS device: plain Windows behaviour.
   const plain = lab(t, { ps: { RspAsus: 'no\n' } })
   assert.equal((await plain.actions.info()).asus, false)

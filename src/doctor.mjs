@@ -101,7 +101,7 @@ export async function runDoctor({
           const mode = await last('get')
           const n = /^mode:(\d+)$/.exec(mode)?.[1]
           const name = { 0: 'Performance', 1: 'Turbo', 2: 'Silent' }[n]
-          add('ASUS performance mode', name ? 'ok' : 'warn', name ? `reachable, the laptop is in ${name} mode (value ${n})` : n ? `device opens, but the laptop says mode value ${n}, which this program does not know` : `device opens but the mode could not be read (${mode})`, name ? '' : 'Switch Armoury Crate to Silent, then Performance, then Turbo, run Diagnostics after each and send the three lines.')
+          add('ASUS performance mode', name ? 'ok' : 'warn', name ? `reachable, the laptop is in ${name} mode (value ${n})` : n ? `device opens, but the laptop says mode value ${n}, which this program does not know` : `device opens but the mode could not be read (${mode})`, name ? '' : 'The page keeps the Windows power mode buttons on this laptop (its ASUS modes use other numbers).')
         }
       }
     } catch {

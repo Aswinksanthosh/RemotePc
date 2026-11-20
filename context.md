@@ -172,3 +172,5 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 - FIRST REAL REPORT (Ally, 2026-11-19): ATKACPI opens fine from the normal remote (no admin needed), but reading 0x00120075 returned 3 while Armoury Crate was on Performance (owner had switched Turbo -> Performance). G-Helper constants: FullSpeed=3, Manual=4, so the Ally likely uses another numbering/another device id. Need: run Diagnostics with Armoury Crate in Silent / Performance / Turbo and compare the value. The set (0/1/2) did nothing visible on the Ally. Fix-It now prints the raw value.
 
 - Copy report button: navigator.clipboard is blocked on plain http (Tailscale 100.x), so common.js copyText() falls back to a hidden textarea + document.execCommand("copy").
+
+- DECISION after 3 identical reports (Ally always answered mode value 3): the ASUS buttons are offered ONLY when probe=yes AND get returns 0, 1 or 2; otherwise (e.g. the Ally) the page keeps the Windows modes (Efficiency/Balanced/Performance) and never writes to ATKACPI. Ally support would need its own numbers/device ids (G-Helper Ally code), not researched yet. ROG/TUF untested.
