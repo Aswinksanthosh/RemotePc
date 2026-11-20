@@ -12,7 +12,7 @@ const outDir = process.argv[2] || '.'
 mkdirSync(outDir, { recursive: true })
 
 const base = {
-  version: '0.1.0', control: true, asus: true, mode: 'balanced', gameArt: [], buttons: ['my tests', 'open code'],
+  version: '0.1.0', control: true, asus: true, volume: { level: 62, muted: false }, mode: 'balanced', gameArt: [], buttons: ['my tests', 'open code'],
   headphones: ['OnePlus Buds Pro', 'AirPods Pro'], btConnected: ['OnePlus Buds Pro'], outputs: ['Speakers (Realtek Audio)', 'OnePlus Buds Pro Stereo', 'Monitor (HDMI)'],
   apps: ['Spotify'],
 }

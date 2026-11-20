@@ -227,3 +227,12 @@ select.field{max-width:190px}
 .b.busy svg{opacity:.25}
 .b.busy::after{content:"";position:absolute;top:50%;left:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border:3px solid var(--line);border-top-color:var(--a);border-radius:50%;animation:rspspin .8s linear infinite}
 @keyframes rspspin{to{transform:rotate(360deg)}}
+.volrow{display:flex;align-items:center;gap:12px;margin-top:12px}
+.volrow .b.pwr{flex:0 0 52px;width:52px;height:52px}
+.volrow .vollabel{flex:0 0 3.6em;text-align:right;font-weight:700;color:var(--a);font-variant-numeric:tabular-nums}
+.slider{-webkit-appearance:none;appearance:none;flex:1;min-width:0;height:34px;background:transparent;touch-action:pan-y;cursor:pointer}
+.slider::-webkit-slider-runnable-track{height:10px;border-radius:999px;background:linear-gradient(90deg,var(--a) var(--fill,0%),rgba(255,255,255,.14) var(--fill,0%))}
+.slider::-moz-range-track{height:10px;border-radius:999px;background:rgba(255,255,255,.14)}
+.slider::-moz-range-progress{height:10px;border-radius:999px;background:var(--a)}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:28px;height:28px;margin-top:-9px;border-radius:50%;background:#fff;border:3px solid var(--a);box-shadow:0 2px 8px rgba(0,0,0,.5)}
+.slider::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#fff;border:3px solid var(--a)}

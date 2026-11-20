@@ -341,3 +341,32 @@ test('ASUS laptops: the Armoury Crate mode follows the button, and a PC without 
   assert.equal((await plain.actions.info()).asus, false)
   assert.match(await plain.actions.run('mode_gaming'), /power mode/)
 })
+
+test('volume: a real level 0 to 100, read for the slider and set from it, plus mute', async (t) => {
+  let level = 35
+  let muted = false
+  const { actions, calls } = lab(t, {
+    ps: {
+      RspVol: (script) => {
+        const op = /\$op = '(\w+)'/.exec(script)[1]
+        if (op === 'set') {
+          level = Number(/\$level = (\d+)/.exec(script)[1])
+          if (level > 0) muted = false
+        }
+        if (op === 'mute') muted = true
+        if (op === 'unmute') muted = false
+        return `vol:${level} mute:${muted ? 1 : 0}\n`
+      },
+    },
+  })
+  assert.deepEqual((await actions.info()).volume, { level: 35, muted: false })
+  assert.equal(await actions.run('volume_set', 80), 'Volume 80%.')
+  assert.equal(await actions.run('mute_set', 'on'), 'Muted.')
+  assert.equal(await actions.run('mute_set', 'off'), 'Sound on, volume 80%.')
+  for (const bad of [-1, 101, 5.5, 'loud', undefined, '5; calc']) await assert.rejects(actions.run('volume_set', bad), /whole number/, String(bad))
+  await assert.rejects(actions.run('mute_set', 'maybe'), /on or off/)
+  assert.ok(calls.some((c) => c[0] === 'powershell.exe' && decode(c).includes('$level = 80')))
+  // A PC that cannot report a level: no slider data (the page keeps the three keys).
+  const plain = lab(t, { ps: { RspVol: 'nonsense\n' } })
+  assert.equal((await plain.actions.info()).volume, null)
+})

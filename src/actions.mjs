@@ -67,6 +67,8 @@ export const ACTIONS = [
   'mode_saver',
   'mode_balanced',
   'mode_gaming',
+  'volume_set',
+  'mute_set',
   'bt_connect',
   'bt_disconnect',
   'audio_set',
@@ -234,6 +236,60 @@ public static class RspAsus {
 }
 '@
 [RspAsus]::Run($op, $val)`
+
+// Master volume of the default speaker: read and set as a real level (0 to 100), plus mute. Windows Core Audio, no key presses.
+const volumeScript = (op, level = 0) => String.raw`$op = ${psQuote(op)}
+$level = ${Math.max(0, Math.min(100, Number(level) | 0))}
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+[Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IRspEndpointVolume {
+  [PreserveSig] int RegisterControlChangeNotify(IntPtr n);
+  [PreserveSig] int UnregisterControlChangeNotify(IntPtr n);
+  [PreserveSig] int GetChannelCount(out uint c);
+  [PreserveSig] int SetMasterVolumeLevel(float l, ref Guid ctx);
+  [PreserveSig] int SetMasterVolumeLevelScalar(float l, ref Guid ctx);
+  [PreserveSig] int GetMasterVolumeLevel(out float l);
+  [PreserveSig] int GetMasterVolumeLevelScalar(out float l);
+  [PreserveSig] int SetChannelVolumeLevel(uint c, float l, ref Guid ctx);
+  [PreserveSig] int SetChannelVolumeLevelScalar(uint c, float l, ref Guid ctx);
+  [PreserveSig] int GetChannelVolumeLevel(uint c, out float l);
+  [PreserveSig] int GetChannelVolumeLevelScalar(uint c, out float l);
+  [PreserveSig] int SetMute([MarshalAs(UnmanagedType.Bool)] bool m, ref Guid ctx);
+  [PreserveSig] int GetMute([MarshalAs(UnmanagedType.Bool)] out bool m);
+}
+[Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IRspVolDevice {
+  [PreserveSig] int Activate(ref Guid iid, int ctx, IntPtr p, [MarshalAs(UnmanagedType.IUnknown)] out object o);
+}
+[Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IRspVolEnumerator {
+  [PreserveSig] int EnumAudioEndpoints(int flow, int mask, out IntPtr c);
+  [PreserveSig] int GetDefaultAudioEndpoint(int flow, int role, out IRspVolDevice d);
+}
+[ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")] class RspVolEnumeratorClient { }
+public static class RspVol {
+  public static string Run(string op, int level) {
+    IRspVolEnumerator e = (IRspVolEnumerator)new RspVolEnumeratorClient();
+    IRspVolDevice d;
+    if (e.GetDefaultAudioEndpoint(0, 1, out d) != 0) return "fail:device";
+    Guid iid = new Guid("5CDF2C82-841E-4546-9722-0CF74078229A");
+    object o;
+    if (d.Activate(ref iid, 23, IntPtr.Zero, out o) != 0) return "fail:activate";
+    IRspEndpointVolume v = (IRspEndpointVolume)o;
+    Guid ctx = Guid.Empty;
+    if (op == "set") { v.SetMasterVolumeLevelScalar(level / 100f, ref ctx); if (level > 0) v.SetMute(false, ref ctx); }
+    if (op == "mute") v.SetMute(true, ref ctx);
+    if (op == "unmute") v.SetMute(false, ref ctx);
+    float s; bool m;
+    v.GetMasterVolumeLevelScalar(out s);
+    v.GetMute(out m);
+    return "vol:" + Math.Round(s * 100) + " mute:" + (m ? "1" : "0");
+  }
+}
+'@
+[RspVol]::Run($op, $level)`
 
 // Audio output (the "default speaker"). Active playback devices are listed from Windows; switching sets the default
 // for ONE device found by its exact name, for apps, media and calls.
@@ -565,6 +621,27 @@ export function createActions({
       (o) => o.split(/\r?\n/).map((l) => l.trim()).filter((l) => l && l.length <= max && !/[\u0000-\u0008\u000a-\u001f]/.test(l)).slice(0, 20),
       () => [],
     )
+  // The sound level of the default speaker, read for the page's slider (cached a few seconds) and set from it.
+  const volCache = { at: -Infinity, value: null }
+  const parseVol = (out) => {
+    const m = /vol:(\d+) mute:([01])/.exec(out)
+    return m ? { level: Math.min(100, Number(m[1])), muted: m[2] === '1' } : null
+  }
+  async function readVolume(fresh = false) {
+    if (platform !== 'win32') return null
+    if (!fresh && now() - volCache.at < 3_000) return volCache.value
+    volCache.value = await ps(volumeScript('get'), { timeout: 10_000 }).then(parseVol, () => null)
+    volCache.at = now()
+    return volCache.value
+  }
+  async function changeVolume(op, level) {
+    const v = await ps(volumeScript(op, level), { timeout: 10_000 }).then(parseVol, () => null)
+    if (!v) throw new Error('Windows would not change the volume.')
+    volCache.value = v
+    volCache.at = now()
+    return v
+  }
+
   // Paired devices with their connection state. Cached for a few seconds only: a connection changes quickly and the page shows it.
   const btCache = { at: -Infinity, value: [] }
   async function listBluetooth(fresh = false) {
@@ -664,6 +741,17 @@ export function createActions({
       case 'mode_balanced':
       case 'mode_gaming':
         return setMode(action.slice(5))
+      case 'volume_set': {
+        const n = Number(arg)
+        if (!Number.isInteger(n) || n < 0 || n > 100) throw new Error('The volume is a whole number from 0 to 100.')
+        const v = await changeVolume('set', n)
+        return `Volume ${v.level}%.`
+      }
+      case 'mute_set': {
+        if (arg !== 'on' && arg !== 'off') throw new Error('Mute is on or off.')
+        const v = await changeVolume(arg === 'on' ? 'mute' : 'unmute', 0)
+        return v.muted ? 'Muted.' : `Sound on, volume ${v.level}%.`
+      }
       case 'bt_connect':
       case 'bt_disconnect': {
         const connect = action === 'bt_connect'
@@ -788,6 +876,7 @@ export function createActions({
         games: games.map((g) => g.name),
         gameArt: await artList(),
         buttons: Object.keys(buttons()),
+        volume: await readVolume(),
         asus: await asusSupported(),
         mode: (await asusCurrent()) || readMode(),
         headphones: (await listBluetooth()).map((d) => d.name),
@@ -828,6 +917,8 @@ export const POWERSHELL_SNIPPETS = {
   startApp: startAppScript("Some 'App'", false),
   asusProbe: asusScript('probe'),
   asusSet: asusScript('set', 1),
+  volumeGet: volumeScript('get'),
+  volumeSet: volumeScript('set', 40),
   btList: BT_LIST,
   btConnect: btScript('Some Buds', true),
   audioList: AUDIO_LIST,

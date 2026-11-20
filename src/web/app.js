@@ -637,9 +637,56 @@ function render() {
     }
     tr.append(mk('prev', 'media_prev', '', 'Previous'), mk('play', 'media_playpause', 'go main', 'Play or pause'), mk('next', 'media_next', '', 'Next'))
     media.append(tr)
-    const vol = el('div', 'vol')
-    vol.append(tile('voldown', 'Vol -', run('volume_down'), { cls: 'small' }), tile('mute', 'Mute', run('mute'), { cls: 'small' }), tile('volup', 'Vol +', run('volume_up'), { cls: 'small' }))
-    media.append(vol)
+    // A real volume slider (0 to 100) with the level shown, and a mute switch. Older PCs that cannot report a level keep the three keys.
+    if (pc.volume) {
+      const row = el('div', 'volrow')
+      const mute = el('button', 'b pwr' + (pc.volume.muted ? ' on' : ''))
+      mute.type = 'button'
+      mute.title = pc.volume.muted ? 'Sound is muted: tap to turn it on' : 'Mute'
+      mute.setAttribute('aria-label', mute.title)
+      mute.append(icon(pc.volume.muted ? 'mute' : 'volup'))
+      mute.addEventListener('click', () => act('mute_set', pc.volume.muted ? 'off' : 'on'))
+      const slider = el('input', 'slider')
+      slider.type = 'range'
+      slider.min = '0'
+      slider.max = '100'
+      slider.step = '1'
+      slider.value = String(pc.volume.level)
+      slider.setAttribute('aria-label', 'Volume')
+      const label = el('div', 'vollabel', pc.volume.muted ? 'Muted' : pc.volume.level + '%')
+      const fill = () => slider.style.setProperty('--fill', slider.value + '%')
+      fill()
+      slider.addEventListener('pointerdown', () => {
+        document.body.dataset.gesture = 'volume'
+      })
+      const stop = () => {
+        if (document.body.dataset.gesture === 'volume') delete document.body.dataset.gesture
+      }
+      slider.addEventListener('pointerup', stop)
+      slider.addEventListener('pointercancel', stop)
+      slider.addEventListener('input', () => {
+        label.textContent = slider.value + '%'
+        fill()
+      })
+      // Sent when the finger lifts (and while dragging, at most every 200 ms), so the PC is not flooded.
+      let last = 0
+      slider.addEventListener('input', () => {
+        const now = Date.now()
+        if (now - last < 200) return
+        last = now
+        call('/api/do', { action: 'volume_set', arg: Number(slider.value) }).catch(() => {})
+      })
+      slider.addEventListener('change', () => {
+        act('volume_set', Number(slider.value))
+        stop()
+      })
+      row.append(mute, slider, label)
+      media.append(row)
+    } else {
+      const vol = el('div', 'vol')
+      vol.append(tile('voldown', 'Vol -', run('volume_down'), { cls: 'small' }), tile('mute', 'Mute', run('mute'), { cls: 'small' }), tile('volup', 'Vol +', run('volume_up'), { cls: 'small' }))
+      media.append(vol)
+    }
     mediaCard = media
 
     // -- bluetooth devices -----------------------------------------------------------------
