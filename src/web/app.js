@@ -485,10 +485,11 @@ function rowOf(...kids) {
 }
 
 let askedUpdate = false
+let fromCache = false // true while the page shows the state saved from the last visit (the laptop has not answered yet)
 // After each restart of the PC the program checks for a newer version; the first page load of that run asks once.
 function offerUpdate(pc) {
   const u = pc && pc.update
-  if (askedUpdate || !u || !u.available) return
+  if (fromCache || askedUpdate || !u || !u.available) return
   let seen = ''
   try {
     seen = sessionStorage.getItem('updateAsked') || ''
@@ -507,7 +508,6 @@ function offerUpdate(pc) {
 
 function render() {
   const pc = data.pc
-  const app = $('app')
   const myTheme = themeOf(pc)
   const sh = ensureShell()
   const p = el('div', 'content')
@@ -668,11 +668,11 @@ function render() {
         label.textContent = slider.value + '%'
         fill()
       })
-      // Sent when the finger lifts (and while dragging, at most every 200 ms), so the PC is not flooded.
+      // Sent when the finger lifts (and while dragging, at most every 400 ms; the PC keeps only the newest level), so the PC is not flooded.
       let last = 0
       slider.addEventListener('input', () => {
         const now = Date.now()
-        if (now - last < 200) return
+        if (now - last < 400) return
         last = now
         call('/api/do', { action: 'volume_set', arg: String(slider.value) }).catch(() => {})
       })
@@ -896,10 +896,17 @@ async function refresh() {
       document.body.classList.remove('has-banner')
     }
     data = next
+    fromCache = false
     const sig = JSON.stringify(next)
     // Do not redraw under a finger or an open menu: it would replace the button being pressed.
     if (sig === lastSig || document.body.dataset.gesture || document.querySelector('.dd.open,.smenu,.b.holding,.b.busy')) return
     lastSig = sig
+    // Kept for the next visit, so the page can appear at once while the laptop is still collecting its answers (never when a PIN is in use).
+    try {
+      if (!unlock) localStorage.setItem('rsp_last', JSON.stringify({ at: Date.now(), data: next }))
+    } catch (e) {
+      // Storage blocked or full: the page just waits for the laptop as before.
+    }
     render()
   } catch (err) {
     if (err.status === 429) {
@@ -919,6 +926,7 @@ async function refresh() {
     }
     if (err.status === 401) {
       try {
+        localStorage.removeItem('rsp_last')
         localStorage.removeItem('rsp_k')
       } catch (e) {
         // Ignore.
@@ -955,6 +963,21 @@ document.addEventListener('visibilitychange', () => {
 
 if (!key) pairScreen(false)
 else {
+  // Paint the last state we saw right away (if it is fresh enough), then let the laptop's answer replace it.
+  try {
+    const c = JSON.parse(localStorage.getItem('rsp_last') || 'null')
+    if (c && c.data && c.data.pc && Date.now() - c.at < 6 * 3600 * 1000) {
+      data = c.data
+      fromCache = true
+      offline = true
+      $('banner').textContent = 'Updating…'
+      $('banner').hidden = false
+      document.body.classList.add('has-banner')
+      render()
+    }
+  } catch (e) {
+    // No saved state: the normal "Connecting…" screen stays until the first answer.
+  }
   refresh()
   schedule()
 }

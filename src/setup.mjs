@@ -4,7 +4,7 @@
  * fails tells you what to do next instead of stopping everything it could still finish.
  */
 
-import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { basename, join, resolve } from 'node:path'
 import { createAuth } from './auth.mjs'
 import { loadConfig, saveConfig } from './config.mjs'

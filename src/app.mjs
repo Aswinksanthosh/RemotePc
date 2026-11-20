@@ -114,6 +114,18 @@ export async function startApp({
         lines.push(`${r.level === 'ok' ? '[ OK ]' : r.level === 'warn' ? '[ !! ]' : '[FAIL]'} ${r.name}: ${r.detail}`)
         if (r.fix) lines.push(`        -> ${r.fix}`)
       }
+      // How long the slow Windows questions take right now (the page waits for the slowest one the first time it asks).
+      if (actions?.timings) {
+        try {
+          const rows = await actions.timings()
+          const slow = rows.some((r) => r.ms > 4000 || !r.ok)
+          const seconds = (ms) => `${(ms / 1000).toFixed(1)} s`
+          lines.push(`${slow ? '[ !! ]' : '[ OK ]'} Page speed (asked fresh, all at once): ${rows.map((r) => `${r.name} ${r.ok ? seconds(r.ms) : 'failed'}`).join(', ')}`)
+          if (slow) lines.push('        -> A part over 4 s makes the first page load slow. Send this line to the developer.')
+        } catch {
+          // No timing line.
+        }
+      }
       if (d.log) lines.push('', 'Last lines of the remote log:', ...d.log.split('\n').map((l) => `  ${l}`))
       return { lines, problems: d.problems }
     },

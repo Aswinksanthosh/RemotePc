@@ -342,3 +342,45 @@ test('the coffee button: only a payment page on a known host is passed to the pa
   assert.equal(safeCoffeeUrl('https://www.buymeacoffee.com/someone'), 'https://www.buymeacoffee.com/someone')
   for (const bad of ['', undefined, 'http://buy.stripe.com/x', 'https://evil.example/x', 'javascript:alert(1)', 'https://buy.stripe.com/x?a=b', 'https://buy.stripe.com.evil.com/x']) assert.equal(safeCoffeeUrl(bad), '', String(bad))
 })
+
+test('speed: page files are sent compressed with an ETag, and an unchanged file costs only a 304', async (t) => {
+  const dir = tempDir(t)
+  const srv = await startServer({ port: 0, host: '127.0.0.1', auth: createAuth({ file: join(dir, 'p.json') }), pin: createPin({ file: join(dir, 'pin.json') }), config: normalizeConfig({}), webDir })
+  t.after(() => srv.close())
+  const base = `http://127.0.0.1:${srv.port}`
+  for (const path of ['/', '/app.js', '/app.css', '/common.js']) {
+    const plain = await fetch(base + path, { headers: { 'accept-encoding': 'identity' } })
+    const raw = Buffer.from(await plain.arrayBuffer())
+    assert.equal(plain.status, 200, path)
+    const etag = plain.headers.get('etag')
+    assert.ok(etag, path)
+    assert.equal(plain.headers.get('content-encoding'), null)
+    const gz = await fetch(base + path, { headers: { 'accept-encoding': 'gzip' } })
+    assert.equal(gz.headers.get('content-encoding'), 'gzip', path)
+    assert.equal(gz.headers.get('etag'), etag, 'the same ETag compressed or not')
+    assert.deepEqual(Buffer.from(await gz.arrayBuffer()), raw, 'fetch unzips it to the same bytes')
+    const again = await fetch(base + path, { headers: { 'if-none-match': etag } })
+    assert.equal(again.status, 304, path)
+    assert.equal((await again.arrayBuffer()).byteLength, 0)
+  }
+})
+
+test('speed: other PCs that cannot be started are not probed on every page load', async (t) => {
+  const dir = tempDir(t)
+  const auth = createAuth({ file: join(dir, 'p.json') })
+  const { key } = auth.add('Phone')
+  let probes = 0
+  const srv = await startServer({
+    port: 0, host: '127.0.0.1', auth, pin: createPin({ file: join(dir, 'pin.json') }), config: normalizeConfig({}), webDir,
+    others: () => ({ tuf: { label: 'TUF', page: 'http://100.1.2.3:8791' }, desk: { label: 'Desk', page: 'http://100.1.2.4:8791', mac: 'AA:BB:CC:DD:EE:FF' } }),
+    probe: async () => (probes++, true),
+  })
+  t.after(() => srv.close())
+  const state = () => fetch(`http://127.0.0.1:${srv.port}/api/state`, { method: 'POST', headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' }, body: '{}' }).then((r) => r.json())
+  const first = await state()
+  await state()
+  await state()
+  assert.equal(probes, 1, 'only the PC that can be started is probed, and the answer is kept for a while')
+  assert.equal(first.others.find((o) => o.key === 'tuf').online, null)
+  assert.equal(first.others.find((o) => o.key === 'desk').online, true)
+})

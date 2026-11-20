@@ -324,12 +324,65 @@ const duration = (seconds) => {
 const memo = (ttl, fn, now = Date.now) => {
   let at = -Infinity
   let value
+  let running = null
   return async () => {
     if (now() - at < ttl) return value
-    value = await fn()
-    at = now()
-    return value
+    // Two callers at the same time share ONE run (each run can start a slow Windows program).
+    running ??= fn()
+      .then((v) => {
+        value = v
+        at = now()
+        return v
+      })
+      .finally(() => {
+        running = null
+      })
+    return running
   }
+}
+
+/**
+ * Like memo, for the slow Windows questions the page shows: (1) callers at the same time share one run; (2) once there is an answer, an
+ * old one is returned AT ONCE while a new one loads in the background, so the page never waits for Windows twice; (3) `fresh()` forces a
+ * new run and waits for it; `set()` stores an answer we already know; `stale()` makes the next call reload. A failed run keeps the old answer.
+ */
+const swr = (ttl, load, now = Date.now) => {
+  let at = -Infinity
+  let value
+  let has = false
+  let running = null
+  const start = () => {
+    running ??= Promise.resolve()
+      .then(load)
+      .then(
+        (v) => {
+          value = v
+          has = true
+          at = now()
+          return v
+        },
+        () => value,
+      )
+      .finally(() => {
+        running = null
+      })
+    return running
+  }
+  const get = () => {
+    if (has && now() - at < ttl) return Promise.resolve(value)
+    const p = start()
+    return has ? Promise.resolve(value) : p
+  }
+  get.fresh = start
+  get.set = (v) => {
+    value = v
+    has = true
+    at = now()
+  }
+  get.stale = () => {
+    at = -Infinity
+  }
+  return get
 }
 
 /**
@@ -491,7 +544,7 @@ export function createActions({
 
   // -- apps ---------------------------------------------------------------------------
 
-  const startNames = memo(5 * 60_000, async () => (await ps(START_NAMES, { timeout: 20_000 })).split(/\r?\n/).map((l) => l.trim()).filter(Boolean), now)
+  const startNames = swr(5 * 60_000, async () => (await ps(START_NAMES, { timeout: 20_000 })).split(/\r?\n/).map((l) => l.trim()).filter(Boolean), now)
 
   /** The apps this PC can open: built-in ones that are installed, and your own from apps.json. */
   async function appChoices() {
@@ -499,7 +552,7 @@ export function createActions({
     if (platform === 'win32') {
       let names = []
       try {
-        names = await startNames()
+        names = (await startNames()) ?? []
       } catch {
         // The Start menu could not be read: only your own apps are offered.
       }
@@ -555,31 +608,41 @@ export function createActions({
   }
 
   // The sound level of the default speaker, read for the page's slider (cached a few seconds) and set from it.
-  const volCache = { at: -Infinity, value: null }
   const parseVol = (out) => {
     const m = /vol:(\d+) mute:([01])/.exec(out)
     return m ? { level: Math.min(100, Number(m[1])), muted: m[2] === '1' } : null
   }
-  async function readVolume(fresh = false) {
-    if (platform !== 'win32') return null
-    if (!fresh && now() - volCache.at < 3_000) return volCache.value
-    volCache.value = await ps(volumeScript('get'), { timeout: 10_000 }).then(parseVol, () => null)
-    volCache.at = now()
-    return volCache.value
+  // Reading the level compiles a small program, so it is slow: asked at most every 10 s, and the old answer is shown meanwhile.
+  const volume = swr(10_000, () => (platform === 'win32' ? ps(volumeScript('get'), { timeout: 10_000 }).then(parseVol, () => null) : null), now)
+  const readVolume = () => volume()
+  // Dragging the slider sends many levels in a row, and every change starts a slow Windows program. So at most ONE runs at a time, and
+  // while it runs only the newest wanted level is remembered: the last position always wins and the PC is not flooded.
+  let volumeRun = null
+  let volumeWanted = null
+  function setVolumeLevel(level) {
+    volumeWanted = level
+    volumeRun ??= (async () => {
+      let v = null
+      while (volumeWanted !== null) {
+        const next = volumeWanted
+        volumeWanted = null
+        v = await changeVolume('set', next)
+      }
+      return v
+    })().finally(() => {
+      volumeRun = null
+    })
+    return volumeRun
   }
   async function changeVolume(op, level) {
     const v = await ps(volumeScript(op, level), { timeout: 10_000 }).then(parseVol, () => null)
     if (!v) throw new Error('Windows would not change the volume.')
-    volCache.value = v
-    volCache.at = now()
+    volume.set(v)
     return v
   }
 
   // Paired devices with their connection state. Cached for a few seconds only: a connection changes quickly and the page shows it.
-  const btCache = { at: -Infinity, value: [] }
-  async function listBluetooth(fresh = false) {
-    if (platform !== 'win32') return []
-    if (!fresh && now() - btCache.at < 5_000) return btCache.value
+  async function loadBluetooth() {
     let lines = await listLines(BT_LIST, 60)
     if (!lines.length) lines = (await listLines(BT_NAMES, 60)).map((n) => `${n}\tFalse`)
     const byName = new Map()
@@ -589,19 +652,14 @@ export function createActions({
       if (!name || name.length > 40) continue
       byName.set(name, byName.get(name) === true || /^true$/i.test((state ?? '').trim()))
     }
-    btCache.value = [...byName].map(([name, connected]) => ({ name, connected }))
-    btCache.at = now()
-    return btCache.value
+    return [...byName].map(([name, connected]) => ({ name, connected }))
   }
+  // The check asks Windows about every paired device (slow): at most every 30 s, the old list is shown meanwhile. A connect or disconnect asks for a fresh one.
+  const bluetooth = swr(30_000, () => (platform === 'win32' ? loadBluetooth() : []), now)
+  const listBluetooth = async (fresh = false) => (await (fresh ? bluetooth.fresh() : bluetooth())) ?? []
   const listHeadphones = async () => (await listBluetooth()).map((d) => d.name)
-  const outCache = { at: -Infinity, value: [] }
-  async function listOutputs() {
-    if (platform !== 'win32') return []
-    if (now() - outCache.at < 15_000) return outCache.value
-    outCache.value = await listLines(AUDIO_LIST, 80)
-    outCache.at = now()
-    return outCache.value
-  }
+  const outputs = swr(30_000, () => (platform === 'win32' ? listLines(AUDIO_LIST, 80) : []), now)
+  const listOutputs = async () => (await outputs()) ?? []
 
   // -- the actions --------------------------------------------------------------------
 
@@ -678,7 +736,7 @@ export function createActions({
         const text = String(arg ?? '')
         const n = Number(text)
         if (!/^\d{1,3}$/.test(text) || n > 100) throw new Error('The volume is a whole number from 0 to 100.')
-        const v = await changeVolume('set', n)
+        const v = await setVolumeLevel(n)
         return `Volume ${v.level}%.`
       }
       case 'mute_set': {
@@ -711,7 +769,7 @@ export function createActions({
         if (!name) throw new Error('That audio output is not available on this PC right now.')
         const out = (await ps(audioScript(name), { timeout: 30_000 })).trim().split(/\r?\n/).at(-1)
         if (out !== 'ok') throw new Error(out === 'notfound' ? 'Windows no longer lists that output.' : 'Windows refused to switch the audio output.')
-        outCache.at = -Infinity
+        outputs.stale()
         return `Sound now plays on ${name}.`
       }
       case 'app': {
@@ -797,27 +855,59 @@ export function createActions({
     /** Resolves when the background Steam switch has finished (used by tests). */
     settled: () => switching,
     async info() {
+      // Everything the page shows is asked at the SAME time (each answer is cached and shared), so the page waits for the slowest one,
+      // not for all of them in a row.
       let timer
-      const modelName = await Promise.race([model(), new Promise((r) => (timer = setTimeout(() => r(''), 1500)))])
+      // One part failing never blanks the page: it just comes back empty and the rest is shown.
+      const safe = (promise, empty) => Promise.resolve(promise).catch(() => empty)
+      const [modelName, steam, games, art, vol, bt, outs, apps] = await Promise.all([
+        safe(Promise.race([model(), new Promise((r) => (timer = setTimeout(() => r(''), 1500)))]), ''),
+        safe(steamInfo(), null),
+        safe(gameList(), []),
+        safe(artList(), []),
+        safe(readVolume(), null),
+        safe(listBluetooth(), []),
+        safe(listOutputs(), []),
+        safe(appChoices(), new Map()),
+      ])
       clearTimeout(timer)
-      const steam = await steamInfo()
-      const games = await gameList()
       return {
         name: hostname(),
         model: modelName,
         version,
         update: updateInfo(),
         games: games.map((g) => g.name),
-        gameArt: await artList(),
+        gameArt: art ?? [],
         buttons: Object.keys(buttons()),
         mode: readMode(),
-        volume: await readVolume(),
-        headphones: (await listBluetooth()).map((d) => d.name),
-        btConnected: (await listBluetooth()).filter((d) => d.connected).map((d) => d.name),
-        outputs: await listOutputs(),
-        apps: [...(await appChoices()).values()].map((c) => c.label),
+        volume: vol,
+        headphones: bt.map((d) => d.name),
+        btConnected: bt.filter((d) => d.connected).map((d) => d.name),
+        outputs: outs,
+        apps: [...apps.values()].map((c) => c.label),
         steam: steam ? { user: steam.user, playing: steam.playing, id: steam.id, avatar: Boolean(steam.id && steam.path), accounts: steam.accounts.map(({ id, name }) => ({ id, name })) } : null,
       }
+    },
+    /** How long each slow question to Windows takes right now (asked fresh, all at once, like the page does). For Diagnostics. */
+    async timings() {
+      if (platform !== 'win32') return []
+      const time = async (name, fn) => {
+        const t0 = performance.now()
+        let ok = true
+        try {
+          await fn()
+        } catch {
+          ok = false
+        }
+        return { name, ms: Math.round(performance.now() - t0), ok }
+      }
+      return Promise.all([
+        time('PowerShell start', () => ps('1')),
+        time('volume', () => volume.fresh()),
+        time('Bluetooth', () => bluetooth.fresh()),
+        time('sound outputs', () => outputs.fresh()),
+        time('Start menu apps', () => startNames.fresh()),
+      ])
     },
     async avatar() {
       const steam = await steamInfo()

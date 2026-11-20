@@ -14,10 +14,11 @@
  */
 
 import { createServer } from 'node:http'
-import { randomBytes } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { hostname as osHostname } from 'node:os'
 import { join } from 'node:path'
+import { gzipSync } from 'node:zlib'
 import { ACTIONS } from './actions.mjs'
 import { classifyAddress, isAllowedAddress } from './net.mjs'
 
@@ -42,6 +43,33 @@ export const iconSvg = (theme) => {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a2}"/><stop offset="1" stop-color="#0b1016"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(#g)"/><g fill="none" stroke="${a}" stroke-width="30" stroke-linecap="round"><path d="M256 124v110"/><path d="M170 178a124 124 0 1 0 172 0"/></g></svg>`
 }
 const ICON_FILES = { '/icon-192.png': 'icon-192', '/icon-512.png': 'icon-512', '/apple-touch-icon.png': 'apple-touch-icon' }
+
+const gzCache = new Map()
+/**
+ * Sends a file or page. The browser gets an ETag, so a page that did not change costs a tiny "304 unchanged" instead of the whole file,
+ * and text is sent compressed when the browser accepts it (Tailscale paths can be slow).
+ */
+function sendBody(req, res, headers, body, compress) {
+  const buf = Buffer.isBuffer(body) ? body : Buffer.from(String(body))
+  const etag = `"${createHash('sha1').update(buf).digest('base64url').slice(0, 22)}"`
+  if (req.headers['if-none-match'] === etag) {
+    res.writeHead(304, { etag, 'cache-control': headers['cache-control'] ?? 'no-cache' })
+    return res.end()
+  }
+  const out = { ...headers, etag, vary: 'Accept-Encoding' }
+  if (compress && buf.length > 600 && /\bgzip\b/.test(String(req.headers['accept-encoding'] ?? ''))) {
+    let gz = gzCache.get(etag)
+    if (!gz) {
+      gz = gzipSync(buf)
+      gzCache.set(etag, gz)
+      if (gzCache.size > 60) gzCache.delete(gzCache.keys().next().value)
+    }
+    res.writeHead(200, { ...out, 'content-encoding': 'gzip', 'content-length': gz.length })
+    return res.end(gz)
+  }
+  res.writeHead(200, { ...out, 'content-length': buf.length })
+  return res.end(buf)
+}
 
 const STATIC = {
   '/': ['index.html', 'text/html; charset=utf-8', 'no-cache'],
@@ -148,6 +176,14 @@ export async function startServer({
       }
     }
   }
+  const probes = new Map()
+  const probeCached = async (key, d) => {
+    const hit = probes.get(key)
+    if (hit && Date.now() - hit.at < 20_000) return hit.value
+    const value = await probe(d)
+    probes.set(key, { at: Date.now(), value })
+    return value
+  }
   const knownActions = new Set(ACTIONS)
 
   // A typed PIN gives this phone a session token for config.pinHours; it also stops working when the PIN changes.
@@ -213,9 +249,9 @@ export async function startServer({
         if (!f) return json(res, 404, { error: 'Not found.' })
         const headers = { 'content-type': f.type, 'cache-control': f.cache, 'x-content-type-options': 'nosniff', 'referrer-policy': 'no-referrer' }
         if (path === '/' || path === '/settings') Object.assign(headers, { 'content-security-policy': CSP, 'x-frame-options': 'DENY' })
-        res.writeHead(200, headers)
         // The pages name the icon of this PC's theme in their address (see above).
-        return res.end(path === '/' || path === '/settings' ? f.body.toString('utf8').replaceAll('{{ICON}}', iconTheme(config)).replaceAll('{{NAME}}', shortcutName(config)) : f.body)
+        const body = path === '/' || path === '/settings' ? f.body.toString('utf8').replaceAll('{{ICON}}', iconTheme(config)).replaceAll('{{NAME}}', shortcutName(config)) : f.body
+        return sendBody(req, res, headers, body, /^(text\/|application\/javascript)/.test(f.type))
       }
 
       if (req.method !== 'POST' || !path.startsWith('/api/')) return json(res, 404, { error: 'Not found.' })
@@ -250,12 +286,15 @@ export async function startServer({
 
       if (path === '/api/state') {
         // If reading the PC's details fails, the page still opens with the buttons (and the problem is in the log).
+        const t0 = Date.now()
         const info = actions
           ? await actions.info().catch((err) => {
               console.error('[remote] could not read the PC details:', err)
               return { name: '' }
             })
           : { name: '' }
+        const took = Date.now() - t0
+        if (took > 2500) console.log(`[remote] slow page data: ${(took / 1000).toFixed(1)} s (Diagnostics shows which part is slow)`)
         const list = others()
         const pcs = await Promise.all(
           Object.entries(list).map(async ([key, d]) => ({
@@ -265,7 +304,8 @@ export async function startServer({
             page: d.page,
             theme: d.theme,
             order: d.order,
-            online: d.page ? await probe(d) : null,
+            // Only PCs that can be started show "on / not answering"; asking a PC that is off costs up to 1.5 s, so the answer is kept 20 s.
+            online: d.page && d.mac ? await probeCached(key, d) : null,
           })),
         )
         return json(res, 200, {

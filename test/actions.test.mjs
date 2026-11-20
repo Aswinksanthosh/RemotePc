@@ -338,3 +338,88 @@ test('bluetooth list: falls back to the simple check when the detailed one finds
   assert.deepEqual(info.headphones, ['realme Buds Air 3S', 'SRS-XB100'])
   assert.deepEqual(info.btConnected, [])
 })
+
+test('speed: the slow Windows questions run at the same time, once, and an old answer is shown while a new one loads', async (t) => {
+  let release
+  const gate = new Promise((r) => (release = r))
+  const started = []
+  let clock = 1_000_000
+  let level = 30
+  const slow = (tag, answer) => async (script) => {
+    started.push(tag)
+    await gate
+    return typeof answer === 'function' ? answer(script) : answer
+  }
+  const { actions } = lab(t, {
+    ps: {
+      RspVol: slow('volume', () => `vol:${level} mute:0\n`),
+      'Get-PnpDeviceProperty': slow('bluetooth', 'Buds\tTrue\n'),
+      AudioEndpoint: slow('outputs', 'Speakers\n'),
+    },
+    extra: { now: () => clock },
+  })
+  // Three phones ask at once: every slow question starts before any answer arrives, and each starts only ONCE.
+  const all = Promise.all([actions.info(), actions.info(), actions.info()])
+  await new Promise((r) => setTimeout(r, 30))
+  assert.deepEqual([...new Set(started)].sort(), ['bluetooth', 'outputs', 'volume'])
+  assert.equal(started.filter((x) => x === 'volume').length, 1, 'one run is shared')
+  release()
+  const [a] = await all
+  assert.deepEqual([a.volume, a.btConnected, a.outputs], [{ level: 30, muted: false }, ['Buds'], ['Speakers']])
+  // Later the answer is old, but it is returned at once and the new one loads in the background.
+  level = 55
+  clock += 60_000
+  const before = started.length
+  const b = await actions.info()
+  assert.equal(b.volume.level, 30, 'the old answer comes back immediately')
+  await new Promise((r) => setTimeout(r, 30))
+  assert.ok(started.length > before, 'a new question was started in the background')
+  clock += 1000
+  assert.equal((await actions.info()).volume.level, 55, 'the next page load has the new answer')
+})
+
+test('timings: how long each slow question takes, for Diagnostics', async (t) => {
+  const { actions } = lab(t, { ps: { RspVol: 'vol:10 mute:0\n' } })
+  const rows = await actions.timings()
+  assert.deepEqual(rows.map((r) => r.name), ['PowerShell start', 'volume', 'Bluetooth', 'sound outputs', 'Start menu apps'])
+  assert.ok(rows.every((r) => Number.isInteger(r.ms) && r.ms >= 0))
+  assert.deepEqual(await lab(t, { platform: 'linux' }).actions.timings(), [])
+})
+
+test('speed: one broken part never blanks the page data', async (t) => {
+  const { actions } = lab(t, { ps: { RspVol: () => { throw new Error('boom') } } })
+  const info = await actions.info()
+  assert.equal(info.name, 'TEST-PC')
+  assert.equal(info.volume, null)
+  assert.ok(info.games.includes('Hades'), 'the rest is still there')
+})
+
+test('speed: a fast drag of the volume slider runs at most one Windows command at a time and ends on the last level', async (t) => {
+  let running = 0
+  let most = 0
+  const levels = []
+  let release = null
+  const { actions } = lab(t, {
+    ps: {
+      RspVol: async (script) => {
+        const m = /\$op = '(\w+)'/.exec(script)[1]
+        if (m !== 'set') return 'vol:10 mute:0\n'
+        running++
+        most = Math.max(most, running)
+        levels.push(Number(/\$level = (\d+)/.exec(script)[1]))
+        await new Promise((r) => (release = r))
+        running--
+        return `vol:${levels.at(-1)} mute:0\n`
+      },
+    },
+  })
+  const calls = [10, 20, 30, 40, 50].map((n) => actions.run('volume_set', String(n)))
+  await new Promise((r) => setTimeout(r, 20))
+  release()
+  await new Promise((r) => setTimeout(r, 20))
+  release()
+  const results = await Promise.all(calls)
+  assert.equal(most, 1, 'never two at once')
+  assert.deepEqual(levels, [10, 50], 'the first one, then only the newest')
+  assert.ok(results.every((r) => r === 'Volume 50%.'), 'everyone is told where it ended')
+})
