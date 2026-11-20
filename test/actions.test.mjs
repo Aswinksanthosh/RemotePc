@@ -360,10 +360,11 @@ test('volume: a real level 0 to 100, read for the slider and set from it, plus m
     },
   })
   assert.deepEqual((await actions.info()).volume, { level: 35, muted: false })
+  assert.equal(await actions.run('volume_set', '80'), 'Volume 80%.', 'the phone sends text')
   assert.equal(await actions.run('volume_set', 80), 'Volume 80%.')
   assert.equal(await actions.run('mute_set', 'on'), 'Muted.')
   assert.equal(await actions.run('mute_set', 'off'), 'Sound on, volume 80%.')
-  for (const bad of [-1, 101, 5.5, 'loud', undefined, '5; calc']) await assert.rejects(actions.run('volume_set', bad), /whole number/, String(bad))
+  for (const bad of [-1, 101, 5.5, 'loud', undefined, '5; calc', '', '1e2', ' 50', '0x10']) await assert.rejects(actions.run('volume_set', bad), /whole number/, String(bad))
   await assert.rejects(actions.run('mute_set', 'maybe'), /on or off/)
   assert.ok(calls.some((c) => c[0] === 'powershell.exe' && decode(c).includes('$level = 80')))
   // A PC that cannot report a level: no slider data (the page keeps the three keys).

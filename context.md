@@ -179,3 +179,5 @@ Rules: one logical change per commit; run the tests before pushing; keep PowerSh
 
 ## Volume slider (owner, 2026-11-20)
 - Media card: Vol-/Mute/Vol+ keys replaced by a real slider (0-100, shows the level) + a mute switch (speaker icon). actions volume_set (int 0-100) and mute_set (on/off) use Windows Core Audio (IAudioEndpointVolume via volumeScript, default speaker); info.volume {level, muted} (cached 3 s). Sent while dragging at most every 200 ms and on release; moving the slider above 0 unmutes. A PC that cannot report a level (info.volume null) keeps the three keys. Untested on real Windows (CI parses the script).
+
+- BUG FIXED (owner screenshot "The volume is a whole number from 0 to 100"): server /api/do only passes STRING args (typeof body.arg === "string"); the slider sent a number, so the PC saw undefined. The slider now sends String(value) and volume_set accepts /^\d{1,3}$/ text. Remember: every action argument must be a string.

@@ -742,8 +742,10 @@ export function createActions({
       case 'mode_gaming':
         return setMode(action.slice(5))
       case 'volume_set': {
-        const n = Number(arg)
-        if (!Number.isInteger(n) || n < 0 || n > 100) throw new Error('The volume is a whole number from 0 to 100.')
+        // The phone sends the level as text ("55"); anything but 1 to 3 digits from 0 to 100 is refused.
+        const text = String(arg ?? '')
+        const n = Number(text)
+        if (!/^\d{1,3}$/.test(text) || n > 100) throw new Error('The volume is a whole number from 0 to 100.')
         const v = await changeVolume('set', n)
         return `Volume ${v.level}%.`
       }

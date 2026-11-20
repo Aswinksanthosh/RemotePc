@@ -674,10 +674,10 @@ function render() {
         const now = Date.now()
         if (now - last < 200) return
         last = now
-        call('/api/do', { action: 'volume_set', arg: Number(slider.value) }).catch(() => {})
+        call('/api/do', { action: 'volume_set', arg: String(slider.value) }).catch(() => {})
       })
       slider.addEventListener('change', () => {
-        act('volume_set', Number(slider.value))
+        act('volume_set', String(slider.value))
         stop()
       })
       row.append(mute, slider, label)

@@ -84,3 +84,8 @@ test('the Settings page has custom apps and (on the PC only) adding a phone, and
   assert.ok(st.includes("['localhost', '127.0.0.1', '[::1]']") && st.includes('p.append(addPhoneCard())'), 'the add-phone card is on every Settings page')
   assert.ok(js.includes("'x-rsp-local': '1'"), 'calls say they come from our own page')
 })
+
+test('the volume slider sends its level as text (the server only passes text arguments)', () => {
+  assert.ok(js.includes("arg: String(slider.value)") && js.includes("act('volume_set', String(slider.value))"))
+  assert.ok(!js.includes('Number(slider.value)'))
+})
