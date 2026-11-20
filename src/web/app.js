@@ -874,7 +874,7 @@ function render() {
   const footSig = (data.feedback || '') + '|' + (data.version || '')
   if (sh.foot.dataset.sig !== footSig) {
     sh.foot.dataset.sig = footSig
-    sh.foot.replaceChildren(footer(data.feedback, data.version, 'main page'))
+    sh.foot.replaceChildren(footer(data.feedback, data.version, 'main page', data.coffee))
   }
   commitContent(sh, p, myTheme)
 }

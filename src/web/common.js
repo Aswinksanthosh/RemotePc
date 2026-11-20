@@ -184,7 +184,7 @@ function makePinForm(message, done) {
 
 // -- footer: ideas and feedback, and the copyright line ---------------------------------------------
 // The drop-down opens a new GitHub issue with a few words already filled in (no personal information).
-function footer(feedbackUrl, version, where) {
+function footer(feedbackUrl, version, where, coffeeUrl) {
   const f = el('footer', 'foot')
   if (feedbackUrl && /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/issues\/new$/.test(feedbackUrl)) {
     const box = el('div', 'fb')
@@ -216,6 +216,16 @@ function footer(feedbackUrl, version, where) {
     })
     box.append(head, list)
     f.append(box)
+  }
+  if (coffeeUrl && /^https:\/\//.test(coffeeUrl)) {
+    // Same idea as the French notes: a small yellow button, shown only when the PC gives a payment link.
+    const a = el('a', 'coffee-btn', '☕ Buy me a coffee')
+    a.href = coffeeUrl
+    a.target = '_blank'
+    a.rel = 'noopener'
+    const w = el('p', 'coffee')
+    w.append(a)
+    f.append(w)
   }
   f.append(el('p', 'copy', '© 2026 Aswin K Santhosh. Open source under the MIT licence: free to use and share, with this copyright notice kept.'))
   return f

@@ -386,7 +386,7 @@ function render() {
     about.push(tool('Uninstall', 'Removes RemotePc from this PC. Your settings folder is kept.', 'uninstall', 'Uninstall RemotePc?'))
   }
   p.append(card('pulse', 'About', ...about))
-  p.append(footer(v.feedback, v.version, 'settings page'))
+  p.append(footer(v.feedback, v.version, 'settings page', v.coffee))
   app.append(p)
 }
 

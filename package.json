@@ -13,5 +13,9 @@
     "start": "node bin/remote.mjs",
     "test": "node --test",
     "demo": "node bin/demo.mjs"
+  },
+  "funding": {
+    "type": "individual",
+    "url": "https://buy.stripe.com/3cI28kcQY4NK7Xs7vMfYY00"
   }
 }

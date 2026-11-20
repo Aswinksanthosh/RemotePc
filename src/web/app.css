@@ -236,3 +236,6 @@ select.field{max-width:190px}
 .slider::-moz-range-progress{height:10px;border-radius:999px;background:var(--a)}
 .slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:28px;height:28px;margin-top:-9px;border-radius:50%;background:#fff;border:3px solid var(--a);box-shadow:0 2px 8px rgba(0,0,0,.5)}
 .slider::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#fff;border:3px solid var(--a)}
+.coffee{margin:10px 0 6px}
+.coffee-btn{display:inline-block;background:#ffdd00;color:#222!important;padding:8px 16px;border-radius:20px;font-weight:700;text-decoration:none!important}
+.coffee-btn:hover{background:#ffd000}

@@ -69,6 +69,10 @@ How it works, the files, how to run the tests: [docs/HOW-IT-WORKS.md](docs/HOW-I
 
 On the page, open the **Ideas, feedback or a bug?** drop-down at the bottom and choose what you want to send. It opens a short form on GitHub. Or open an issue here directly. Please never paste your pairing link, PIN or password.
 
+## Support
+
+If this helps you, you can [buy me a coffee ☕](https://buy.stripe.com/3cI28kcQY4NK7Xs7vMfYY00). The same button is in the footer of the page. Thank you!
+
 ## Credits and licence
 
 © 2026 Aswin K Santhosh. MIT licence, see [LICENSE](LICENSE). Parts of the remote were first written for the Jarvis project (MIT, by Aditya Dewaskar). The QR code generator is by Kazuhiko Arase (MIT), see [THIRD-PARTY.md](THIRD-PARTY.md). "QR Code" is a registered trademark of DENSO WAVE INCORPORATED. Steam is a trademark of Valve; this project is not affiliated with Valve, Tailscale or Microsoft.

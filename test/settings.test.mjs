@@ -7,7 +7,7 @@ import { createAuth } from '../src/auth.mjs'
 import { normalizeConfig } from '../src/config.mjs'
 import { createPin } from '../src/pin.mjs'
 import { createSettings } from '../src/settings.mjs'
-import { iconTheme, shortcutName, startServer } from '../src/server.mjs'
+import { iconTheme, safeCoffeeUrl, shortcutName, startServer } from '../src/server.mjs'
 import { runStartup } from '../src/startup.mjs'
 import { tempDir } from './helpers.mjs'
 
@@ -334,4 +334,11 @@ test('diagnostics: a paired phone gets the Fix-It report, an unknown caller does
   assert.deepEqual((await ok.json()).lines.length, 2)
   assert.equal((await post('wrong-key')).status, 401)
   assert.equal((await post('')).status, 401)
+})
+
+test('the coffee button: only a payment page on a known host is passed to the page', () => {
+  assert.equal(safeCoffeeUrl('https://buy.stripe.com/abc123XYZ'), 'https://buy.stripe.com/abc123XYZ')
+  assert.equal(safeCoffeeUrl('https://ko-fi.com/someone'), 'https://ko-fi.com/someone')
+  assert.equal(safeCoffeeUrl('https://www.buymeacoffee.com/someone'), 'https://www.buymeacoffee.com/someone')
+  for (const bad of ['', undefined, 'http://buy.stripe.com/x', 'https://evil.example/x', 'javascript:alert(1)', 'https://buy.stripe.com/x?a=b', 'https://buy.stripe.com.evil.com/x']) assert.equal(safeCoffeeUrl(bad), '', String(bad))
 })

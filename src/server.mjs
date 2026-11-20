@@ -35,6 +35,8 @@ export function iconTheme(config, host = osHostname()) {
 }
 /** The shortcut on the home screen is named after this PC: its own name from Settings, else the computer name. Plain text, short. */
 export const shortcutName = (config, host = osHostname()) => String(config?.name || host || 'Remote PC').replace(/[^\p{L}\p{N} ._-]/gu, '').trim().slice(0, 30) || 'Remote PC'
+// The "Buy me a coffee" button in the footer: only a payment page on a known host is ever shown.
+export const safeCoffeeUrl = (u) => (/^https:\/\/(buy\.stripe\.com|ko-fi\.com|www\.buymeacoffee\.com)\/[A-Za-z0-9_\-/]{1,80}$/.test(String(u ?? '')) ? String(u) : '')
 export const iconSvg = (theme) => {
   const [a, a2] = ICON_COLOURS[theme] ?? ICON_COLOURS.clean
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a2}"/><stop offset="1" stop-color="#0b1016"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(#g)"/><g fill="none" stroke="${a}" stroke-width="30" stroke-linecap="round"><path d="M256 124v110"/><path d="M170 178a124 124 0 1 0 172 0"/></g></svg>`
@@ -125,6 +127,7 @@ export async function startServer({
   webDir,
   version = '',
   issuesUrl = '',
+  coffeeUrl = '',
 }) {
   const files = new Map()
   for (const [path, [file, type, cache]] of Object.entries(STATIC)) {
@@ -271,6 +274,7 @@ export async function startServer({
           phones: auth.list().map((p) => ({ id: p.id, label: p.label, current: p.id === who.id, lastSeen: p.lastSeen, connected: p.connected })),
           version,
           feedback: issuesUrl,
+          coffee: safeCoffeeUrl(coffeeUrl),
         })
       }
 
@@ -287,7 +291,7 @@ export async function startServer({
       if (path.startsWith('/api/settings')) {
         if (!settings) return json(res, 404, { error: 'No settings here.' })
         try {
-          if (path === '/api/settings') return json(res, 200, { ...(await settings.get()), feedback: issuesUrl })
+          if (path === '/api/settings') return json(res, 200, { ...(await settings.get()), feedback: issuesUrl, coffee: safeCoffeeUrl(coffeeUrl) })
           if (path === '/api/settings/save') {
             const r = settings.save(body.changes)
             return json(res, 200, { ...r, message: r.restart ? 'Saved. This one applies after the program restarts (use Restart in Settings, About).' : 'Saved.' })
