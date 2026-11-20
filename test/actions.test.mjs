@@ -327,8 +327,12 @@ test('ASUS laptops: the Armoury Crate mode follows the button, and a PC without 
   // A refusal is reported, the Windows mode stays set.
   const refuse = lab(t, { ps: { RspAsus: (script) => (script.includes("$op = 'probe'") ? 'yes\n' : script.includes("$op = 'get'") ? 'mode:0\n' : 'fail:0\n') } })
   assert.match(await refuse.actions.run('mode_gaming'), /did not switch/)
-  // An unknown number (the ROG Ally answered 3): plain Windows buttons, the ASUS write is never tried.
-  const weird = lab(t, { ps: { RspAsus: (script) => (script.includes("$op = 'probe'") ? 'yes\n' : script.includes("$op = 'get'") ? 'mode:3\n' : 'ok\n') } })
+  // Mode 3 (full speed / manual): the ASUS buttons are still offered, so the laptop can be switched out of it.
+  const three = lab(t, { ps: { RspAsus: (script) => (script.includes("$op = 'probe'") ? 'yes\n' : script.includes("$op = 'get'") ? 'mode:3\n' : 'ok\n') } })
+  assert.equal((await three.actions.info()).asus, true)
+  assert.equal((await three.actions.info()).mode, '', 'no button is highlighted for a mode that has none')
+  // An unknown number: plain Windows buttons, the ASUS write is never tried.
+  const weird = lab(t, { ps: { RspAsus: (script) => (script.includes("$op = 'probe'") ? 'yes\n' : script.includes("$op = 'get'") ? 'mode:9\n' : 'ok\n') } })
   assert.equal((await weird.actions.info()).asus, false)
   assert.match(await weird.actions.run('mode_gaming'), /^Performance power mode\.$/)
   assert.ok(!weird.calls.some((c) => c[0] === 'powershell.exe' && decode(c).includes("$op = 'set'")))

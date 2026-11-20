@@ -223,3 +223,7 @@ select.field{max-width:190px}
 .btstat.on{color:#3ddc84}
 .btstat.on::before{background:#3ddc84;box-shadow:0 0 6px #3ddc84}
 .item.connected{border-color:rgba(61,220,132,.55)}
+.b.busy{position:relative;pointer-events:none}
+.b.busy svg{opacity:.25}
+.b.busy::after{content:"";position:absolute;top:50%;left:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border:3px solid var(--line);border-top-color:var(--a);border-radius:50%;animation:rspspin .8s linear infinite}
+@keyframes rspspin{to{transform:rotate(360deg)}}

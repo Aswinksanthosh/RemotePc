@@ -744,7 +744,13 @@ function render() {
   if (!helper) {
     const g = el('div', 'grid3')
     g.append(tile('pulse', 'Status', run('status'), { cls: 'small' }))
-    g.append(tile('wrench', 'Diagnostics', async () => {
+    const dt = tile('wrench', 'Diagnostics', async () => {
+      // A spinner and "Checking…" while the PC looks at itself (it takes a few seconds).
+      const label = dt.querySelector('span')
+      const was = label.textContent
+      dt.classList.add('busy')
+      dt.disabled = true
+      label.textContent = 'Checking…'
       say('Checking this PC…')
       try {
         const j = await call('/api/diagnostics')
@@ -754,9 +760,13 @@ function render() {
         lastReport = null
         say(err.message, true)
       }
+      dt.classList.remove('busy')
+      dt.disabled = false
+      label.textContent = was
       lastSig = ''
       refresh()
-    }, { cls: 'small' }))
+    }, { cls: 'small' })
+    g.append(dt)
     sys.append(g)
     if (lastReport) {
       const box = el('div', 'sensor-out', lastReport)
@@ -842,7 +852,7 @@ async function refresh() {
     data = next
     const sig = JSON.stringify(next)
     // Do not redraw under a finger or an open menu: it would replace the button being pressed.
-    if (sig === lastSig || document.body.dataset.gesture || document.querySelector('.dd.open,.smenu,.b.holding')) return
+    if (sig === lastSig || document.body.dataset.gesture || document.querySelector('.dd.open,.smenu,.b.holding,.b.busy')) return
     lastSig = sig
     render()
   } catch (err) {

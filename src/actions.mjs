@@ -500,14 +500,16 @@ export function createActions({
   // ASUS laptops: the Armoury Crate modes. Only offered when the ASUS device opens; everything else keeps the Windows power modes.
   const ASUS_VALUE = { saver: 2, balanced: 0, gaming: 1 }
   const ASUS_NAME = { saver: 'Silent', balanced: 'Performance', gaming: 'Turbo' }
-  // Offered only when the ASUS device opens AND the laptop answers with a mode number this program knows (0, 1 or 2). A laptop that
-  // answers something else (the ROG Ally said 3) keeps the plain Windows buttons, so a button never pretends to work.
+  // Offered only when the ASUS device opens AND the laptop answers with a mode number this program knows (0 to 4). Anything else keeps the
+  // plain Windows buttons, so a button never pretends to work.
   const asusSupported = memo(10 * 60_000, async () => {
     if (platform !== 'win32') return false
     const last = (o) => o.trim().split(/\r?\n/).at(-1)
     if ((await ps(asusScript('probe'), { timeout: 15_000 }).then(last, () => '')) !== 'yes') return false
     const n = /^mode:(\d+)$/.exec(await ps(asusScript('get'), { timeout: 15_000 }).then(last, () => ''))?.[1]
-    return n === '0' || n === '1' || n === '2'
+    // 0 Performance, 1 Turbo, 2 Silent; 3 and 4 are the other firmware modes (full speed, manual): the buttons must still be offered then,
+    // otherwise a laptop sitting in one of them could never be switched back.
+    return n !== undefined && Number(n) <= 4
   }, now)
   async function asusCurrent() {
     if (!(await asusSupported())) return ''
