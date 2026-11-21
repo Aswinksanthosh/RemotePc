@@ -95,3 +95,7 @@ test('the Windows list is loaded only when opened, and every close asks first', 
   assert.ok(js.includes("act('window_focus', w.id)") && js.includes("confirmBox('Close this window?'"))
   assert.ok(js.includes("act('window_close', w.id)"))
 })
+
+test('the Windows list and the app manager are drawn even before they are on the page (a redraw must not empty them)', () => {
+  assert.ok(!js.includes('winBox.isConnected') && !js.includes('appMgrBox.isConnected'))
+})

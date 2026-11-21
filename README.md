@@ -40,7 +40,7 @@ A **Windows 10 or 11 PC**, an **iPhone or Android phone**, and a **Google accoun
 
 ## Add your applications
 
-Double-click the **RemotePc Settings** shortcut (cog icon) on the Desktop. In **My apps**, search for the app and press **Add**, or drop its shortcut on the box. It then shows in the **Apps** list on your phone.
+On the phone page, open **Apps** and press **Add or remove apps**. Search for the app on your PC and press **Add**. It shows in the Apps list straight away. Apps you added have a **Remove** button there too. (On the PC itself, the **RemotePc Settings** shortcut on the Desktop also lets you drop an app's shortcut on a box.)
 
 ## Is it safe?
 

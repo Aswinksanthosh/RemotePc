@@ -24,6 +24,7 @@ const stub = `<script>
 // PREVIEW ONLY: pretend answers instead of a real PC. Your two laptops are both inside this one file.
 var previewPcs = ${JSON.stringify(pcs)}
 var previewSelf = 'ROG'
+var previewCustom = [{ label: 'Notes', match: 'Notepad' }]
 window.previewDelay = window.previewDelay || 0
 window.fetch = function (url, opts) {
   var body = {}
@@ -34,6 +35,12 @@ window.fetch = function (url, opts) {
     var other = previewSelf === 'ROG' ? 'TUF' : 'ROG'
     return json({ pc: pc, version: '0.1.0', feedback: 'https://github.com/example/remotepc/issues/new', coffee: 'https://buy.stripe.com/example', phones: [{ id: 'a', label: 'My phone', current: true, connected: true, lastSeen: Date.now() }, { id: 'b', label: 'Partner phone', current: false, connected: true, lastSeen: Date.now() - 40000 }, { id: 'c', label: 'Old tablet', current: false, connected: false, lastSeen: Date.now() - 5 * 3600 * 1000 }],
       others: [] })
+  }
+  if (String(url).indexOf('/api/settings/startapps') >= 0) return json({ names: ['Discord', 'Epic Games Launcher', 'Notepad', 'OBS Studio', 'Spotify', 'Visual Studio Code', 'VLC media player'] })
+  if (String(url).indexOf('/api/settings/apps') >= 0) {
+    if (body.op === 'add') previewCustom.push({ label: body.label, match: body.match })
+    if (body.op === 'remove') previewCustom = previewCustom.filter(function (a) { return a.label !== body.label })
+    return json({ apps: previewCustom })
   }
   if (String(url).indexOf('/api/windows') >= 0) {
     return json({ windows: [{ id: '1', name: 'brave', title: 'YouTube - Brave', minimized: false }, { id: '2', name: 'Spotify', title: 'Spotify Premium', minimized: true }, { id: '3', name: 'Discord', title: 'Discord | #general', minimized: false }, { id: '4', name: 'notepad', title: 'notes.txt - Notepad', minimized: false }] })

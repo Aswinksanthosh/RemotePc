@@ -270,6 +270,98 @@ function acc(id, title, content, iconName, onOpen) {
   return d
 }
 
+// -- add or remove apps without leaving the home page ----------------------------------------------------------------------
+// Searches the apps this PC has (its Start menu) and adds the one you pick to the Apps list; your own added apps can be removed here too.
+const appMgr = { open: false, names: null, custom: null, q: '', busy: false }
+let appMgrBox = null
+function appManager() {
+  appMgrBox = el('div', 'appmgr')
+  drawAppManager()
+  return appMgrBox
+}
+async function loadAppManager() {
+  appMgr.busy = true
+  drawAppManager()
+  try {
+    appMgr.custom = (await call('/api/settings/apps', { op: 'list' })).apps
+    appMgr.names = (await call('/api/settings/startapps')).names
+  } catch (err) {
+    say(err.message, true)
+    appMgr.names = appMgr.names || []
+  }
+  appMgr.busy = false
+  drawAppManager()
+}
+async function changeApps(body, done) {
+  try {
+    appMgr.custom = (await call('/api/settings/apps', body)).apps
+    say(done)
+    lastSig = ''
+    refresh()
+  } catch (err) {
+    say(err.message, true)
+  }
+  drawAppManager()
+}
+function drawAppManager() {
+  if (!appMgrBox) return
+  appMgrBox.textContent = ''
+  const toggle = btn(appMgr.open ? 'Hide add or remove' : 'Add or remove apps', () => {
+    appMgr.open = !appMgr.open
+    if (appMgr.open && !appMgr.names) loadAppManager()
+    else drawAppManager()
+  }, false, undefined, appMgr.open ? '' : 'go')
+  appMgrBox.append(toggle)
+  if (!appMgr.open) return
+  if (appMgr.busy && !appMgr.names) {
+    appMgrBox.append(el('div', 'empty', 'Asking the PC for its apps…'))
+    return
+  }
+  const search = el('input', 'field')
+  search.type = 'text'
+  search.maxLength = 40
+  search.placeholder = 'Search the apps on this PC'
+  search.value = appMgr.q
+  search.addEventListener('input', () => {
+    appMgr.q = search.value
+    drawAppResults(results)
+  })
+  const results = el('div', 'list')
+  appMgrBox.append(search, results)
+  drawAppResults(results)
+  const mine = appMgr.custom || []
+  if (mine.length) {
+    appMgrBox.append(el('div', 'note', 'Apps you added:'))
+    const list = el('div', 'list')
+    for (const a of mine) {
+      const item = el('div', 'item stack')
+      item.append(el('div', 'nm', a.label))
+      const acts = el('div', 'acts')
+      acts.append(btn('Remove', () => confirmBox('Remove ' + a.label + '?', 'It disappears from the Apps list. The app itself stays on the PC.', 'Remove', () => changeApps({ op: 'remove', label: a.label }, a.label + ' removed.'), true)))
+      item.append(acts)
+      list.append(item)
+    }
+    appMgrBox.append(list)
+  }
+  // Keep typing: the box is the same element, so give it the focus back after a redraw.
+  if (appMgr.q) search.focus()
+}
+function drawAppResults(box) {
+  box.textContent = ''
+  const q = appMgr.q.trim().toLowerCase()
+  const have = new Set((appMgr.custom || []).map((a) => a.label.toLowerCase()))
+  const found = (appMgr.names || []).filter((n) => (!q || n.toLowerCase().indexOf(q) >= 0) && !have.has(n.slice(0, 30).toLowerCase())).slice(0, 10)
+  for (const n of found) {
+    const item = el('div', 'item stack')
+    item.append(el('div', 'nm', n))
+    const acts = el('div', 'acts')
+    acts.append(btn('Add', () => changeApps({ op: 'add', label: n.slice(0, 30), match: n }, n + ' added. It is in the Apps list now.'), false, undefined, 'go'))
+    item.append(acts)
+    box.append(item)
+  }
+  if (appMgr.names && !found.length) box.append(el('div', 'empty', q ? 'Nothing matches. Games belong in the Steam list, not here.' : 'No more apps to add.'))
+}
+
 // -- the Windows list: what is open on the PC, switch to it or close it ------------------------------------------------
 // Loaded only when the drop-down is opened (asking Windows takes a moment), kept here so a redraw of the page does not lose it.
 const winState = { list: null, loading: false, error: '' }
@@ -288,7 +380,7 @@ async function loadWindows() {
   drawWindows()
 }
 function drawWindows() {
-  if (!winBox || !winBox.isConnected) return
+  if (!winBox) return // drawn even before it is on the page, so a redraw of the page keeps the list
   winBox.textContent = ''
   const bar = el('div', 'winbar')
   const refresh = btn(winState.loading ? 'Looking…' : 'Refresh', () => loadWindows(), winState.loading, undefined, winState.loading ? 'busy' : '')
@@ -815,7 +907,7 @@ function render() {
 
     // -- apps and your own buttons ---------------------------------------------------------
     const apps = pc.apps || []
-    if (apps.length) {
+    {
       const card = el('div', 'card')
       const appsIn = el('div', '')
       const g2 = el('div', 'apps')
@@ -825,8 +917,10 @@ function render() {
         b.append(el('div', 'letter', name.charAt(0).toUpperCase()), el('span', '', name))
         g2.append(b)
       }
+      if (!apps.length) appsIn.append(el('div', 'empty', 'No apps yet. Press "Add or remove apps" below.'))
       appsIn.append(g2)
-      card.append(acc('apps', 'Apps (' + apps.length + ')', appsIn, 'grid'))
+      appsIn.append(appManager())
+      card.append(acc('apps', apps.length ? 'Apps (' + apps.length + ')' : 'Apps', appsIn, 'grid'))
       p.append(card)
     }
     if ((pc.buttons || []).length) {
