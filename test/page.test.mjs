@@ -99,3 +99,10 @@ test('the Windows list is loaded only when opened, and every close asks first', 
 test('the Windows list and the app manager are drawn even before they are on the page (a redraw must not empty them)', () => {
   assert.ok(!js.includes('winBox.isConnected') && !js.includes('appMgrBox.isConnected'))
 })
+
+test('the player bar (previous, play, next, mute, volume slider) is pinned at the top and sound output is a drop-down', () => {
+  assert.ok(js.indexOf('p.append(playerBar(pc))') > 0 && js.indexOf('p.append(playerBar(pc))') < js.indexOf("const steam = el('div', 'steam')"), 'the bar comes before Steam')
+  assert.ok(js.includes("acc('sound', "), 'sound output is a drop-down like the Bluetooth one')
+  assert.ok(!js.includes("section('play', 'Media')"), 'the old big Media card is gone')
+  assert.ok(css.includes('.player{position:sticky'), 'the bar stays on screen while scrolling')
+})

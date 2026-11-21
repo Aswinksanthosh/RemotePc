@@ -242,3 +242,10 @@ select.field{max-width:190px}
 .winbar{display:flex;gap:10px;margin-bottom:10px}
 .winbar .b{flex:1}
 .winbox .item .nm{overflow-wrap:anywhere}
+/* the pinned player bar: one row, always at the top while scrolling */
+.player{position:sticky;top:calc(env(safe-area-inset-top,0px) + 6px);z-index:6;display:flex;align-items:center;gap:6px;padding:8px 10px;margin-bottom:12px;background:#15101d;background:color-mix(in srgb,var(--a2) 50%,#0b1016)}
+.player .b.pbtn{flex:0 0 42px;width:42px;height:42px;min-width:0;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.player .b.pbtn svg.i{width:20px;height:20px}
+.player .b.pbtn.go{flex-basis:46px;width:46px;height:46px}
+.player .slider{margin:0 2px}
+.player .vollabel{flex:0 0 2.8em;font-size:.82rem}

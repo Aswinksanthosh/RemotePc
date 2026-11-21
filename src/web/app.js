@@ -649,6 +649,63 @@ function offerUpdate(pc) {
   confirmBox('A new version is ready', 'Update now? The app restarts by itself and the page comes back in about 15 seconds.', 'Yes, update', () => act('update'))
 }
 
+// The player bar: always at the top (it stays on screen while you scroll). Previous, play or pause, next, mute and the volume slider in ONE row.
+// A PC that cannot report its volume level keeps three small volume keys instead of the slider.
+function playerBar(pc) {
+  const bar = el('div', 'card player')
+  const mk = (name, action, label, cls) => {
+    const b = btn(label, () => act(action), false, undefined, 'pbtn' + (cls ? ' ' + cls : ''))
+    b.textContent = ''
+    b.append(icon(name))
+    b.title = label
+    return b
+  }
+  bar.append(mk('prev', 'media_prev', 'Previous'), mk('play', 'media_playpause', 'Play or pause', 'go'), mk('next', 'media_next', 'Next'))
+  if (pc.volume) {
+    const mute = btn(pc.volume.muted ? 'Sound is muted: tap to turn it on' : 'Mute', () => act('mute_set', pc.volume.muted ? 'off' : 'on'), false, undefined, 'pbtn' + (pc.volume.muted ? ' on' : ''))
+    mute.textContent = ''
+    mute.append(icon(pc.volume.muted ? 'mute' : 'volup'))
+    const slider = el('input', 'slider')
+    slider.type = 'range'
+    slider.min = '0'
+    slider.max = '100'
+    slider.step = '1'
+    slider.value = String(pc.volume.level)
+    slider.setAttribute('aria-label', 'Volume')
+    const label = el('div', 'vollabel', pc.volume.muted ? 'Muted' : pc.volume.level + '%')
+    const fill = () => slider.style.setProperty('--fill', slider.value + '%')
+    fill()
+    slider.addEventListener('pointerdown', () => {
+      document.body.dataset.gesture = 'volume'
+    })
+    const stop = () => {
+      if (document.body.dataset.gesture === 'volume') delete document.body.dataset.gesture
+    }
+    slider.addEventListener('pointerup', stop)
+    slider.addEventListener('pointercancel', stop)
+    slider.addEventListener('input', () => {
+      label.textContent = slider.value + '%'
+      fill()
+    })
+    // Sent when the finger lifts (and while dragging, at most every 400 ms; the PC keeps only the newest level), so the PC is not flooded.
+    let last = 0
+    slider.addEventListener('input', () => {
+      const now = Date.now()
+      if (now - last < 400) return
+      last = now
+      call('/api/do', { action: 'volume_set', arg: String(slider.value) }).catch(() => {})
+    })
+    slider.addEventListener('change', () => {
+      act('volume_set', String(slider.value))
+      stop()
+    })
+    bar.append(mute, slider, label)
+  } else {
+    bar.append(mk('voldown', 'volume_down', 'Volume down'), mk('mute', 'mute', 'Mute'), mk('volup', 'volume_up', 'Volume up'))
+  }
+  return bar
+}
+
 function render() {
   const pc = data.pc
   const myTheme = themeOf(pc)
@@ -704,7 +761,6 @@ function render() {
   }
   sh.top.replaceChildren(top)
   let powerCard = null
-  let mediaCard = null
 
   if (!helper) {
     // -- power and lock (shown last: used the least) -------------------------------------------------------------------
@@ -721,6 +777,8 @@ function render() {
     )
     quick.append(g)
     powerCard = quick
+
+    p.append(playerBar(pc))
 
     // -- steam ---------------------------------------------------------------------------
     const games = pc.games || []
@@ -768,70 +826,6 @@ function render() {
       p.append(steam)
     }
 
-    // -- media ---------------------------------------------------------------------------
-    const media = el('div', 'card')
-    media.append(section('play', 'Media'))
-    const tr = el('div', 'transport')
-    const mk = (name, action, cls, label) => {
-      const b = btn(label, run(action), false, undefined, cls)
-      b.textContent = ''
-      b.append(icon(name))
-      return b
-    }
-    tr.append(mk('prev', 'media_prev', '', 'Previous'), mk('play', 'media_playpause', 'go main', 'Play or pause'), mk('next', 'media_next', '', 'Next'))
-    media.append(tr)
-    // A real volume slider (0 to 100) with the level shown, and a mute switch. Older PCs that cannot report a level keep the three keys.
-    if (pc.volume) {
-      const row = el('div', 'volrow')
-      const mute = el('button', 'b pwr' + (pc.volume.muted ? ' on' : ''))
-      mute.type = 'button'
-      mute.title = pc.volume.muted ? 'Sound is muted: tap to turn it on' : 'Mute'
-      mute.setAttribute('aria-label', mute.title)
-      mute.append(icon(pc.volume.muted ? 'mute' : 'volup'))
-      mute.addEventListener('click', () => act('mute_set', pc.volume.muted ? 'off' : 'on'))
-      const slider = el('input', 'slider')
-      slider.type = 'range'
-      slider.min = '0'
-      slider.max = '100'
-      slider.step = '1'
-      slider.value = String(pc.volume.level)
-      slider.setAttribute('aria-label', 'Volume')
-      const label = el('div', 'vollabel', pc.volume.muted ? 'Muted' : pc.volume.level + '%')
-      const fill = () => slider.style.setProperty('--fill', slider.value + '%')
-      fill()
-      slider.addEventListener('pointerdown', () => {
-        document.body.dataset.gesture = 'volume'
-      })
-      const stop = () => {
-        if (document.body.dataset.gesture === 'volume') delete document.body.dataset.gesture
-      }
-      slider.addEventListener('pointerup', stop)
-      slider.addEventListener('pointercancel', stop)
-      slider.addEventListener('input', () => {
-        label.textContent = slider.value + '%'
-        fill()
-      })
-      // Sent when the finger lifts (and while dragging, at most every 400 ms; the PC keeps only the newest level), so the PC is not flooded.
-      let last = 0
-      slider.addEventListener('input', () => {
-        const now = Date.now()
-        if (now - last < 400) return
-        last = now
-        call('/api/do', { action: 'volume_set', arg: String(slider.value) }).catch(() => {})
-      })
-      slider.addEventListener('change', () => {
-        act('volume_set', String(slider.value))
-        stop()
-      })
-      row.append(mute, slider, label)
-      media.append(row)
-    } else {
-      const vol = el('div', 'vol')
-      vol.append(tile('voldown', 'Vol -', run('volume_down'), { cls: 'small' }), tile('mute', 'Mute', run('mute'), { cls: 'small' }), tile('volup', 'Vol +', run('volume_up'), { cls: 'small' }))
-      media.append(vol)
-    }
-    mediaCard = media
-
     // -- bluetooth devices -----------------------------------------------------------------
     const heads = pc.headphones || []
     const bt = el('div', 'card')
@@ -859,11 +853,11 @@ function render() {
     bt.append(acc('bt', heads.length ? 'Bluetooth devices (' + ((pc.btConnected || []).length ? (pc.btConnected || []).length + ' connected of ' : '') + heads.length + ')' : 'Bluetooth devices', btIn, 'bluetooth'))
     const btCard = bt
 
-    // -- sound output ----------------------------------------------------------------------
+    // -- sound output (a drop-down, like the Bluetooth devices) ----------------------------
     const outs = pc.outputs || []
     const snd = el('div', 'card')
-    snd.append(section('speaker', 'Sound output', 'where sound plays'))
-    if (!outs.length) snd.append(el('div', 'empty', 'No sound outputs found.'))
+    const sndIn = el('div', '')
+    if (!outs.length) sndIn.append(el('div', 'empty', 'No sound outputs found.'))
     else {
       const list = el('div', 'list')
       for (const name of outs) {
@@ -879,13 +873,13 @@ function render() {
         })
         list.append(o)
       }
-      snd.append(list)
-      snd.append(el('div', 'note', 'Bluetooth earbuds appear here once they are connected.'))
+      sndIn.append(list)
+      sndIn.append(el('div', 'note', 'Bluetooth earbuds appear here once they are connected.'))
     }
+    const sndName = picked.out ? (picked.out.length > 26 ? picked.out.slice(0, 25) + '…' : picked.out) : ''
+    snd.append(acc('sound', sndName ? 'Sound output: ' + sndName : 'Sound output', sndIn, 'speaker'))
     p.append(snd)
     p.append(btCard)
-
-    p.append(mediaCard)
 
     // -- power mode (the Windows power mode slider) ----------------------------------------
     const mode = el('div', 'card')
