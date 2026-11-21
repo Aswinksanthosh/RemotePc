@@ -274,6 +274,16 @@ export async function startServer({
       }
       if (pin?.isSet() && !unlocked(req.headers['x-unlock'], who.id)) return json(res, 401, { error: 'Enter your PIN.', code: 'pin' })
 
+      if (path === '/api/windows') {
+        // The windows open on this PC (titles can be private, so only a paired phone, and its PIN if one is set, may see them).
+        if (!actions?.windows) return json(res, 404, { error: 'Windows are not available here.' })
+        try {
+          return json(res, 200, { windows: await actions.windows() })
+        } catch (err) {
+          return json(res, 502, { error: String(err?.message ?? err).slice(0, 200) })
+        }
+      }
+
       if (path === '/api/diagnostics') {
         // The Fix-It report, for the phone: a paired phone (and its PIN, if one is set) can read how this PC is doing.
         if (!diagnostics) return json(res, 404, { error: 'Diagnostics are not available here.' })

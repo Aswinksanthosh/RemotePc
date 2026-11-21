@@ -67,6 +67,9 @@ export const ACTIONS = [
   'mode_saver',
   'mode_balanced',
   'mode_gaming',
+  'window_focus',
+  'window_close',
+  'desktop_toggle',
   'volume_set',
   'mute_set',
   'bt_connect',
@@ -250,6 +253,78 @@ public static class RspVol {
 }
 '@
 [RspVol]::Run($op, $level)`
+
+// The windows open on this PC: listed (visible, with a title, no tool or hidden windows), brought to the front, or asked to close with the
+// normal Windows close message (an app with unsaved work still asks you). Nothing is ended by force.
+const windowsScript = (op, id = '0') => String.raw`$op = ${psQuote(op)}
+$id = ${psQuote(String(id).replace(/\D/g, '').slice(0, 18) || '0')}
+Add-Type -TypeDefinition @'
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Text;
+public static class RspWin {
+  delegate bool EnumProc(IntPtr h, IntPtr l);
+  [DllImport("user32.dll")] static extern bool EnumWindows(EnumProc p, IntPtr l);
+  [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
+  [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
+  [DllImport("user32.dll")] static extern int GetWindowTextLength(IntPtr h);
+  [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+  [DllImport("user32.dll")] static extern bool IsIconic(IntPtr h);
+  [DllImport("user32.dll")] static extern bool IsWindow(IntPtr h);
+  [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr h, int cmd);
+  [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
+  [DllImport("user32.dll")] static extern bool PostMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
+  [DllImport("user32.dll")] static extern int GetWindowLong(IntPtr h, int i);
+  [DllImport("user32.dll")] static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
+  [DllImport("dwmapi.dll")] static extern int DwmGetWindowAttribute(IntPtr h, int attr, out int v, int size);
+  static bool Wanted(IntPtr h) {
+    if (!IsWindowVisible(h)) return false;
+    if (GetWindowTextLength(h) == 0) return false;
+    if ((GetWindowLong(h, -20) & 0x80) != 0) return false;
+    int cloaked = 0;
+    if (DwmGetWindowAttribute(h, 14, out cloaked, 4) == 0 && cloaked != 0) return false;
+    return true;
+  }
+  public static string Run(string op, long id) {
+    IntPtr target = new IntPtr(id);
+    if (op == "list") {
+      StringBuilder sb = new StringBuilder();
+      EnumWindows(delegate (IntPtr h, IntPtr l) {
+        if (!Wanted(h)) return true;
+        StringBuilder t = new StringBuilder(260);
+        GetWindowText(h, t, 260);
+        string title = t.ToString().Replace("\t", " ").Replace("\r", " ").Replace("\n", " ");
+        if (title == "Program Manager") return true;
+        uint pid = 0;
+        GetWindowThreadProcessId(h, out pid);
+        string name = "";
+        try { name = Process.GetProcessById((int)pid).ProcessName; } catch (Exception) { }
+        sb.Append(h.ToInt64()).Append("\t").Append(name).Append("\t").Append(IsIconic(h) ? "1" : "0").Append("\t").Append(title).Append("\n");
+        return true;
+      }, IntPtr.Zero);
+      return sb.ToString();
+    }
+    if (!IsWindow(target)) return "gone";
+    if (op == "focus") {
+      if (IsIconic(target)) ShowWindow(target, 9);
+      keybd_event(0x12, 0, 0, UIntPtr.Zero);
+      keybd_event(0x12, 0, 2, UIntPtr.Zero);
+      SetForegroundWindow(target);
+      return "ok";
+    }
+    if (op == "close") {
+      PostMessage(target, 0x0010, IntPtr.Zero, IntPtr.Zero);
+      return "ok";
+    }
+    return "unknown";
+  }
+}
+'@
+[RspWin]::Run($op, [Int64]$id)`
+
+const TOGGLE_DESKTOP = String.raw`(New-Object -ComObject Shell.Application).ToggleDesktop(); 'ok'`
 
 // Audio output (the "default speaker"). Active playback devices are listed from Windows; switching sets the default
 // for ONE device found by its exact name, for apps, media and calls.
@@ -608,6 +683,38 @@ export function createActions({
   }
 
   // The sound level of the default speaker, read for the page's slider (cached a few seconds) and set from it.
+  // Windows open on this PC. A window can only be switched to or closed if it was in the list this PC showed in the last 5 minutes.
+  const shownWindows = { at: -Infinity, byId: new Map() }
+  async function listWindows() {
+    winOnly()
+    const out = await ps(windowsScript('list'), { timeout: 15_000 })
+    const list = []
+    for (const line of out.split(/\r?\n/)) {
+      const [id, name, minimized, ...rest] = line.split('\t')
+      const title = rest.join(' ').trim()
+      if (!/^\d{1,18}$/.test(id ?? '') || !title) continue
+      list.push({ id, name: (name || '').slice(0, 40), title: title.slice(0, 120), minimized: minimized === '1' })
+      if (list.length >= 40) break
+    }
+    shownWindows.byId = new Map(list.map((w) => [w.id, w]))
+    shownWindows.at = now()
+    return list
+  }
+  async function windowAction(op, arg) {
+    winOnly()
+    const id = String(arg ?? '')
+    const w = shownWindows.byId.get(id)
+    if (!w || now() - shownWindows.at > 5 * 60_000) throw new Error('Open the Windows list again (Refresh), then try once more.')
+    const out = (await ps(windowsScript(op, id), { timeout: 15_000 })).trim().split(/\r?\n/).at(-1)
+    if (out === 'gone') {
+      shownWindows.byId.delete(id)
+      throw new Error('That window is already closed. Press Refresh.')
+    }
+    if (out !== 'ok') throw new Error('Windows did not let me do that.')
+    if (op === 'close') shownWindows.byId.delete(id)
+    return op === 'focus' ? `Switched to "${w.title}".` : `Asked "${w.title}" to close. If it has unsaved work it may ask you first.`
+  }
+
   const parseVol = (out) => {
     const m = /vol:(\d+) mute:([01])/.exec(out)
     return m ? { level: Math.min(100, Number(m[1])), muted: m[2] === '1' } : null
@@ -731,6 +838,13 @@ export function createActions({
       case 'mode_balanced':
       case 'mode_gaming':
         return setMode(action.slice(5))
+      case 'window_focus':
+      case 'window_close':
+        return windowAction(action.slice(7), arg)
+      case 'desktop_toggle':
+        winOnly()
+        await ps(TOGGLE_DESKTOP)
+        return 'Show desktop.'
       case 'volume_set': {
         // The phone sends the level as text ("55"); anything but 1 to 3 digits from 0 to 100 is refused.
         const text = String(arg ?? '')
@@ -888,6 +1002,8 @@ export function createActions({
         steam: steam ? { user: steam.user, playing: steam.playing, id: steam.id, avatar: Boolean(steam.id && steam.path), accounts: steam.accounts.map(({ id, name }) => ({ id, name })) } : null,
       }
     },
+    /** The windows open on this PC (for the page's Windows list). */
+    windows: listWindows,
     /** How long each slow question to Windows takes right now (asked fresh, all at once, like the page does). For Diagnostics. */
     async timings() {
       if (platform !== 'win32') return []
@@ -938,6 +1054,9 @@ export const POWERSHELL_SNIPPETS = {
   battery: BATTERY,
   startNames: START_NAMES,
   startApp: startAppScript("Some 'App'", false),
+  windowsList: windowsScript('list'),
+  windowsFocus: windowsScript('focus', '123'),
+  toggleDesktop: TOGGLE_DESKTOP,
   volumeGet: volumeScript('get'),
   volumeSet: volumeScript('set', 40),
   btList: BT_LIST,

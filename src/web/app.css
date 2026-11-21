@@ -239,3 +239,6 @@ select.field{max-width:190px}
 .coffee{margin:10px 0 6px}
 .coffee-btn{display:inline-block;background:#ffdd00;color:#222!important;padding:8px 16px;border-radius:20px;font-weight:700;text-decoration:none!important}
 .coffee-btn:hover{background:#ffd000}
+.winbar{display:flex;gap:10px;margin-bottom:10px}
+.winbar .b{flex:1}
+.winbox .item .nm{overflow-wrap:anywhere}

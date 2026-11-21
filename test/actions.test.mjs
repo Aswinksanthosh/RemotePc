@@ -423,3 +423,33 @@ test('speed: a fast drag of the volume slider runs at most one Windows command a
   assert.deepEqual(levels, [10, 50], 'the first one, then only the newest')
   assert.ok(results.every((r) => r === 'Volume 50%.'), 'everyone is told where it ended')
 })
+
+test('windows: listed, switched to and closed only from the list that was just shown', async (t) => {
+  const sent = []
+  const { actions } = lab(t, {
+    ps: {
+      RspWin: (script) => {
+        const op = /\$op = '(\w+)'/.exec(script)[1]
+        const id = /\$id = '(\d+)'/.exec(script)[1]
+        if (op === 'list') return '1001\tchrome\t0\tYouTube - Brave\n1002\tSpotify\t1\tSpotify Premium\nnot-a-row\n\t\t\t\n1003\tnotepad\t0\t\n'
+        sent.push(`${op}:${id}`)
+        return id === '1002' && op === 'close' ? 'gone\n' : 'ok\n'
+      },
+    },
+  })
+  // Nothing can be touched before the list was shown.
+  await assert.rejects(actions.run('window_focus', '1001'), /Open the Windows list again/)
+  const list = await actions.windows()
+  assert.deepEqual(list, [
+    { id: '1001', name: 'chrome', title: 'YouTube - Brave', minimized: false },
+    { id: '1002', name: 'Spotify', title: 'Spotify Premium', minimized: true },
+  ])
+  assert.equal(await actions.run('window_focus', '1001'), 'Switched to "YouTube - Brave".')
+  assert.match(await actions.run('window_close', '1001'), /Asked "YouTube - Brave" to close/)
+  // A window that was not in the list, or a made-up id, is refused before anything is sent.
+  for (const bad of ['9999', '1001; calc', '', undefined, '-1']) await assert.rejects(actions.run('window_focus', bad), /list again/, String(bad))
+  await assert.rejects(actions.run('window_close', '1002'), /already closed/)
+  assert.deepEqual(sent, ['focus:1001', 'close:1001', 'close:1002'])
+  assert.equal(await actions.run('desktop_toggle'), 'Show desktop.')
+  await assert.rejects(lab(t, { platform: 'linux' }).actions.windows(), /Windows only/)
+})

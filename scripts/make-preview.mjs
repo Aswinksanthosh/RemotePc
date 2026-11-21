@@ -24,7 +24,6 @@ const stub = `<script>
 // PREVIEW ONLY: pretend answers instead of a real PC. Your two laptops are both inside this one file.
 var previewPcs = ${JSON.stringify(pcs)}
 var previewSelf = 'ROG'
-var previewOne = false
 window.previewDelay = window.previewDelay || 0
 window.fetch = function (url, opts) {
   var body = {}
@@ -34,28 +33,17 @@ window.fetch = function (url, opts) {
     var pc = JSON.parse(JSON.stringify(previewPcs[previewSelf]))
     var other = previewSelf === 'ROG' ? 'TUF' : 'ROG'
     return json({ pc: pc, version: '0.1.0', feedback: 'https://github.com/example/remotepc/issues/new', coffee: 'https://buy.stripe.com/example', phones: [{ id: 'a', label: 'My phone', current: true, connected: true, lastSeen: Date.now() }, { id: 'b', label: 'Partner phone', current: false, connected: true, lastSeen: Date.now() - 40000 }, { id: 'c', label: 'Old tablet', current: false, connected: false, lastSeen: Date.now() - 5 * 3600 * 1000 }],
-      others: previewOne ? [] : [{ key: other, name: other, canWake: true, page: 'https://example.invalid/' + other, online: true, order: previewPcs[other].order }] })
+      others: [] })
+  }
+  if (String(url).indexOf('/api/windows') >= 0) {
+    return json({ windows: [{ id: '1', name: 'brave', title: 'YouTube - Brave', minimized: false }, { id: '2', name: 'Spotify', title: 'Spotify Premium', minimized: true }, { id: '3', name: 'Discord', title: 'Discord | #general', minimized: false }, { id: '4', name: 'notepad', title: 'notes.txt - Notepad', minimized: false }] })
   }
   if (String(url).indexOf('/api/do') >= 0) {
     return json({ message: 'Preview: ' + body.action + (body.arg ? ' (' + body.arg + ')' : '') + '. Nothing was really done.' })
   }
   return Promise.resolve(new Response(null, { status: 204 }))
 }
-// Instead of opening the other laptop's page, show it here with the same slide-in and colour change.
-window.__navigate = function (target, dir) {
-  previewSelf = target.name
-  lastSig = ''
-  refresh()
-}
 </script>`
-const pill = `<div style="display:flex;gap:6px;justify-content:center;padding:6px;background:#1b2530;font:12px system-ui">
-<button id="pv1" style="padding:6px 10px;border-radius:99px;border:1px solid #888;background:#fff;color:#000">Two laptops (you)</button>
-<button id="pv2" style="padding:6px 10px;border-radius:99px;border:1px solid #888;background:#fff;color:#000">One PC (your friend)</button></div>
-<script>
-document.getElementById('pv1').onclick = function () { previewOne = false; lastSig = ''; refresh() }
-document.getElementById('pv2').onclick = function () { previewOne = true; lastSig = ''; refresh() }
-</script>`
-
 let html = read('index.html')
 html = html.replace('<link rel="stylesheet" href="/app.css">', `<style>${read('app.css')}</style>`)
 html = html.replace(/<link rel="(icon|apple-touch-icon)"[^>]*>\n?/g, '')
@@ -63,7 +51,7 @@ html = html.replace(/<link rel="(icon|apple-touch-icon)"[^>]*>\n?/g, '')
 const fakeKey = (code) => code.replace('if (key) {\n  // The home-screen shortcut', "key = 'preview-key-0123456789abcdef0123'\nif (key) {\n  // The home-screen shortcut")
 const common = fakeKey(read('common.js'))
 const js = read('app.js').replace("location.href = '/settings?k=' + encodeURIComponent(key)", "location.href = 'RemotePc-settings-preview.html'")
-html = html.replace('<script src="/common.js"></script>\n<script src="/app.js" defer></script>', `${stub}\n<script>${common}</script>\n<script>${js}</script>\n${pill}`)
+html = html.replace('<script src="/common.js"></script>\n<script src="/app.js" defer></script>', `${stub}\n<script>${common}</script>\n<script>${js}</script>`)
 writeFileSync(join(outDir, 'RemotePc-preview.html'), html)
 
 // The Settings page, with pretend settings kept in memory.

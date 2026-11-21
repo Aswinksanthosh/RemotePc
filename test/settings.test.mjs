@@ -384,3 +384,20 @@ test('speed: other PCs that cannot be started are not probed on every page load'
   assert.equal(first.others.find((o) => o.key === 'tuf').online, null)
   assert.equal(first.others.find((o) => o.key === 'desk').online, true)
 })
+
+test('the Windows list: a paired phone gets it, an unknown caller does not', async (t) => {
+  const dir = tempDir(t)
+  const auth = createAuth({ file: join(dir, 'p.json') })
+  const { key } = auth.add('Phone')
+  const srv = await startServer({
+    port: 0, host: '127.0.0.1', auth, pin: createPin({ file: join(dir, 'pin.json') }), config: normalizeConfig({}), webDir,
+    actions: { info: async () => ({ name: 'PC' }), run: async () => 'ok', windows: async () => [{ id: '1', name: 'chrome', title: 'YouTube', minimized: false }], avatar: async () => null, gameArt: async () => null },
+  })
+  t.after(() => srv.close())
+  const post = (k) => fetch(`http://127.0.0.1:${srv.port}/api/windows`, { method: 'POST', headers: { 'content-type': 'application/json', ...(k ? { authorization: `Bearer ${k}` } : {}) }, body: '{}' })
+  const ok = await post(key)
+  assert.equal(ok.status, 200)
+  assert.equal((await ok.json()).windows[0].title, 'YouTube')
+  assert.equal((await post('wrong-key')).status, 401)
+  assert.equal((await post('')).status, 401)
+})

@@ -247,7 +247,7 @@ function tile(name, label, fn, opts) {
   return b
 }
 
-function acc(id, title, content, iconName) {
+function acc(id, title, content, iconName, onOpen) {
   const d = el('div', 'acc' + (opened.has(id) ? ' open' : ''))
   const h = el('button', 'acc-h')
   h.type = 'button'
@@ -261,11 +261,62 @@ function acc(id, title, content, iconName) {
   h.addEventListener('click', () => {
     const o = d.classList.toggle('open')
     h.setAttribute('aria-expanded', o ? 'true' : 'false')
-    if (o) opened.add(id)
-    else opened.delete(id)
+    if (o) {
+      opened.add(id)
+      if (onOpen) onOpen()
+    } else opened.delete(id)
   })
   d.append(h, b)
   return d
+}
+
+// -- the Windows list: what is open on the PC, switch to it or close it ------------------------------------------------
+// Loaded only when the drop-down is opened (asking Windows takes a moment), kept here so a redraw of the page does not lose it.
+const winState = { list: null, loading: false, error: '' }
+let winBox = null
+async function loadWindows() {
+  if (winState.loading) return
+  winState.loading = true
+  winState.error = ''
+  drawWindows()
+  try {
+    winState.list = (await call('/api/windows')).windows
+  } catch (err) {
+    winState.error = err.message
+  }
+  winState.loading = false
+  drawWindows()
+}
+function drawWindows() {
+  if (!winBox || !winBox.isConnected) return
+  winBox.textContent = ''
+  const bar = el('div', 'winbar')
+  const refresh = btn(winState.loading ? 'Looking…' : 'Refresh', () => loadWindows(), winState.loading, undefined, winState.loading ? 'busy' : '')
+  bar.append(refresh, btn('Show desktop', () => act('desktop_toggle')))
+  winBox.append(bar)
+  if (winState.error) winBox.append(el('div', 'empty', winState.error))
+  else if (!winState.list) winBox.append(el('div', 'empty', winState.loading ? 'Asking the PC…' : 'Press Refresh to see the open windows.'))
+  else if (!winState.list.length) winBox.append(el('div', 'empty', 'No windows are open.'))
+  const list = el('div', 'list')
+  for (const w of winState.list || []) {
+    const item = el('div', 'item stack')
+    const nm = el('div', 'nm', w.title)
+    nm.append(el('small', '', (w.name || 'app') + (w.minimized ? ' · minimized' : '')))
+    item.append(nm)
+    const acts = el('div', 'acts')
+    acts.append(
+      btn('Switch', async () => {
+        await act('window_focus', w.id)
+      }, false, undefined, 'go'),
+      btn('Close', () => confirmBox('Close this window?', '"' + w.title + '" is asked to close. If it has unsaved work it may ask you first. If it is the window that runs this remote, the remote stops.', 'Close', async () => {
+        await act('window_close', w.id)
+        setTimeout(loadWindows, 1200)
+      }, true)),
+    )
+    item.append(acts)
+    list.append(item)
+  }
+  winBox.append(list)
 }
 
 function dropdown(options, value, onPick, disabled, keepLabel, onOpen) {
@@ -754,6 +805,13 @@ function render() {
     mode.append(seg)
     mode.append(el('div', 'note', 'Efficiency for downloads, Performance for games.'))
     p.append(mode)
+
+    // -- windows open on the PC --------------------------------------------------------------
+    winBox = el('div', 'winbox')
+    const winCard = el('div', 'card')
+    winCard.append(acc('windows', 'Windows', winBox, 'laptop', () => loadWindows()))
+    drawWindows()
+    p.append(winCard)
 
     // -- apps and your own buttons ---------------------------------------------------------
     const apps = pc.apps || []

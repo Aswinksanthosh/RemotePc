@@ -22,6 +22,7 @@ This program lets a phone control a PC, so it is worth knowing exactly how it is
 - **Prefer Tailscale.** Over Tailscale the traffic is encrypted end to end. On the plain home network (`lan`) the page is plain HTTP, so anyone on that same Wi-Fi could see the key as it passes. Use `lan` only at home, on a network you control.
 - **Protect your Tailscale account** with two-step sign-in: anyone who can sign in to it can join your private network (they still need a paired key to do anything).
 - **Updating runs code from GitHub.** The **Update App** button downloads the newest version of this project from the repository named in `package.json` and runs it. You are trusting the owner of that repository. If you want to review changes first, fork the project, change `repository` in `package.json`, and update from your fork.
+- **Window titles are visible to a paired phone.** The Windows list shows the title of every open window (a browser tab title can be private). The phone can bring a listed window to the front or ask it to close with the normal close message: an app with unsaved work still asks you, and nothing is ended by force. Only windows from the list just shown can be touched.
 - **A phone can turn the PC off** (after a hold or a confirmation) and **cannot turn it back on** (see [START-FROM-OFF.md](START-FROM-OFF.md)).
 
 ## What it does not protect against

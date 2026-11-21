@@ -89,3 +89,9 @@ test('the volume slider sends its level as text (the server only passes text arg
   assert.ok(js.includes("arg: String(slider.value)") && js.includes("act('volume_set', String(slider.value))"))
   assert.ok(!js.includes('Number(slider.value)'))
 })
+
+test('the Windows list is loaded only when opened, and every close asks first', () => {
+  assert.ok(js.includes("call('/api/windows')") && js.includes("acc('windows', 'Windows'") && js.includes('() => loadWindows()'))
+  assert.ok(js.includes("act('window_focus', w.id)") && js.includes("confirmBox('Close this window?'"))
+  assert.ok(js.includes("act('window_close', w.id)"))
+})
