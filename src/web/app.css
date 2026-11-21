@@ -249,3 +249,6 @@ select.field{max-width:190px}
 .player .b.pbtn.go{flex-basis:46px;width:46px;height:46px}
 .player .slider{margin:0 2px}
 .player .vollabel{flex:0 0 2.8em;font-size:.82rem}
+.timer{margin-top:10px}
+.timer-t{font-size:.78rem;color:var(--muted);margin:0 0 4px 2px;letter-spacing:.04em}
+.card:has(.dd.open),.steam:has(.dd.open){position:relative;z-index:7}

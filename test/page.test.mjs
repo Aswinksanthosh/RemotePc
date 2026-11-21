@@ -106,3 +106,8 @@ test('the player bar (previous, play, next, mute, volume slider) is pinned at th
   assert.ok(!js.includes("section('play', 'Media')"), 'the old big Media card is gone')
   assert.ok(css.includes('.player{position:sticky'), 'the bar stays on screen while scrolling')
 })
+
+test('the Power mode card has the Screen off and Sleep timers, and an open drop-down sits above the cards below it', () => {
+  assert.ok(js.includes("'Screen off after'") && js.includes("'Sleep after'") && js.includes("act('timer_set', kind + ':'"))
+  assert.ok(css.includes('.card:has(.dd.open)'))
+})

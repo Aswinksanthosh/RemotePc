@@ -453,3 +453,29 @@ test('windows: listed, switched to and closed only from the list that was just s
   assert.equal(await actions.run('desktop_toggle'), 'Show desktop.')
   await assert.rejects(lab(t, { platform: 'linux' }).actions.windows(), /Windows only/)
 })
+
+test('timers: screen and sleep timers are read in minutes, set for plugged in and battery, and only from the list', async (t) => {
+  const calls = []
+  let screen = 600
+  const query = (sub) => `Power Scheme GUID: 381b4222\n  Subgroup GUID: x  (${sub})\n    Power Setting GUID: y\n      Minimum Possible Setting: 0x00000000\n      Maximum Possible Setting: 0xffffffff\n      Possible Settings increment: 0x00000001\n      Possible Settings units: Seconds\n    Current AC Power Setting Index: 0x${screen.toString(16).padStart(8, '0')}\n    Current DC Power Setting Index: 0x0000012c\n`
+  const { actions } = lab(t)
+  const a = createActions({
+    files: { buttons: 'b', apps: 'a', games: 'g', switchLog: 's', mode: 'm' },
+    run: async (f, args) => {
+      calls.push([f, ...args].join(' '))
+      if (f === 'powercfg.exe' && args[0] === '/query') return query(args[2])
+      return ''
+    },
+    platform: 'win32', readdir: readdirSync, sleep: async () => {}, hostname: () => 'PC',
+  })
+  assert.ok(actions)
+  const info = await a.info()
+  assert.deepEqual(info.timers, { screen: 10, sleep: 10 }, 'seconds become minutes (plugged in value)')
+  assert.deepEqual(info.timerChoices.screen.at(-1), 0, 'the last choice is "never"')
+  assert.equal(await a.run('timer_set', 'screen:15'), 'Screen turns off after 15 minutes.')
+  assert.ok(calls.includes('powercfg.exe /change monitor-timeout-ac 15') && calls.includes('powercfg.exe /change monitor-timeout-dc 15'))
+  assert.equal(await a.run('timer_set', 'sleep:0'), 'PC never goes to sleep by itself.')
+  assert.ok(calls.includes('powercfg.exe /change standby-timeout-ac 0'))
+  assert.equal((await a.info()).timers.screen, 15, 'the page shows the new value at once')
+  for (const bad of ['screen:7', 'sleep:3', 'screen:-1', 'screen:5;calc', 'volume:10', '', undefined, 'screen:999']) await assert.rejects(a.run('timer_set', bad), /one of the times/, String(bad))
+})

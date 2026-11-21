@@ -890,6 +890,20 @@ function render() {
     }
     mode.append(seg)
     mode.append(el('div', 'note', 'Efficiency for downloads, Performance for games.'))
+    // The two Windows timers, always here: when the screen turns off by itself and when the PC goes to sleep by itself.
+    if (pc.timers && pc.timerChoices) {
+      const label = (m) => (m ? (m >= 60 && m % 60 === 0 ? m / 60 + (m === 60 ? ' hour' : ' hours') : m + (m === 1 ? ' minute' : ' minutes')) : 'Never')
+      for (const [kind, title] of [['screen', 'Screen off after'], ['sleep', 'Sleep after']]) {
+        const now = pc.timers[kind]
+        if (now === null || now === undefined) continue
+        const choices = pc.timerChoices[kind]
+        const row = el('div', 'timer')
+        row.append(el('div', 'timer-t', title))
+        row.append(dropdown(choices.map(label), label(now), (v) => act('timer_set', kind + ':' + choices[choices.map(label).indexOf(v)])))
+        mode.append(row)
+      }
+      mode.append(el('div', 'note', 'These are the Windows timers. A sleeping PC cannot be reached from the phone.'))
+    }
     p.append(mode)
 
     // -- windows open on the PC --------------------------------------------------------------

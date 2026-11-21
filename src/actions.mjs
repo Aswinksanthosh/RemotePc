@@ -64,6 +64,7 @@ export const ACTIONS = [
   'status',
   'update',
   'restart_remote',
+  'timer_set',
   'mode_saver',
   'mode_balanced',
   'mode_gaming',
@@ -651,6 +652,36 @@ export function createActions({
       () => [],
     )
   // The page shows which power mode was chosen last (Windows does not tell us the slider position simply).
+  // Windows idle timers: turn the screen off after N minutes, go to sleep after N minutes (0 = never). Read and set with powercfg (a small
+  // Windows program, no PowerShell). Set for both "plugged in" and "on battery", so the choice is simple.
+  const TIMERS = {
+    screen: { ac: 'monitor-timeout-ac', dc: 'monitor-timeout-dc', sub: 'SUB_VIDEO', setting: 'VIDEOIDLE', choices: [1, 2, 3, 5, 10, 15, 20, 30, 60, 0], text: (m) => (m ? `Screen turns off after ${m} minute${m === 1 ? '' : 's'}.` : 'Screen never turns off by itself.') },
+    sleep: { ac: 'standby-timeout-ac', dc: 'standby-timeout-dc', sub: 'SUB_SLEEP', setting: 'STANDBYIDLE', choices: [5, 10, 15, 20, 30, 45, 60, 120, 0], text: (m) => (m ? `PC goes to sleep after ${m} minute${m === 1 ? '' : 's'}.` : 'PC never goes to sleep by itself.') },
+  }
+  async function readTimer(kind) {
+    const t = TIMERS[kind]
+    try {
+      const out = await run('powercfg.exe', ['/query', 'SCHEME_CURRENT', t.sub, t.setting])
+      // The last two numbers are the current setting "plugged in" and "on battery", in seconds (works in every language of Windows).
+      const hex = [...out.matchAll(/0x[0-9a-f]{8}/gi)].map((m) => Number.parseInt(m[0], 16))
+      return hex.length >= 2 ? Math.round(hex.at(-2) / 60) : null
+    } catch {
+      return null
+    }
+  }
+  const timers = swr(30_000, async () => (platform === 'win32' ? { screen: await readTimer('screen'), sleep: await readTimer('sleep') } : null), now)
+  async function setTimer(arg) {
+    winOnly()
+    const m = /^(screen|sleep):(\d{1,3})$/.exec(String(arg ?? ''))
+    const t = m && TIMERS[m[1]]
+    const minutes = m ? Number(m[2]) : -1
+    if (!t || !t.choices.includes(minutes)) throw new Error('Pick one of the times in the list.')
+    await run('powercfg.exe', ['/change', t.ac, String(minutes)])
+    await run('powercfg.exe', ['/change', t.dc, String(minutes)])
+    timers.set({ ...((await timers()) ?? {}), [m[1]]: minutes })
+    return t.text(minutes)
+  }
+
   const readMode = () => {
     try {
       const m = readText(files.mode).trim()
@@ -834,6 +865,8 @@ export function createActions({
         return update()
       case 'restart_remote':
         return restart()
+      case 'timer_set':
+        return setTimer(arg)
       case 'mode_saver':
       case 'mode_balanced':
       case 'mode_gaming':
@@ -974,7 +1007,7 @@ export function createActions({
       let timer
       // One part failing never blanks the page: it just comes back empty and the rest is shown.
       const safe = (promise, empty) => Promise.resolve(promise).catch(() => empty)
-      const [modelName, steam, games, art, vol, bt, outs, apps] = await Promise.all([
+      const [modelName, steam, games, art, vol, bt, outs, apps, tm] = await Promise.all([
         safe(Promise.race([model(), new Promise((r) => (timer = setTimeout(() => r(''), 1500)))]), ''),
         safe(steamInfo(), null),
         safe(gameList(), []),
@@ -983,6 +1016,7 @@ export function createActions({
         safe(listBluetooth(), []),
         safe(listOutputs(), []),
         safe(appChoices(), new Map()),
+        safe(timers(), null),
       ])
       clearTimeout(timer)
       return {
@@ -994,6 +1028,8 @@ export function createActions({
         gameArt: art ?? [],
         buttons: Object.keys(buttons()),
         mode: readMode(),
+        timers: tm,
+        timerChoices: platform === 'win32' ? { screen: TIMERS.screen.choices, sleep: TIMERS.sleep.choices } : null,
         volume: vol,
         headphones: bt.map((d) => d.name),
         btConnected: bt.filter((d) => d.connected).map((d) => d.name),
