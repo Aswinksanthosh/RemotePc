@@ -127,3 +127,8 @@ test('a missing game can be added from the phone by its Steam number, with a PUB
   assert.ok(js.includes("'Game missing? Add it'") && js.includes("'578080|PUBG: BATTLEGROUNDS'") && js.includes("changeGames('game_add'") && js.includes("changeGames('game_remove'"))
   assert.ok(js.includes('sys.append(gameManager(pc))'))
 })
+
+test('now playing sits in the pinned player bar: title, artist, cover, progress, hidden when nothing plays', () => {
+  assert.ok(js.includes("'/api/media'") && js.includes("'/api/cover'") && js.includes("el('div', 'nowrow')") && js.includes('row.hidden = true'))
+  assert.ok(js.includes("'nowtitle'") && js.includes("'nowmeter'") && js.includes('setInterval(pollNow'))
+})

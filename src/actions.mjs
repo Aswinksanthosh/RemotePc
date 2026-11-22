@@ -7,6 +7,7 @@
  * encoded command, so no quoting of the text can change what runs.
  */
 
+import { MEDIA_COVER, MEDIA_INFO, parseMedia, pictureType } from './media.mjs'
 import { HF_STATE, hfCommand, hfSetupScript, TASK_OFF, TASK_ON } from './handsfree.mjs'
 import { execFile, spawn } from 'node:child_process'
 import { existsSync, readFileSync, statSync } from 'node:fs'
@@ -895,6 +896,25 @@ export function createActions({
     const ready = await run('schtasks.exe', ['/query', '/tn', TASK_OFF]).then(() => true, () => false)
     return { found: out === 'enabled' || out === 'disabled', cleared: out === 'disabled', ready }
   }, now)
+  // Now playing: asked at most every 3 s whatever the number of phones; the cover once per song.
+  const mediaNow = swr(3000, async () => (platform === 'win32' ? parseMedia(await ps(MEDIA_INFO, { timeout: 15_000 })) : null), now)
+  let cover = { key: '', pic: null }
+  const mediaCover = async () => {
+    const m = await mediaNow()
+    if (!m) return null
+    const key = `${m.title}|${m.artist}`
+    if (cover.key !== key) {
+      cover = { key, pic: null }
+      try {
+        const b64 = (await ps(MEDIA_COVER, { timeout: 15_000 })).trim()
+        const bytes = /^[A-Za-z0-9+/=]{20,}$/.test(b64) ? Buffer.from(b64, 'base64') : null
+        if (bytes && pictureType(bytes)) cover.pic = { type: pictureType(bytes), bytes }
+      } catch {
+        // No cover: the page shows a note symbol.
+      }
+    }
+    return cover.pic
+  }
   const outputs = swr(30_000, () => (platform === 'win32' ? listLines(AUDIO_LIST, 80) : []), now)
   const listOutputs = async () => (await outputs()) ?? []
 
@@ -1174,6 +1194,8 @@ export function createActions({
     },
     /** The windows open on this PC (for the page's Windows list). */
     windows: listWindows,
+    media: async () => (await mediaNow()) ?? null,
+    cover: mediaCover,
     /** How long each slow question to Windows takes right now (asked fresh, all at once, like the page does). For Diagnostics. */
     async timings() {
       if (platform !== 'win32') return []
@@ -1217,6 +1239,8 @@ export function createActions({
 
 /** The PowerShell snippets, so a Windows machine can check that every one of them parses (test/powershell.test.mjs). */
 export const POWERSHELL_SNIPPETS = {
+  mediaInfo: MEDIA_INFO,
+  mediaCover: MEDIA_COVER,
   handsFreeState: HF_STATE,
   handsFreeSetup: hfSetupScript(),
   handsFreeOff: hfCommand(true),

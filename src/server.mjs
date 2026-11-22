@@ -370,6 +370,8 @@ export async function startServer({
         return json(res, 404, { error: 'Not found.' })
       }
 
+      if (path === '/api/media') return json(res, 200, { media: actions?.media ? await actions.media().catch(() => null) : null })
+      if (path === '/api/cover') return sendPicture(res, actions?.cover ? await actions.cover().catch(() => null) : null, 30)
       if (path === '/api/avatar') return sendPicture(res, actions ? await actions.avatar() : null, 60)
       if (path === '/api/gameart') return sendPicture(res, actions ? await actions.gameArt(String(body.game ?? '').slice(0, 100)) : null, 300)
 

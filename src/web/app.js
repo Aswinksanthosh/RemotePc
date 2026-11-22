@@ -774,10 +774,98 @@ function favoritesStrip(pc) {
 
 // The player bar: always at the top (it stays on screen while you scroll). Previous, play or pause, next, mute and the volume slider in ONE row.
 // A PC that cannot report its volume level keeps three small volume keys instead of the slider.
+// -- now playing (read only: what Windows shows in its own media pop-up) -------------------------
+const nowState = { media: null, key: '', cover: '', at: 0, busy: false }
+function fmtTime(sec) {
+  const s = Math.max(0, Math.floor(sec))
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0')
+}
+function nowPos() {
+  const m = nowState.media
+  return m ? Math.min(m.end || 0, m.pos + (m.playing ? (Date.now() - nowState.at) / 1000 : 0)) : 0
+}
+function drawNow() {
+  const row = document.querySelector('.nowrow')
+  if (!row) return
+  const m = nowState.media
+  if (!m) {
+    row.hidden = true
+    row.dataset.key = ''
+    return
+  }
+  row.hidden = false
+  const key = m.title + '|' + m.artist
+  if (row.dataset.key !== key) {
+    row.dataset.key = key
+    row.textContent = ''
+    const art = el('div', 'nowart')
+    art.append(icon('note'))
+    const txt = el('div', 'nowtxt')
+    txt.append(el('div', 'nowtitle', m.title), el('div', 'nowartist', m.artist))
+    const prog = el('div', 'nowprog')
+    const meter = el('div', 'nowmeter')
+    meter.append(el('i'))
+    prog.append(el('span', 'nowt1', '0:00'), meter, el('span', 'nowt2', '0:00'))
+    txt.append(prog)
+    row.append(art, txt)
+  }
+  row.classList.toggle('playing', m.playing)
+  const art = row.querySelector('.nowart')
+  if (nowState.cover && art.dataset.cover !== nowState.cover) {
+    art.dataset.cover = nowState.cover
+    art.style.backgroundImage = 'url("' + nowState.cover + '")'
+    art.textContent = ''
+  } else if (!nowState.cover && art.dataset.cover) {
+    delete art.dataset.cover
+    art.style.backgroundImage = ''
+    art.append(icon('note'))
+  }
+  const pos = nowPos()
+  row.querySelector('.nowt1').textContent = fmtTime(pos)
+  row.querySelector('.nowt2').textContent = m.end ? fmtTime(m.end) : ''
+  row.querySelector('.nowmeter i').style.width = (m.end ? Math.min(100, (pos / m.end) * 100) : 0) + '%'
+}
+async function pollNow() {
+  if (document.hidden || nowState.busy || !data || !data.pc || !data.pc.control) return
+  nowState.busy = true
+  try {
+    const j = await call('/api/media')
+    nowState.media = j && j.media ? j.media : null
+    nowState.at = Date.now()
+    const key = nowState.media ? nowState.media.title + '|' + nowState.media.artist : ''
+    if (key !== nowState.key) {
+      nowState.key = key
+      if (nowState.cover) URL.revokeObjectURL(nowState.cover)
+      nowState.cover = ''
+      if (key) {
+        try {
+          const blob = await call('/api/cover')
+          if (blob && nowState.key === key) nowState.cover = URL.createObjectURL(blob)
+        } catch (e) {
+          // No cover: a note symbol is shown.
+        }
+      }
+    }
+  } catch (e) {
+    nowState.media = null
+  }
+  nowState.busy = false
+  drawNow()
+}
+setInterval(pollNow, 4000)
+setInterval(drawNow, 1000)
+setTimeout(pollNow, 800)
+
 function playerBar(pc) {
   const bar = el('div', 'card player')
+  const now = el('div', 'nowrow')
+  now.hidden = true
+  bar.append(now)
   const mk = (name, action, label, cls) => {
-    const b = btn(label, () => act(action), false, undefined, 'pbtn' + (cls ? ' ' + cls : ''))
+    const b = btn(label, () => {
+      act(action)
+      setTimeout(pollNow, 1000)
+    }, false, undefined, 'pbtn' + (cls ? ' ' + cls : ''))
     b.textContent = ''
     b.append(icon(name))
     b.title = label
@@ -826,6 +914,7 @@ function playerBar(pc) {
   } else {
     bar.append(mk('voldown', 'volume_down', 'Volume down'), mk('mute', 'mute', 'Mute'), mk('volup', 'volume_up', 'Volume up'))
   }
+  setTimeout(drawNow, 0)
   return bar
 }
 

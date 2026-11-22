@@ -45,6 +45,8 @@ window.fetch = function (url, opts) {
   if (String(url).indexOf('/api/windows') >= 0) {
     return json({ windows: [{ id: '1', name: 'brave', title: 'YouTube - Brave', minimized: false }, { id: '2', name: 'Spotify', title: 'Spotify Premium', minimized: true }, { id: '3', name: 'Discord', title: 'Discord | #general', minimized: false }, { id: '4', name: 'notepad', title: 'notes.txt - Notepad', minimized: false }] })
   }
+  if (String(url).indexOf('/api/media') >= 0) return json({ media: { title: 'Blinding Lights', artist: 'The Weeknd', playing: true, pos: 84, end: 200 } })
+  if (String(url).indexOf('/api/cover') >= 0) return Promise.resolve(new Response('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff4fa3"/><stop offset="1" stop-color="#6a5cff"/></linearGradient></defs><rect width="10" height="10" fill="url(#g)"/><circle cx="5" cy="5" r="2.2" fill="#0b0b12"/></svg>', { status: 200, headers: { 'content-type': 'image/svg+xml' } }))
   if (String(url).indexOf('/api/do') >= 0) {
     return json({ message: 'Preview: ' + body.action + (body.arg ? ' (' + body.arg + ')' : '') + '. Nothing was really done.' })
   }

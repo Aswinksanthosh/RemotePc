@@ -293,3 +293,17 @@ select.field{max-width:190px}
 .batt.low .meter i{background:#ff6b6b}
 .batt span{opacity:.8;white-space:nowrap}
 .batt.plugged svg{color:#38d27a;animation:pulse 2s infinite;border-radius:50%}
+
+/* ---- now playing (inside the pinned player bar) ---- */
+.player{flex-wrap:wrap}
+.nowrow{flex:1 1 100%;display:flex;align-items:center;gap:10px;padding:2px 2px 6px}
+.nowrow[hidden]{display:none}
+.nowart{flex:0 0 52px;width:52px;height:52px;border-radius:12px;background:rgba(255,255,255,.1) center/cover no-repeat;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px -6px #000}
+.nowart svg{width:24px;height:24px;opacity:.8}
+.nowrow.playing .nowart{animation:ping 2.4s infinite}
+.nowtxt{flex:1;min-width:0}
+.nowtitle{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nowartist{font-size:.85rem;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nowprog{display:flex;align-items:center;gap:8px;margin-top:4px;font-size:.72rem;opacity:.85;font-variant-numeric:tabular-nums}
+.nowmeter{flex:1;height:5px;border-radius:99px;background:rgba(255,255,255,.14);overflow:hidden}
+.nowmeter i{display:block;height:100%;border-radius:99px;background:var(--a);transition:width 1s linear}

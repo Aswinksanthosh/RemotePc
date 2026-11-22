@@ -236,3 +236,8 @@ Tests: swr sharing/parallel/stale, timings, volume coalescing, gzip+ETag+304, pr
 ## Battery in Power mode + livelier buttons (owner, 2026-11-22: "Keep it, add the animations")
 - Battery % + bar + plug icon (green, pulsing when plugged in; battery icon, red <=20% on battery) moved from under the laptop name into the Power mode card (.batt, icons plug/bat in common.js).
 - Buttons: spring on press, icon wiggle, light ripple, brightness on hover; cards slide in one after another; selected power mode glows. All off with prefers-reduced-motion (existing rule). README screenshots retaken.
+
+## Now playing (owner, 2026-11-22: "go, build the Now playing card"; chose: inside the pinned player bar; cover + title/artist + progress bar; hidden when nothing plays)
+- src/media.mjs: PowerShell reads Windows media controls (SMTC: GlobalSystemMediaTransportControlsSessionManager) -> title, artist, status, pos, end; cover as base64 (<=1.5 MB, only real PNG/JPEG/WEBP by first bytes). Read only, any player (Spotify, browser, VLC).
+- actions.media() = swr 3 s; actions.cover() = once per song. Server routes POST /api/media (json) and /api/cover (picture, 204 if none), paired phone only. NOT part of info() (slow WinRT call), the page polls every 4 s while visible and moves the bar each second itself; prev/play/next re-poll after 1 s.
+- Not tested on real Windows (SMTC script parse is checked by CI on Windows). Owner to check: play music, press Update icon, the bar shows song + cover.
