@@ -41,7 +41,7 @@ export function parseVdf(text) {
 
 /** Things in steamapps that are not games. */
 const NOT_GAMES = new Set(['228980', '1070560', '1391110', '1493710', '1628350', '1826330'])
-const NOT_GAME_NAME = /^(steamworks common|steam linux runtime|proton\b|steam voice|steamvr performance)/i
+const NOT_GAME_NAME = /^(steamworks common|steam linux runtime|proton\b|steam voice|steamvr performance)|\b(dedicated server|redistributables?)\b/i
 
 /** The folders that hold Steam games: Steam's own folder plus every extra library from libraryfolders.vdf. */
 export function libraryFolders(steamPath, readText = (f) => readFileSync(f, 'utf8')) {
@@ -60,9 +60,12 @@ export function libraryFolders(steamPath, readText = (f) => readFileSync(f, 'utf
 }
 
 /** Installed games: [{ appid, name }], sorted by name. */
-export function scanGames(steamPath, { readText = (f) => readFileSync(f, 'utf8'), readdir = readdirSync } = {}) {
+export function scanGames(steamPath, { readText = (f) => readFileSync(f, 'utf8'), readdir = readdirSync, extraLibraries = [] } = {}) {
   const found = new Map()
-  for (const lib of libraryFolders(steamPath, readText)) {
+  // The libraries Steam lists, plus any folder found on the drives that Steam's file does not mention.
+  const libs = libraryFolders(steamPath, readText)
+  for (const extra of extraLibraries) if (typeof extra === 'string' && extra && !libs.some((l) => l.toLowerCase() === extra.toLowerCase())) libs.push(extra)
+  for (const lib of libs) {
     let files = []
     try {
       files = readdir(join(lib, 'steamapps'))
@@ -84,6 +87,55 @@ export function scanGames(steamPath, { readText = (f) => readFileSync(f, 'utf8')
     }
   }
   return [...found.values()].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+}
+
+/**
+ * Steam keeps its own list of installed apps in the registry (HKCU\Software\Valve\Steam\Apps\<appid>: Installed, Name), whichever drive a
+ * game is on. Parses `reg query ...\Apps /s` into [{ appid, name }] for the apps Steam says are installed (and that have a name).
+ */
+export function parseRegApps(text) {
+  const out = []
+  let current = null
+  const flush = () => {
+    if (current?.installed && current.name && !NOT_GAMES.has(current.appid) && !NOT_GAME_NAME.test(current.name)) out.push({ appid: current.appid, name: current.name })
+  }
+  for (const raw of String(text ?? '').split(/\r?\n/)) {
+    const header = /\\Valve\\Steam\\Apps\\(\d{1,10})\s*$/i.exec(raw.trim())
+    if (header) {
+      flush()
+      current = { appid: header[1], installed: false, name: '' }
+      continue
+    }
+    if (!current) continue
+    const installed = /^\s*Installed\s+REG_DWORD\s+0x([0-9a-f]+)\s*$/i.exec(raw)
+    if (installed) current.installed = Number.parseInt(installed[1], 16) === 1
+    // eslint-disable-next-line no-control-regex -- control characters are removed on purpose
+    const name = /^\s*Name\s+REG_SZ\s+(.+?)\s*$/i.exec(raw)
+    if (name) current.name = name[1].replace(/[\u0000-\u001f]/g, '').trim().slice(0, 80)
+  }
+  flush()
+  return out
+}
+
+/**
+ * Folders where a Steam library usually is, on every drive: Steam asks for "X:\SteamLibrary" by default when you add a drive. Only
+ * folders that really have a steamapps folder are returned. `drives` are letters like "D:".
+ */
+export function driveLibraryCandidates(drives, exists) {
+  const names = ['SteamLibrary', 'Steam', 'Games\\SteamLibrary', 'Games\\Steam', 'Program Files (x86)\\Steam', 'Program Files\\Steam', 'SteamLibrary\\Steam']
+  const out = []
+  for (const d of drives) {
+    if (!/^[A-Za-z]:$/.test(d)) continue
+    for (const n of names) {
+      const dir = `${d}\\${n}`
+      try {
+        if (exists(join(dir, 'steamapps'))) out.push(dir)
+      } catch {
+        // Unreadable: skip.
+      }
+    }
+  }
+  return out
 }
 
 /** games.json: { "name": appid }. The owner's own entries, for games Steam does not list. Odd entries are ignored. */

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { ACTIONS, APP_CANDIDATES, cleanModel, createActions, knownButtons, knownCustomApps, knownFavorites } from '../src/actions.mjs'
 import { tempDir, writeTree } from './helpers.mjs'
@@ -560,4 +560,68 @@ test('games added by Steam number: saved in games.json, in the list at once, and
   assert.match(await actions.run('game_remove', 'PUBG: BATTLEGROUNDS'), /removed from the list/)
   assert.deepEqual(JSON.parse(readFileSync(files.games, 'utf8')), {})
   await assert.rejects(actions.run('game_remove', 'Hades'), /not one you added/)
+})
+
+test('games: found from Steam files, from Steam\'s own registry list and from library folders on other drives, without duplicates', async (t) => {
+  const steam = join(tempDir(t), 'Steam')
+  const drive = join(tempDir(t), 'D:')
+  writeTree(steam, { 'steam.exe': '', 'steamapps/appmanifest_1145360.acf': manifest(1145360, 'Hades') })
+  // A library on another drive that libraryfolders.vdf does not mention.
+  const other = join(drive, 'SteamLibrary')
+  writeTree(other, { 'steamapps/appmanifest_730.acf': manifest(730, 'Counter-Strike 2') })
+  const regApps = [
+    'HKEY_CURRENT_USER\\Software\\Valve\\Steam\\Apps\\578080', '    Installed    REG_DWORD    0x1', '    Name    REG_SZ    PUBG: BATTLEGROUNDS', '',
+    'HKEY_CURRENT_USER\\Software\\Valve\\Steam\\Apps\\1145360', '    Installed    REG_DWORD    0x1', '    Name    REG_SZ    Hades', '',
+    'HKEY_CURRENT_USER\\Software\\Valve\\Steam\\Apps\\228980', '    Installed    REG_DWORD    0x1', '    Name    REG_SZ    Steamworks Common Redistributables', '',
+    'HKEY_CURRENT_USER\\Software\\Valve\\Steam\\Apps\\99', '    Installed    REG_DWORD    0x0', '    Name    REG_SZ    Not Installed Game', '',
+  ].join('\r\n')
+  const home = tempDir(t)
+  const a = createActions({
+    files: { buttons: join(home, 'b.json'), apps: join(home, 'a.json'), games: join(home, 'g.json'), switchLog: join(home, 's.log'), mode: join(home, 'm') },
+    run: async (f, args) => {
+      if (f === 'reg.exe' && args[1] === 'HKCU\\Software\\Valve\\Steam' && args.includes('SteamPath')) return `    SteamPath    REG_SZ    ${steam}\n`
+      if (f === 'reg.exe' && args[1] === 'HKCU\\Software\\Valve\\Steam\\Apps') return regApps
+      if (f === 'powershell.exe' && decode(args).includes('Win32_LogicalDisk')) return `${drive.split('D:')[0]}`.length ? 'D:\r\n' : ''
+      return ''
+    },
+    platform: 'win32', readdir: readdirSync, sleep: async () => {}, hostname: () => 'PC',
+    // The drive letter "D:" is mapped to the temporary folder for this test.
+    exists: (p) => existsSync(String(p).replace(/^D:\\/, `${drive}/`).replaceAll('\\', '/')),
+  })
+  const info = await a.info()
+  assert.ok(info.games.includes('PUBG: BATTLEGROUNDS'), 'found through Steam\'s own list')
+  assert.ok(info.games.includes('Hades'), 'found through the library files')
+  assert.equal(info.games.filter((n) => n === 'Hades').length, 1, 'no duplicates')
+  assert.ok(!info.games.includes('Steamworks Common Redistributables') && !info.games.includes('Not Installed Game'))
+  const src = await a.gameSources()
+  assert.equal(src.steam, 2, 'Steam\'s own list: PUBG and Hades (the tool and the not installed one are skipped)')
+  assert.equal(src.files, 1, 'library files: Hades (the other drive folder is not found because the fake path cannot be listed)')
+})
+
+test('steam discovery helpers: the registry list and the library folders on other drives', async () => {
+  const { parseRegApps, driveLibraryCandidates } = await import('../src/steam.mjs')
+  const reg = ['HKEY_CURRENT_USER\\Software\\Valve\\Steam\\Apps', '', 'HKEY_CURRENT_USER\\Software\\Valve\\Steam\\Apps\\578080', '    Installed    REG_DWORD    0x1', '    Name    REG_SZ    PUBG: BATTLEGROUNDS', '    Updating    REG_DWORD    0x0', '',
+    'HKEY_CURRENT_USER\\Software\\Valve\\Steam\\Apps\\730', '    Installed    REG_DWORD    0x1', '    Name    REG_SZ    Counter-Strike 2', '',
+    'HKEY_CURRENT_USER\\Software\\Valve\\Steam\\Apps\\1', '    Name    REG_SZ    No installed flag', '',
+    'HKEY_CURRENT_USER\\Software\\Valve\\Steam\\Apps\\2', '    Installed    REG_DWORD    0x1', '',
+    'HKEY_CURRENT_USER\\Software\\Valve\\Steam\\Apps\\3', '    Installed    REG_DWORD    0x1', '    Name    REG_SZ    CS Dedicated Server'].join('\r\n')
+  assert.deepEqual(parseRegApps(reg), [{ appid: '578080', name: 'PUBG: BATTLEGROUNDS' }, { appid: '730', name: 'Counter-Strike 2' }])
+  assert.deepEqual(parseRegApps(''), [])
+  assert.deepEqual(parseRegApps(undefined), [])
+  const there = new Set(['D:\\SteamLibrary/steamapps', 'D:\\SteamLibrary\\steamapps', 'E:\\Games\\Steam\\steamapps', 'E:\\Games\\Steam/steamapps'])
+  const found = driveLibraryCandidates(['C:', 'D:', 'E:', 'bad', '\\\\server'], (p) => there.has(p))
+  assert.ok(found.some((f) => f.startsWith('D:') && f.endsWith('SteamLibrary')))
+  assert.ok(found.some((f) => f.startsWith('E:') && f.includes('Steam')))
+  assert.ok(!found.some((f) => f.startsWith('C:')))
+  assert.deepEqual(driveLibraryCandidates(['D:'], () => { throw new Error('unreadable') }), [], 'an unreadable drive never breaks the search')
+})
+
+test('a failing game lookup leaves an empty list, never a blank page', async (t) => {
+  const { actions } = lab(t)
+  const home = tempDir(t)
+  const broken = createActions({ files: { buttons: join(home, 'b'), apps: join(home, 'a'), games: join(home, 'g'), switchLog: join(home, 's'), mode: join(home, 'm') }, run: async () => { throw new Error('reg failed') }, platform: 'win32', readdir: () => { throw new Error('disk') }, exists: () => { throw new Error('boom') }, sleep: async () => {}, hostname: () => 'PC' })
+  const info = await broken.info()
+  assert.equal(info.name, 'PC')
+  assert.deepEqual(info.games, [])
+  assert.ok(actions)
 })

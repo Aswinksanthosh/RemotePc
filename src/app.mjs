@@ -114,6 +114,15 @@ export async function startApp({
         lines.push(`${r.level === 'ok' ? '[ OK ]' : r.level === 'warn' ? '[ !! ]' : '[FAIL]'} ${r.name}: ${r.detail}`)
         if (r.fix) lines.push(`        -> ${r.fix}`)
       }
+      // Where the game list comes from: the number of games each source found (a source with 0 while another has many points at the problem).
+      if (actions?.gameSources) {
+        try {
+          const g = await actions.gameSources()
+          if (g) lines.push(`[ OK ] Games found: ${g.total} in the list (library files ${g.files}, Steam's own list ${g.steam}, added by hand ${g.added}${g.otherDrives.length ? `, extra library folders on drives: ${g.otherDrives.join(' ')}` : ''})`)
+        } catch {
+          // No games line.
+        }
+      }
       // How long the slow Windows questions take right now (the page waits for the slowest one the first time it asks).
       if (actions?.timings) {
         try {

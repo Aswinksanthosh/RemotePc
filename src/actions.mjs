@@ -19,6 +19,8 @@ import {
   parseSteamLogin,
   parseSteamUsers,
   regValue,
+  parseRegApps,
+  driveLibraryCandidates,
   scanGames,
   setMostRecent,
   steamIdFromAccountNumber,
@@ -380,6 +382,9 @@ public static class RspAudio {
 [RspAudio]::Set($id)`
 
 // Charge of this laptop's own battery: "percent|BatteryStatus" (nothing on a PC without a battery). Status 1, 4, 5 = on battery; 2, 3, 6 to 9, 11 = plugged in.
+// The drive letters of fixed and removable disks (a Steam library may be on any of them).
+const DRIVES = String.raw`Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3 OR DriveType=2' -ErrorAction SilentlyContinue | ForEach-Object { $_.DeviceID }`
+
 const BATTERY = String.raw`$b = Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue | Select-Object -First 1
 if ($b) { "$($b.EstimatedChargeRemaining)|$($b.BatteryStatus)" }`
 
@@ -523,13 +528,24 @@ export function createActions({
     return guesses.find((p) => exists(join(p, 'steam.exe'))) ?? ''
   }, now)
 
-  const gameList = swr(60_000, async () => {
+  // Where Steam games are found, from three independent places so one gap does not hide a game:
+  //  1. the game files (appmanifest) in every library folder Steam lists, plus library folders found on the drives that it does not list;
+  //  2. Steam's own list of installed apps in the registry (names included, whichever drive the game is on);
+  //  3. the games the owner added by hand (games.json).
+  const driveLetters = swr(10 * 60_000, async () => (platform === 'win32' ? (await ps(DRIVES, { timeout: 15_000 })).split(/\r?\n/).map((l) => l.trim()).filter((l) => /^[A-Za-z]:$/.test(l)) : []), now)
+  async function discoverGames() {
     const path = await steamPath()
-    const scanned = path ? scanGames(path, { readText, readdir }) : []
+    const otherDrives = platform === 'win32' ? driveLibraryCandidates((await driveLetters()) ?? [], exists) : []
+    const scanned = path ? scanGames(path, { readText, readdir, extraLibraries: otherDrives }) : []
+    const fromSteam = platform === 'win32' ? parseRegApps(await run('reg.exe', ['query', 'HKCU\\Software\\Valve\\Steam\\Apps', '/s']).catch(() => '')) : []
+    const byId = new Map()
+    for (const g of [...scanned, ...fromSteam]) if (!byId.has(g.appid)) byId.set(g.appid, g)
     const byName = new Map()
-    for (const g of [...scanned, ...extraGames(files.games, readText)]) if (!byName.has(g.name.toLowerCase())) byName.set(g.name.toLowerCase(), g)
-    return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
-  }, now)
+    for (const g of [...byId.values(), ...extraGames(files.games, readText)]) if (!byName.has(g.name.toLowerCase())) byName.set(g.name.toLowerCase(), g)
+    const list = [...byName.values()].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+    return { list, files: scanned.length, steam: fromSteam.length, otherDrives, added: extraGames(files.games, readText).length }
+  }
+  const gameList = swr(60_000, async () => (await discoverGames()).list, now)
 
   const findGame = async (arg) => {
     const wanted = String(arg ?? '').trim().toLowerCase()
@@ -1104,7 +1120,7 @@ export function createActions({
         model: modelName,
         version,
         update: updateInfo(),
-        games: games.map((g) => g.name),
+        games: (games ?? []).map((g) => g.name),
         gameArt: art ?? [],
         buttons: Object.keys(buttons()),
         mode: readMode(),
@@ -1113,14 +1129,20 @@ export function createActions({
         timers: tm,
         timerChoices: platform === 'win32' ? { screen: TIMERS.screen.choices, sleep: TIMERS.sleep.choices } : null,
         volume: vol,
-        headphones: bt.map((d) => d.name),
-        btConnected: bt.filter((d) => d.connected).map((d) => d.name),
-        btBattery: Object.fromEntries(bt.filter((d) => d.connected && d.battery).map((d) => [d.name, d.battery])),
+        headphones: (bt ?? []).map((d) => d.name),
+        btConnected: (bt ?? []).filter((d) => d.connected).map((d) => d.name),
+        btBattery: Object.fromEntries((bt ?? []).filter((d) => d.connected && d.battery).map((d) => [d.name, d.battery])),
         battery: bat,
-        outputs: outs,
-        apps: [...apps.values()].map((c) => c.label),
+        outputs: outs ?? [],
+        apps: [...(apps ?? new Map()).values()].map((c) => c.label),
         steam: steam ? { user: steam.user, playing: steam.playing, id: steam.id, avatar: Boolean(steam.id && steam.path), accounts: steam.accounts.map(({ id, name }) => ({ id, name })) } : null,
       }
+    },
+    /** How many games each source found right now (for Diagnostics). */
+    async gameSources() {
+      if (platform !== 'win32') return null
+      const d = await discoverGames()
+      return { files: d.files, steam: d.steam, otherDrives: d.otherDrives, added: d.added, total: d.list.length }
     },
     /** The windows open on this PC (for the page's Windows list). */
     windows: listWindows,
@@ -1174,6 +1196,7 @@ export const POWERSHELL_SNIPPETS = {
   battery: BATTERY,
   startNames: START_NAMES,
   startApp: startAppScript("Some 'App'", false),
+  drives: DRIVES,
   windowsList: windowsScript('list'),
   windowsFocus: windowsScript('focus', '123'),
   toggleDesktop: TOGGLE_DESKTOP,

@@ -221,3 +221,9 @@ Tests: swr sharing/parallel/stale, timings, volume coalescing, gzip+ETag+304, pr
 
 ## Add a missing game from the phone (owner, 2026-11-22: PUBG not in the drop-down; "run that code using a diagnostic button, I do not want to touch the laptop")
 - The phone still cannot run commands (a design rule). Instead: System card > "Game missing? Add it": one-tap "Add PUBG (578080)" or name + Steam number; saved in games.json ({name: appid}) by actions game_add (arg "appid|name") / game_remove (arg name); info.customGames; the game list is now an swr cache refreshed at once after a change. List of added games with Remove. Cause of the missing PUBG still unknown: the Fix-It "Steam libraries" line will tell.
+
+## Automatic Steam game discovery (owner, 2026-11-22: "this website will be used by many persons... I want the program to automatically find every game from the Steam library")
+- Games now come from three sources, merged (by appid, then by name): (1) Steam's own registry list HKCU\Software\Valve\Steam\Apps (Installed=1 + Name) via parseRegApps, which works whichever drive a game is on; (2) appmanifest files in every library of libraryfolders.vdf PLUS drive-root folders (X:\SteamLibrary, X:\Steam, X:\Games\SteamLibrary, ...) found by driveLibraryCandidates on every fixed/removable drive; (3) games.json manual entries.
+- NOT_GAME_NAME filters tools (Steamworks Common, Proton, Linux Runtime, dedicated servers, redistributables).
+- gameList is an swr cache (60 s); a failed lookup returns undefined, so info() keeps `?? []` defaults (tested).
+- Diagnostics has a "Games found" line (count per source). The manual "Game missing? Add it" form stays as a last resort.
