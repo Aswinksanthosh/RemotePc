@@ -64,6 +64,7 @@ export const ACTIONS = [
   'status',
   'update',
   'restart_remote',
+  'favorite_set',
   'timer_set',
   'mode_saver',
   'mode_balanced',
@@ -101,6 +102,17 @@ export function knownButtons(file, readText = (f) => readFileSync(f, 'utf8')) {
 }
 
 /** Apps you added yourself in apps.json: { "button name": "exact name in the Start menu" }. */
+/** Favourite Bluetooth devices and sound outputs: { bt: [names], out: [names] }, kept in favorites.json. Anything odd is ignored. */
+export function knownFavorites(file, readText = (f) => readFileSync(f, 'utf8')) {
+  const clean = (v) => (Array.isArray(v) ? [...new Set(v.filter((x) => typeof x === 'string' && x.trim() && x.length <= 80).map((x) => x.trim()))].slice(0, 8) : [])
+  try {
+    const raw = JSON.parse(readText(file))
+    return { bt: clean(raw?.bt), out: clean(raw?.out) }
+  } catch {
+    return { bt: [], out: [] }
+  }
+}
+
 export function knownCustomApps(file, readText = (f) => readFileSync(f, 'utf8')) {
   const out = {}
   try {
@@ -682,6 +694,24 @@ export function createActions({
     return t.text(minutes)
   }
 
+  // Favourites (stars): a device or output can be starred only if it is in the list this PC shows right now. Saved in favorites.json.
+  async function setFavorite(arg) {
+    const m = /^(bt|out)\|([01])\|(.{1,80})$/s.exec(String(arg ?? ''))
+    if (!m) throw new Error('Unknown favourite.')
+    const [, kind, flag, rawName] = m
+    const name = rawName.trim()
+    const known = kind === 'bt' ? await listHeadphones() : await listOutputs()
+    const real = known.find((n) => n.toLowerCase() === name.toLowerCase())
+    const fav = knownFavorites(files.favorites, readText)
+    if (flag === '1' && !real) throw new Error('That device is not in the list of this PC right now.')
+    const without = fav[kind].filter((n) => n.toLowerCase() !== name.toLowerCase())
+    if (flag === '1' && without.length >= 8) throw new Error('That is plenty of favourites: remove one first.')
+    fav[kind] = flag === '1' ? [...without, real] : without
+    if (!files.favorites) throw new Error('Favourites cannot be saved here.')
+    writeAtomic(files.favorites, `${JSON.stringify(fav, null, 2)}\n`)
+    return flag === '1' ? `${real} is a favourite now.` : `${name} is not a favourite any more.`
+  }
+
   const readMode = () => {
     try {
       const m = readText(files.mode).trim()
@@ -865,6 +895,8 @@ export function createActions({
         return update()
       case 'restart_remote':
         return restart()
+      case 'favorite_set':
+        return setFavorite(arg)
       case 'timer_set':
         return setTimer(arg)
       case 'mode_saver':
@@ -1028,6 +1060,7 @@ export function createActions({
         gameArt: art ?? [],
         buttons: Object.keys(buttons()),
         mode: readMode(),
+        favorites: knownFavorites(files.favorites, readText),
         timers: tm,
         timerChoices: platform === 'win32' ? { screen: TIMERS.screen.choices, sleep: TIMERS.sleep.choices } : null,
         volume: vol,

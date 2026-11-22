@@ -32,6 +32,7 @@ export function dataPaths(home = process.env.REMORTSTARTPC_HOME || join(homedir(
     launcher: join(home, 'start.ps1'),
     buttons: join(home, 'buttons.json'),
     apps: join(home, 'apps.json'),
+    favorites: join(home, 'favorites.json'),
     games: join(home, 'games.json'),
     pcs: join(home, 'pcs.json'),
     mode: join(home, 'power-mode.txt'),

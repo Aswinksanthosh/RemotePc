@@ -649,6 +649,61 @@ function offerUpdate(pc) {
   confirmBox('A new version is ready', 'Update now? The app restarts by itself and the page comes back in about 15 seconds.', 'Yes, update', () => act('update'))
 }
 
+// A star that marks a Bluetooth device or a sound output as a favourite (kept on the PC, so every phone sees it).
+function starBtn(kind, name, isFav) {
+  const b = el('button', 'star' + (isFav ? ' on' : ''))
+  b.type = 'button'
+  b.title = isFav ? 'Remove from favourites' : 'Add to favourites'
+  b.setAttribute('aria-label', b.title + ': ' + name)
+  b.setAttribute('aria-pressed', isFav ? 'true' : 'false')
+  b.append(icon('star'))
+  b.addEventListener('click', async (e) => {
+    e.stopPropagation()
+    await act('favorite_set', kind + '|' + (isFav ? '0' : '1') + '|' + name)
+    lastSig = ''
+    refresh()
+  })
+  return b
+}
+
+// Favourites: starred Bluetooth devices and sound outputs, one tap each, shown without opening the drop-downs.
+// A Bluetooth favourite connects (or disconnects when it is connected); an output favourite switches the sound to it.
+function favoritesStrip(pc) {
+  const fav = pc.favorites || { bt: [], out: [] }
+  const heads = pc.headphones || []
+  const outs = pc.outputs || []
+  const on = pc.btConnected || []
+  const chips = []
+  for (const name of fav.bt) {
+    if (!heads.includes(name)) continue
+    const isOn = on.includes(name)
+    const c = btn(name, () => act(isOn ? 'bt_disconnect' : 'bt_connect', name), false, undefined, 'chip' + (isOn ? ' on' : ''))
+    c.textContent = ''
+    c.title = isOn ? 'Connected: tap to disconnect' : 'Tap to connect'
+    c.append(icon('bluetooth'), el('span', 'chip-t', name), el('small', '', isOn ? 'connected' : 'connect'))
+    chips.push(c)
+  }
+  for (const name of fav.out) {
+    if (!outs.includes(name)) continue
+    const isOn = picked.out === name
+    const c = btn(name, () => {
+      picked.out = name
+      act('audio_set', name)
+    }, false, undefined, 'chip' + (isOn ? ' on' : ''))
+    c.textContent = ''
+    c.title = 'Play the sound here'
+    c.append(icon('speaker'), el('span', 'chip-t', name), el('small', '', isOn ? 'playing here' : 'play here'))
+    chips.push(c)
+  }
+  if (!chips.length) return null
+  const box = el('div', 'card favs')
+  box.append(section('star', 'Favourites'))
+  const row = el('div', 'chips')
+  row.append(...chips)
+  box.append(row)
+  return box
+}
+
 // The player bar: always at the top (it stays on screen while you scroll). Previous, play or pause, next, mute and the volume slider in ONE row.
 // A PC that cannot report its volume level keeps three small volume keys instead of the slider.
 function playerBar(pc) {
@@ -779,6 +834,8 @@ function render() {
     powerCard = quick
 
     p.append(playerBar(pc))
+    const favBox = favoritesStrip(pc)
+    if (favBox) p.append(favBox)
 
     // -- steam ---------------------------------------------------------------------------
     const games = pc.games || []
@@ -839,6 +896,7 @@ function render() {
         const item = el('div', 'item stack' + (isOn ? ' connected' : ''))
         const ic = el('div', 'ic')
         ic.append(icon('bluetooth'))
+        item.append(starBtn('bt', name, ((pc.favorites || {}).bt || []).includes(name)))
         const nm = el('div', 'nm', name)
         nm.append(el('small', 'btstat' + (isOn ? ' on' : ''), isOn ? 'Connected' : 'Not connected'))
         item.append(ic, nm)
@@ -866,12 +924,14 @@ function render() {
         const ic = el('span', 'ic')
         ic.append(icon(/blue|buds|pods|head/i.test(name) ? 'bluetooth' : 'speaker'))
         o.append(ic, el('span', 'nm', name), el('span', 'tick'))
+        const row = el('div', 'optrow')
         o.addEventListener('click', () => {
           picked.out = name
-          for (const x of list.children) x.classList.toggle('on', x === o)
+          for (const x of list.querySelectorAll('.opt')) x.classList.toggle('on', x === o)
           act('audio_set', name)
         })
-        list.append(o)
+        row.append(o, starBtn('out', name, ((pc.favorites || {}).out || []).includes(name)))
+        list.append(row)
       }
       sndIn.append(list)
       sndIn.append(el('div', 'note', 'Bluetooth earbuds appear here once they are connected.'))

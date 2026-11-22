@@ -252,3 +252,21 @@ select.field{max-width:190px}
 .timer{margin-top:10px}
 .timer-t{font-size:.78rem;color:var(--muted);margin:0 0 4px 2px;letter-spacing:.04em}
 .card:has(.dd.open),.steam:has(.dd.open){position:relative;z-index:7}
+/* favourites: stars in the lists, and a strip of one-tap chips under the player bar */
+.star{background:none;border:0;color:var(--muted);padding:6px;cursor:pointer;line-height:0;border-radius:50%;flex:0 0 auto}
+.star svg.i{width:22px;height:22px}
+.star.on{color:#ffcf3f}
+.star.on svg path{fill:#ffcf3f}
+.item.stack{position:relative}
+.item.stack>.star{position:absolute;top:8px;right:8px}
+.optrow{display:flex;align-items:center;gap:4px}
+.optrow .opt{flex:1;min-width:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.b.chip{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;flex:1 1 auto;min-width:0;max-width:100%}
+.b.chip svg.i{width:18px;height:18px;flex:0 0 auto}
+.b.chip .chip-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.b.chip small{opacity:.75;font-size:.72rem;white-space:nowrap}
+.b.chip.on{background:linear-gradient(135deg,var(--a),var(--a2));color:#fff}
+.optrow .opt{width:auto}
+.item.stack>.nm{padding-right:38px}
+.item.stack>.acts{padding-right:0}

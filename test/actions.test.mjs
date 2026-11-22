@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ACTIONS, APP_CANDIDATES, cleanModel, createActions, knownButtons, knownCustomApps } from '../src/actions.mjs'
+import { ACTIONS, APP_CANDIDATES, cleanModel, createActions, knownButtons, knownCustomApps, knownFavorites } from '../src/actions.mjs'
 import { tempDir, writeTree } from './helpers.mjs'
 
 const decode = (args) => Buffer.from(args.at(-1), 'base64').toString('utf16le')
@@ -478,4 +478,31 @@ test('timers: screen and sleep timers are read in minutes, set for plugged in an
   assert.ok(calls.includes('powercfg.exe /change standby-timeout-ac 0'))
   assert.equal((await a.info()).timers.screen, 15, 'the page shows the new value at once')
   for (const bad of ['screen:7', 'sleep:3', 'screen:-1', 'screen:5;calc', 'volume:10', '', undefined, 'screen:999']) await assert.rejects(a.run('timer_set', bad), /one of the times/, String(bad))
+})
+
+test('favourites: stars for Bluetooth devices and sound outputs, saved on the PC, only for things in the current lists', async (t) => {
+  const { files } = lab(t)
+  const fav = join(files.buttons, '..', 'favorites.json')
+  const a = createActions({
+    files: { ...files, favorites: fav },
+    run: async (f, args) => {
+      if (f === 'powershell.exe') {
+        const script = decode(args)
+        if (script.includes('Get-PnpDeviceProperty')) return 'AirPods\tFalse\nBuds\tTrue\n'
+        if (script.includes('AudioEndpoint')) return 'Speakers\nBuds Stereo\n'
+      }
+      return ''
+    },
+    platform: 'win32', readdir: readdirSync, sleep: async () => {}, hostname: () => 'PC',
+  })
+  assert.deepEqual((await a.info()).favorites, { bt: [], out: [] })
+  assert.match(await a.run('favorite_set', 'bt|1|buds'), /Buds is a favourite now/)
+  assert.match(await a.run('favorite_set', 'out|1|Speakers'), /Speakers is a favourite now/)
+  assert.deepEqual(JSON.parse(readFileSync(fav, 'utf8')), { bt: ['Buds'], out: ['Speakers'] }, 'saved with the real name')
+  assert.deepEqual((await a.info()).favorites, { bt: ['Buds'], out: ['Speakers'] })
+  assert.match(await a.run('favorite_set', 'bt|0|BUDS'), /not a favourite any more/)
+  assert.deepEqual((await a.info()).favorites.bt, [])
+  for (const bad of ['bt|1|Some Mouse', 'x|1|Buds', 'bt|2|Buds', 'bt|1|', '', undefined, 'bt|1|' + 'a'.repeat(100)]) await assert.rejects(a.run('favorite_set', bad), /Unknown favourite|not in the list/, String(bad))
+  assert.deepEqual(knownFavorites('x', () => 'not json'), { bt: [], out: [] })
+  assert.deepEqual(knownFavorites('x', () => JSON.stringify({ bt: ['A', 'A', 5, '', 'B'], out: 'no' })), { bt: ['A', 'B'], out: [] })
 })
