@@ -90,3 +90,8 @@ test('package.json names the repository the updater and the installer use', () =
   assert.ok(text('README.md').includes(`raw.githubusercontent.com/${slug}/main/install.ps1`), 'the README one-liner uses it too')
   assert.equal(pkg.dependencies, undefined, 'no dependencies: nothing to npm install')
 })
+
+test('uninstall also removes the two Clear sound tasks', () => {
+  const src = readFileSync(join(root, 'bin', 'uninstall.mjs'), 'utf8')
+  assert.ok(src.includes('TASK_ON') && src.includes("'/delete'"))
+})

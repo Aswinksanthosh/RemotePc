@@ -307,3 +307,6 @@ select.field{max-width:190px}
 .nowprog{display:flex;align-items:center;gap:8px;margin-top:4px;font-size:.72rem;opacity:.85;font-variant-numeric:tabular-nums}
 .nowmeter{flex:1;height:5px;border-radius:99px;background:rgba(255,255,255,.14);overflow:hidden}
 .nowmeter i{display:block;height:100%;border-radius:99px;background:var(--a);transition:width 1s linear}
+
+/* keyboard users: a clear ring on whatever has focus */
+:focus-visible{outline:3px solid #fff;outline-offset:2px;box-shadow:0 0 0 5px var(--a)}

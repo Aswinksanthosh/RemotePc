@@ -684,3 +684,21 @@ test('now playing: title, artist and progress from Windows media controls; the c
   const linux = lab(t, { platform: 'linux' })
   assert.equal(await linux.actions.media(), null)
 })
+
+test('problems: a Windows question that fails is remembered for Diagnostics, and clears when it works again', async (t) => {
+  let broken = true
+  const { actions } = lab(t, { ps: { IRspEndpointVolume: () => { if (broken) throw new Error('Audio service is not running'); return 'vol:40 mute:0\n' } } })
+  const log = console.log
+  console.log = () => {}
+  try {
+    await actions.info()
+    const found = actions.problems().find((p) => p.what === 'volume')
+    assert.ok(found, 'the failing question is listed')
+    assert.match(found.message, /Audio service is not running/)
+    broken = false
+    await actions.timings()
+    assert.equal(actions.problems().some((p) => p.what === 'volume'), false, 'a later success clears it')
+  } finally {
+    console.log = log
+  }
+})

@@ -132,3 +132,8 @@ test('now playing sits in the pinned player bar: title, artist, cover, progress,
   assert.ok(js.includes("'/api/media'") && js.includes("'/api/cover'") && js.includes("el('div', 'nowrow')") && js.includes('row.hidden = true'))
   assert.ok(js.includes("'nowtitle'") && js.includes("'nowmeter'") && js.includes('setInterval(pollNow'))
 })
+
+test('accessibility: the player bar buttons, mute, slider and song progress have names, and focus is visible', () => {
+  assert.ok(js.includes("b.setAttribute('aria-label', label)") && js.includes("'Media and volume'") && js.includes("'progressbar'") && js.includes('aria-valuetext'))
+  assert.ok(css.includes(':focus-visible'))
+})

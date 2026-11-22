@@ -241,3 +241,10 @@ Tests: swr sharing/parallel/stale, timings, volume coalescing, gzip+ETag+304, pr
 - src/media.mjs: PowerShell reads Windows media controls (SMTC: GlobalSystemMediaTransportControlsSessionManager) -> title, artist, status, pos, end; cover as base64 (<=1.5 MB, only real PNG/JPEG/WEBP by first bytes). Read only, any player (Spotify, browser, VLC).
 - actions.media() = swr 3 s; actions.cover() = once per song. Server routes POST /api/media (json) and /api/cover (picture, 204 if none), paired phone only. NOT part of info() (slow WinRT call), the page polls every 4 s while visible and moves the bar each second itself; prev/play/next re-poll after 1 s.
 - Not tested on real Windows (SMTC script parse is checked by CI on Windows). Owner to check: play music, press Update icon, the bar shows song + cover.
+
+## Health check fixes (owner, 2026-11-22: "find top problems... fix #5 uninstall tasks, #4 hidden errors, #6 accessibility, #2 verified updates"; wants the review repeated on every project: HEALTH-CHECK.md)
+- Correction to an earlier claim: the updater ALREADY keeps `.old` and restores it on failure (rollback exists).
+- #5 bin/uninstall.mjs deletes the RemotePc-HandsFree-On/Off tasks (schtasks /delete, failure ignored).
+- #4 actions.mjs: `failures` map + `track(name, fn)` wraps the swr/memo Windows questions (drives, games, Start menu apps, timers, now playing, sound outputs, Bluetooth, battery, Clear sound state; volume records its own failure and still returns null). actions.problems() -> Diagnostics lines "Could not read X (n s ago): why"; first failure of each name also goes to the service log. A later success clears it.
+- #6 page: aria-labels on player buttons/mute (aria-pressed), region label on the bar, progressbar role + valuetext for the song, slider valuetext, global :focus-visible ring.
+- HEALTH-CHECK.md = the reusable checklist (copy it into any project; ask "do the health check").

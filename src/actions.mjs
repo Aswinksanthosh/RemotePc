@@ -524,6 +524,23 @@ export function createActions({
 
   // -- Steam -------------------------------------------------------------------------
 
+  // Which Windows questions failed lately (shown in Diagnostics): name -> { message, at }. A success clears the entry.
+  const failures = new Map()
+  const failed = (name, err) => {
+    const message = String(err?.message ?? err).replace(/\s+/g, ' ').slice(0, 160)
+    if (!failures.has(name)) console.log(`[remote] could not read ${name}: ${message}`)
+    failures.set(name, { message, at: now() })
+  }
+  const track = (name, fn) => async () => {
+    try {
+      const v = await fn()
+      failures.delete(name)
+      return v
+    } catch (err) {
+      failed(name, err)
+      throw err
+    }
+  }
   const steamPath = memo(10 * 60_000, async () => {
     if (platform !== 'win32') return ''
     const fromRegistry = regValue(await run('reg.exe', ['query', 'HKCU\\Software\\Valve\\Steam', '/v', 'SteamPath']).catch(() => ''), 'SteamPath')
@@ -535,7 +552,7 @@ export function createActions({
   //  1. the game files (appmanifest) in every library folder Steam lists, plus library folders found on the drives that it does not list;
   //  2. Steam's own list of installed apps in the registry (names included, whichever drive the game is on);
   //  3. the games the owner added by hand (games.json).
-  const driveLetters = swr(10 * 60_000, async () => (platform === 'win32' ? (await ps(DRIVES, { timeout: 15_000 })).split(/\r?\n/).map((l) => l.trim()).filter((l) => /^[A-Za-z]:$/.test(l)) : []), now)
+  const driveLetters = swr(10 * 60_000, track('drives', async () => (platform === 'win32' ? (await ps(DRIVES, { timeout: 15_000 })).split(/\r?\n/).map((l) => l.trim()).filter((l) => /^[A-Za-z]:$/.test(l)) : [])), now)
   async function discoverGames() {
     const path = await steamPath()
     const otherDrives = platform === 'win32' ? driveLibraryCandidates((await driveLetters()) ?? [], exists) : []
@@ -548,7 +565,7 @@ export function createActions({
     const list = [...byName.values()].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
     return { list, files: scanned.length, steam: fromSteam.length, otherDrives, added: extraGames(files.games, readText).length }
   }
-  const gameList = swr(60_000, async () => (await discoverGames()).list, now)
+  const gameList = swr(60_000, track('games', async () => (await discoverGames()).list), now)
 
   const findGame = async (arg) => {
     const wanted = String(arg ?? '').trim().toLowerCase()
@@ -654,7 +671,7 @@ export function createActions({
 
   // -- apps ---------------------------------------------------------------------------
 
-  const startNames = swr(5 * 60_000, async () => (await ps(START_NAMES, { timeout: 20_000 })).split(/\r?\n/).map((l) => l.trim()).filter(Boolean), now)
+  const startNames = swr(5 * 60_000, track('Start menu apps', async () => (await ps(START_NAMES, { timeout: 20_000 })).split(/\r?\n/).map((l) => l.trim()).filter(Boolean)), now)
 
   /** The apps this PC can open: built-in ones that are installed, and your own from apps.json. */
   async function appChoices() {
@@ -703,7 +720,7 @@ export function createActions({
       return null
     }
   }
-  const timers = swr(30_000, async () => (platform === 'win32' ? { screen: await readTimer('screen'), sleep: await readTimer('sleep') } : null), now)
+  const timers = swr(30_000, track('sleep and screen timers', async () => (platform === 'win32' ? { screen: await readTimer('screen'), sleep: await readTimer('sleep') } : null)), now)
   async function setTimer(arg) {
     winOnly()
     const m = /^(screen|sleep):(\d{1,3})$/.exec(String(arg ?? ''))
@@ -767,11 +784,11 @@ export function createActions({
   }
 
   // The laptop's own battery, asked at most every 30 s (nothing on a PC that has none).
-  const laptopBattery = swr(30_000, async () => {
+  const laptopBattery = swr(30_000, track('battery', async () => {
     if (platform !== 'win32') return null
     const m = /^(\d{1,3})\|(\d{1,2})$/.exec((await ps(BATTERY)).trim())
     return m && Number(m[1]) <= 100 ? { percent: Number(m[1]), onBattery: [1, 4, 5].includes(Number(m[2])) } : null
-  }, now)
+  }), now)
 
   const readMode = () => {
     try {
@@ -842,7 +859,7 @@ export function createActions({
     return m ? { level: Math.min(100, Number(m[1])), muted: m[2] === '1' } : null
   }
   // Reading the level compiles a small program, so it is slow: asked at most every 10 s, and the old answer is shown meanwhile.
-  const volume = swr(10_000, () => (platform === 'win32' ? ps(volumeScript('get'), { timeout: 10_000 }).then(parseVol, () => null) : null), now)
+  const volume = swr(10_000, () => (platform === 'win32' ? ps(volumeScript('get'), { timeout: 10_000 }).then((o) => (failures.delete('volume'), parseVol(o)), (e) => (failed('volume', e), null)) : null), now)
   const readVolume = () => volume()
   // Dragging the slider sends many levels in a row, and every change starts a slow Windows program. So at most ONE runs at a time, and
   // while it runs only the newest wanted level is remembered: the last position always wins and the PC is not flooded.
@@ -886,18 +903,18 @@ export function createActions({
     return [...byName].map(([name, v]) => ({ name, connected: v.connected, battery: v.battery }))
   }
   // The check asks Windows about every paired device (slow): at most every 30 s, the old list is shown meanwhile. A connect or disconnect asks for a fresh one.
-  const bluetooth = swr(30_000, () => (platform === 'win32' ? loadBluetooth() : []), now)
+  const bluetooth = swr(30_000, track('Bluetooth', () => (platform === 'win32' ? loadBluetooth() : [])), now)
   const listBluetooth = async (fresh = false) => (await (fresh ? bluetooth.fresh() : bluetooth())) ?? []
   const listHeadphones = async () => (await listBluetooth()).map((d) => d.name)
   // "Clear sound": the Hands-Free devices of the earbuds. { found, cleared, ready } (ready = the one-time admin setup was done).
-  const handsFree = swr(15_000, async () => {
+  const handsFree = swr(15_000, track('Clear sound state', async () => {
     if (platform !== 'win32') return null
     const out = (await ps(HF_STATE, { timeout: 15_000 })).trim().split(/\r?\n/).at(-1)
     const ready = await run('schtasks.exe', ['/query', '/tn', TASK_OFF]).then(() => true, () => false)
     return { found: out === 'enabled' || out === 'disabled', cleared: out === 'disabled', ready }
-  }, now)
+  }), now)
   // Now playing: asked at most every 3 s whatever the number of phones; the cover once per song.
-  const mediaNow = swr(3000, async () => (platform === 'win32' ? parseMedia(await ps(MEDIA_INFO, { timeout: 15_000 })) : null), now)
+  const mediaNow = swr(3000, track('now playing', async () => (platform === 'win32' ? parseMedia(await ps(MEDIA_INFO, { timeout: 15_000 })) : null)), now)
   let cover = { key: '', pic: null }
   const mediaCover = async () => {
     const m = await mediaNow()
@@ -915,7 +932,7 @@ export function createActions({
     }
     return cover.pic
   }
-  const outputs = swr(30_000, () => (platform === 'win32' ? listLines(AUDIO_LIST, 80) : []), now)
+  const outputs = swr(30_000, track('sound outputs', () => (platform === 'win32' ? listLines(AUDIO_LIST, 80) : [])), now)
   const listOutputs = async () => (await outputs()) ?? []
 
   // -- the actions --------------------------------------------------------------------
@@ -1196,6 +1213,8 @@ export function createActions({
     windows: listWindows,
     media: async () => (await mediaNow()) ?? null,
     cover: mediaCover,
+    /** Windows questions that failed lately, for Diagnostics: [{ what, message, seconds }]. */
+    problems: () => [...failures].map(([what, f]) => ({ what, message: f.message, seconds: Math.round((now() - f.at) / 1000) })),
     /** How long each slow question to Windows takes right now (asked fresh, all at once, like the page does). For Diagnostics. */
     async timings() {
       if (platform !== 'win32') return []

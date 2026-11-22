@@ -804,6 +804,8 @@ function drawNow() {
     txt.append(el('div', 'nowtitle', m.title), el('div', 'nowartist', m.artist))
     const prog = el('div', 'nowprog')
     const meter = el('div', 'nowmeter')
+    meter.setAttribute('role', 'progressbar')
+    meter.setAttribute('aria-label', 'Song progress')
     meter.append(el('i'))
     prog.append(el('span', 'nowt1', '0:00'), meter, el('span', 'nowt2', '0:00'))
     txt.append(prog)
@@ -823,6 +825,9 @@ function drawNow() {
   const pos = nowPos()
   row.querySelector('.nowt1').textContent = fmtTime(pos)
   row.querySelector('.nowt2').textContent = m.end ? fmtTime(m.end) : ''
+  const meterEl = row.querySelector('.nowmeter')
+  meterEl.setAttribute('aria-valuenow', String(Math.round(m.end ? Math.min(100, (pos / m.end) * 100) : 0)))
+  meterEl.setAttribute('aria-valuetext', fmtTime(pos) + (m.end ? ' of ' + fmtTime(m.end) : ''))
   row.querySelector('.nowmeter i').style.width = (m.end ? Math.min(100, (pos / m.end) * 100) : 0) + '%'
 }
 async function pollNow() {
@@ -858,6 +863,8 @@ setTimeout(pollNow, 800)
 
 function playerBar(pc) {
   const bar = el('div', 'card player')
+  bar.setAttribute('role', 'region')
+  bar.setAttribute('aria-label', 'Media and volume')
   const now = el('div', 'nowrow')
   now.hidden = true
   bar.append(now)
@@ -869,12 +876,15 @@ function playerBar(pc) {
     b.textContent = ''
     b.append(icon(name))
     b.title = label
+    b.setAttribute('aria-label', label)
     return b
   }
   bar.append(mk('prev', 'media_prev', 'Previous'), mk('play', 'media_playpause', 'Play or pause', 'go'), mk('next', 'media_next', 'Next'))
   if (pc.volume) {
     const mute = btn(pc.volume.muted ? 'Sound is muted: tap to turn it on' : 'Mute', () => act('mute_set', pc.volume.muted ? 'off' : 'on'), false, undefined, 'pbtn' + (pc.volume.muted ? ' on' : ''))
     mute.textContent = ''
+    mute.setAttribute('aria-label', pc.volume.muted ? 'Sound is muted: tap to turn it on' : 'Mute')
+    mute.setAttribute('aria-pressed', pc.volume.muted ? 'true' : 'false')
     mute.append(icon(pc.volume.muted ? 'mute' : 'volup'))
     const slider = el('input', 'slider')
     slider.type = 'range'
@@ -884,7 +894,10 @@ function playerBar(pc) {
     slider.value = String(pc.volume.level)
     slider.setAttribute('aria-label', 'Volume')
     const label = el('div', 'vollabel', pc.volume.muted ? 'Muted' : pc.volume.level + '%')
-    const fill = () => slider.style.setProperty('--fill', slider.value + '%')
+    const fill = () => {
+      slider.style.setProperty('--fill', slider.value + '%')
+      slider.setAttribute('aria-valuetext', slider.value + ' percent')
+    }
     fill()
     slider.addEventListener('pointerdown', () => {
       document.body.dataset.gesture = 'volume'

@@ -135,6 +135,8 @@ export async function startApp({
           // No timing line.
         }
       }
+      // Windows questions that failed lately (otherwise the page just shows less, with no word why).
+      for (const f of actions?.problems?.() ?? []) lines.push(`[ !! ] Could not read ${f.what} (${f.seconds} s ago): ${f.message}`)
       if (d.log) lines.push('', 'Last lines of the remote log:', ...d.log.split('\n').map((l) => `  ${l}`))
       return { lines, problems: d.problems }
     },
