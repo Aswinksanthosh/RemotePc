@@ -114,6 +114,7 @@ test('the Power mode card has the Screen off and Sleep timers, and an open drop-
 
 test('favourites: stars in the Bluetooth and sound output lists, and a one-tap strip under the player bar', () => {
   assert.ok(js.includes('function starBtn') && js.includes("act('favorite_set'") && js.includes("starBtn('bt', name") && js.includes("starBtn('out', name"))
-  assert.ok(js.indexOf('p.append(playerBar(pc))') < js.indexOf('favoritesStrip(pc)') && js.indexOf('favoritesStrip(pc)') < js.indexOf("const steam = el('div', 'steam')"), 'the strip is under the player bar and above Steam')
+  const call = js.indexOf('const favBox = favoritesStrip(pc)')
+  assert.ok(js.indexOf('p.append(playerBar(pc))') < call && call < js.indexOf("const steam = el('div', 'steam')"), 'the strip is under the player bar and above Steam')
   assert.ok(js.includes("act(isOn ? 'bt_disconnect' : 'bt_connect', name)") && js.includes("act('audio_set', name)"))
 })
