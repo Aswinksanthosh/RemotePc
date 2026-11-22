@@ -846,7 +846,6 @@ function render() {
   chip.append(el('span', 'dot'), el('span', '', helper ? 'helper (starts other PCs)' : 'online'))
   txt.append(chip)
   // The laptop's own battery (nothing on a PC that has none).
-  if (pc.battery) txt.append(el('div', 'model', 'Battery ' + pc.battery.percent + '%' + (pc.battery.onBattery ? ' · on battery' : ' · plugged in')))
   const bits = [pc.model, data.version ? 'version ' + data.version : ''].filter(Boolean).join('  ·  ')
   if (bits) txt.append(el('div', 'model', bits))
   top.append(txt)
@@ -1026,6 +1025,18 @@ function render() {
     const seg = el('div', 'seg')
     for (const [k, label, ic] of [['saver', 'Efficiency', 'leaf'], ['balanced', 'Balanced', 'balance'], ['gaming', 'Performance', 'bolt']]) {
       seg.append(tile(ic, label, run('mode_' + k), { cls: pc.mode === k ? 'on' : '' }))
+    }
+    // Battery and plug status, right with the power mode.
+    if (pc.battery) {
+      const b = pc.battery
+      const bar = el('div', 'batt' + (b.onBattery ? '' : ' plugged') + (b.percent <= 20 && b.onBattery ? ' low' : ''))
+      bar.append(icon(b.onBattery ? 'bat' : 'plug'))
+      const meter = el('div', 'meter')
+      const fill = el('i')
+      fill.style.width = Math.max(0, Math.min(100, b.percent)) + '%'
+      meter.append(fill)
+      bar.append(el('b', '', b.percent + '%'), meter, el('span', '', b.onBattery ? 'On battery' : 'Plugged in'))
+      mode.append(bar)
     }
     mode.append(seg)
     mode.append(el('div', 'note', 'Efficiency for downloads, Performance for games.'))

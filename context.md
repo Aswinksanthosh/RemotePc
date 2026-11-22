@@ -232,3 +232,7 @@ Tests: swr sharing/parallel/stale, timings, volume coalescing, gzip+ETag+304, pr
 - Owner chose: ONE switch for all earbuds, in the Bluetooth card; one-time admin setup (Bluetooth-Sound-Setup.cmd -> bin/handsfree-setup.mjs -> src/handsfree.mjs). Earbuds' own mic stops working while it is on (told to the owner); toggle off for calls.
 - Windows needs admin to disable the Hands-Free PnP devices (BTHENUM\{0000111E/F...} or name "*Hands-Free*"). Setup creates two scheduled tasks RemotePc-HandsFree-On/Off (current user, RunLevel Highest, FIXED encoded command). The phone action handsfree_set (arg on/off only) just runs `schtasks /run /tn <task>`, then polls up to 8 s for the real state. info.handsFree = { found, cleared, ready }.
 - NOT tested on real Windows (Linux mock only). Uninstall does not remove the two tasks (needs admin): hfRemoveScript exists for that. Owner to check: run setup on a laptop, press Update icon, Bluetooth card shows Clear sound.
+
+## Battery in Power mode + livelier buttons (owner, 2026-11-22: "Keep it, add the animations")
+- Battery % + bar + plug icon (green, pulsing when plugged in; battery icon, red <=20% on battery) moved from under the laptop name into the Power mode card (.batt, icons plug/bat in common.js).
+- Buttons: spring on press, icon wiggle, light ripple, brightness on hover; cards slide in one after another; selected power mode glows. All off with prefers-reduced-motion (existing rule). README screenshots retaken.
