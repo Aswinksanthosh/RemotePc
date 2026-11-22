@@ -9,7 +9,7 @@ import { loadConfig } from './config.mjs'
 import { listAddresses } from './net.mjs'
 import { createAuth } from './auth.mjs'
 import { createPin } from './pin.mjs'
-import { scanGames } from './steam.mjs'
+import { libraryFolders, scanGames } from './steam.mjs'
 import { regValue } from './steam.mjs'
 import { FIREWALL_RULE, TASK_NAME } from './paths.mjs'
 import { BT_LIST } from './actions.mjs'
@@ -83,6 +83,18 @@ export async function runDoctor({
       const steam = regValue(await run('reg.exe', ['query', 'HKCU\\Software\\Valve\\Steam', '/v', 'SteamPath']), 'SteamPath')
       const games = steam ? scanGames(steam, { readText, readdir: readdirSync }) : []
       add('Steam', steam ? 'ok' : 'warn', steam ? `${games.length} installed game${games.length === 1 ? '' : 's'} found` : 'Steam not found (the Steam buttons stay empty)')
+      if (steam) {
+        // Where the games are: every Steam library folder and how many game files it has (a game on a drive Steam does not list is missed).
+        const libs = libraryFolders(steam, readText).map((dir) => {
+          try {
+            const n = readdirSync(join(dir, 'steamapps')).filter((f) => /^appmanifest_\d+\.acf$/.test(f)).length
+            return `${dir} (${n} game${n === 1 ? '' : 's'})`
+          } catch {
+            return `${dir} (folder not found)`
+          }
+        })
+        add('Steam libraries', 'ok', libs.join('; '), libs.some((l) => l.includes('not found')) ? 'A library folder Steam knows about cannot be read: is that drive connected?' : '')
+      }
     } catch {
       add('Steam', 'warn', 'Steam not found (the Steam buttons stay empty)')
     }
