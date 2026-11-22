@@ -118,3 +118,7 @@ test('favourites: stars in the Bluetooth and sound output lists, and a one-tap s
   assert.ok(js.indexOf('p.append(playerBar(pc))') < call && call < js.indexOf("const steam = el('div', 'steam')"), 'the strip is under the player bar and above Steam')
   assert.ok(js.includes("act(isOn ? 'bt_disconnect' : 'bt_connect', name)") && js.includes("act('audio_set', name)"))
 })
+
+test('battery: the laptop charge is under the name in the header and the earbud charge in the Bluetooth list and favourites', () => {
+  assert.ok(js.includes("'Battery ' + pc.battery.percent") && js.includes("' · battery ' + pct") && js.includes("pct ? ' · ' + pct"))
+})

@@ -506,3 +506,23 @@ test('favourites: stars for Bluetooth devices and sound outputs, saved on the PC
   assert.deepEqual(knownFavorites('x', () => 'not json'), { bt: [], out: [] })
   assert.deepEqual(knownFavorites('x', () => JSON.stringify({ bt: ['A', 'A', 5, '', 'B'], out: 'no' })), { bt: ['A', 'B'], out: [] })
 })
+
+test('battery: the laptop charge and the charge of connected Bluetooth devices, only when Windows reports them', async (t) => {
+  const { actions } = lab(t, { ps: { 'Win32_Battery': '78|2\n', 'Get-PnpDeviceProperty': 'Buds\tTrue\t85\nAirPods\tFalse\t\nMouse\tTrue\t\nOdd\tTrue\t250\n' } })
+  const info = await actions.info()
+  assert.deepEqual(info.battery, { percent: 78, onBattery: false }, 'status 2 = plugged in')
+  assert.deepEqual(info.btBattery, { Buds: 85 }, 'only connected devices with a sensible number')
+  const onBat = lab(t, { ps: { 'Win32_Battery': '41|1\n' } })
+  assert.deepEqual((await onBat.actions.info()).battery, { percent: 41, onBattery: true })
+  const desktop = lab(t, { ps: { 'Win32_Battery': '' } })
+  assert.equal((await desktop.actions.info()).battery, null, 'a PC without a battery shows nothing')
+  const none = lab(t, { ps: { 'Win32_Battery': 'garbage' } })
+  assert.equal((await none.actions.info()).battery, null)
+})
+
+test('status: a PC without a battery does not report "Battery 0%"', async (t) => {
+  const { actions } = lab(t, { ps: { 'Win32_Battery': '' } })
+  assert.ok(!/Battery/.test(await actions.run('status')))
+  const withBattery = lab(t, { ps: { 'Win32_Battery': '64|1\n' } })
+  assert.match(await withBattery.actions.run('status'), /Battery 64% \(on battery\)/)
+})

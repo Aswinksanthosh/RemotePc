@@ -680,7 +680,8 @@ function favoritesStrip(pc) {
     const c = btn(name, () => act(isOn ? 'bt_disconnect' : 'bt_connect', name), false, undefined, 'chip' + (isOn ? ' on' : ''))
     c.textContent = ''
     c.title = isOn ? 'Connected: tap to disconnect' : 'Tap to connect'
-    c.append(icon('bluetooth'), el('span', 'chip-t', name), el('small', '', isOn ? 'connected' : 'connect'))
+    const pct = (pc.btBattery || {})[name]
+    c.append(icon('bluetooth'), el('span', 'chip-t', name), el('small', '', isOn ? 'connected' + (pct ? ' · ' + pct + '%' : '') : 'connect'))
     chips.push(c)
   }
   for (const name of fav.out) {
@@ -777,6 +778,8 @@ function render() {
   const chip = el('div', 'chip')
   chip.append(el('span', 'dot'), el('span', '', helper ? 'helper (starts other PCs)' : 'online'))
   txt.append(chip)
+  // The laptop's own battery (nothing on a PC that has none).
+  if (pc.battery) txt.append(el('div', 'model', 'Battery ' + pc.battery.percent + '%' + (pc.battery.onBattery ? ' · on battery' : ' · plugged in')))
   const bits = [pc.model, data.version ? 'version ' + data.version : ''].filter(Boolean).join('  ·  ')
   if (bits) txt.append(el('div', 'model', bits))
   top.append(txt)
@@ -898,7 +901,8 @@ function render() {
         ic.append(icon('bluetooth'))
         item.append(starBtn('bt', name, ((pc.favorites || {}).bt || []).includes(name)))
         const nm = el('div', 'nm', name)
-        nm.append(el('small', 'btstat' + (isOn ? ' on' : ''), isOn ? 'Connected' : 'Not connected'))
+        const pct = (pc.btBattery || {})[name]
+        nm.append(el('small', 'btstat' + (isOn ? ' on' : ''), (isOn ? 'Connected' : 'Not connected') + (isOn && pct ? ' · battery ' + pct + '%' : '')))
         item.append(ic, nm)
         const acts = el('div', 'acts')
         acts.append(btn('Connect', () => act('bt_connect', name), false, undefined, isOn ? '' : 'go'), btn('Disconnect', () => act('bt_disconnect', name), false, undefined, isOn ? 'go' : ''))

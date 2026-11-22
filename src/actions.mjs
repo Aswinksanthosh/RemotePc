@@ -179,7 +179,7 @@ if ($g.Count) {
 // Bluetooth headphones. Paired devices are listed from Windows; connecting or disconnecting asks Windows to
 // switch the audio services (music, calls) of ONE device, found by its exact name. Nothing else is touched.
 // One line per paired device: its name, a tab, and whether Windows says it is connected right now (any of its entries counts).
-export const BT_LIST = String.raw`Get-PnpDevice -Class Bluetooth -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -match '^(BTHENUM|BTHLE)\\DEV_' -and $_.FriendlyName } | ForEach-Object { $c = (Get-PnpDeviceProperty -InstanceId $_.InstanceId -KeyName '{83DA6326-97A6-4088-9453-A1923F573B29} 15' -ErrorAction SilentlyContinue).Data; $_.FriendlyName + [char]9 + [string]([bool]$c) } | Sort-Object -Unique`
+export const BT_LIST = String.raw`Get-PnpDevice -Class Bluetooth -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -match '^(BTHENUM|BTHLE)\\DEV_' -and $_.FriendlyName } | ForEach-Object { $c = (Get-PnpDeviceProperty -InstanceId $_.InstanceId -KeyName '{83DA6326-97A6-4088-9453-A1923F573B29} 15' -ErrorAction SilentlyContinue).Data; $b = ''; if ($c) { $b = (Get-PnpDeviceProperty -InstanceId $_.InstanceId -KeyName '{104EA319-6EE2-4701-BD47-8DDBF425BBE5} 2' -ErrorAction SilentlyContinue).Data }; $_.FriendlyName + [char]9 + [string]([bool]$c) + [char]9 + $b } | Sort-Object -Unique`
 
 // The simple older check (names only, no connection state): used when the first one finds nothing, so the list is never empty by accident.
 export const BT_NAMES = String.raw`Get-PnpDevice -Class Bluetooth -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -match '^(BTHENUM|BTHLE)\\DEV_' -and $_.FriendlyName } | ForEach-Object { $_.FriendlyName } | Sort-Object -Unique`
@@ -377,6 +377,7 @@ public static class RspAudio {
 '@
 [RspAudio]::Set($id)`
 
+// Charge of this laptop's own battery: "percent|BatteryStatus" (nothing on a PC without a battery). Status 1, 4, 5 = on battery; 2, 3, 6 to 9, 11 = plugged in.
 const BATTERY = String.raw`$b = Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue | Select-Object -First 1
 if ($b) { "$($b.EstimatedChargeRemaining)|$($b.BatteryStatus)" }`
 
@@ -712,6 +713,13 @@ export function createActions({
     return flag === '1' ? `${real} is a favourite now.` : `${name} is not a favourite any more.`
   }
 
+  // The laptop's own battery, asked at most every 30 s (nothing on a PC that has none).
+  const laptopBattery = swr(30_000, async () => {
+    if (platform !== 'win32') return null
+    const m = /^(\d{1,3})\|(\d{1,2})$/.exec((await ps(BATTERY)).trim())
+    return m && Number(m[1]) <= 100 ? { percent: Number(m[1]), onBattery: [1, 4, 5].includes(Number(m[2])) } : null
+  }, now)
+
   const readMode = () => {
     try {
       const m = readText(files.mode).trim()
@@ -815,12 +823,14 @@ export function createActions({
     if (!lines.length) lines = (await listLines(BT_NAMES, 60)).map((n) => `${n}\tFalse`)
     const byName = new Map()
     for (const l of lines) {
-      const [rawName, state] = l.split('\t')
+      const [rawName, state, rawBattery] = l.split('\t')
       const name = (rawName ?? '').trim()
       if (!name || name.length > 40) continue
-      byName.set(name, byName.get(name) === true || /^true$/i.test((state ?? '').trim()))
+      const before = byName.get(name) ?? { connected: false, battery: null }
+      const pct = Number.parseInt(String(rawBattery ?? '').trim(), 10)
+      byName.set(name, { connected: before.connected || /^true$/i.test((state ?? '').trim()), battery: before.battery ?? (Number.isInteger(pct) && pct > 0 && pct <= 100 ? pct : null) })
     }
-    return [...byName].map(([name, connected]) => ({ name, connected }))
+    return [...byName].map(([name, v]) => ({ name, connected: v.connected, battery: v.battery }))
   }
   // The check asks Windows about every paired device (slow): at most every 30 s, the old list is shown meanwhile. A connect or disconnect asks for a fresh one.
   const bluetooth = swr(30_000, () => (platform === 'win32' ? loadBluetooth() : []), now)
@@ -976,9 +986,8 @@ export function createActions({
       // No NVIDIA tool: skip the GPU part.
     }
     try {
-      const out = (await ps(BATTERY)).trim()
-      const [pct, st] = out.split('|').map(Number)
-      if (Number.isFinite(pct)) parts.push(`Battery ${pct}% (${[1, 4, 5].includes(st) ? 'on battery' : 'plugged in'})`)
+      const m = /^(\d{1,3})\|(\d{1,2})$/.exec((await ps(BATTERY)).trim())
+      if (m && Number(m[1]) <= 100) parts.push(`Battery ${m[1]}% (${[1, 4, 5].includes(Number(m[2])) ? 'on battery' : 'plugged in'})`)
     } catch {
       // No battery information.
     }
@@ -1039,7 +1048,7 @@ export function createActions({
       let timer
       // One part failing never blanks the page: it just comes back empty and the rest is shown.
       const safe = (promise, empty) => Promise.resolve(promise).catch(() => empty)
-      const [modelName, steam, games, art, vol, bt, outs, apps, tm] = await Promise.all([
+      const [modelName, steam, games, art, vol, bt, outs, apps, tm, bat] = await Promise.all([
         safe(Promise.race([model(), new Promise((r) => (timer = setTimeout(() => r(''), 1500)))]), ''),
         safe(steamInfo(), null),
         safe(gameList(), []),
@@ -1049,6 +1058,7 @@ export function createActions({
         safe(listOutputs(), []),
         safe(appChoices(), new Map()),
         safe(timers(), null),
+        safe(laptopBattery(), null),
       ])
       clearTimeout(timer)
       return {
@@ -1066,6 +1076,8 @@ export function createActions({
         volume: vol,
         headphones: bt.map((d) => d.name),
         btConnected: bt.filter((d) => d.connected).map((d) => d.name),
+        btBattery: Object.fromEntries(bt.filter((d) => d.connected && d.battery).map((d) => [d.name, d.battery])),
+        battery: bat,
         outputs: outs,
         apps: [...apps.values()].map((c) => c.label),
         steam: steam ? { user: steam.user, playing: steam.playing, id: steam.id, avatar: Boolean(steam.id && steam.path), accounts: steam.accounts.map(({ id, name }) => ({ id, name })) } : null,
