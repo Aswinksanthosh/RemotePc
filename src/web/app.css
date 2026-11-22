@@ -310,3 +310,6 @@ select.field{max-width:190px}
 
 /* keyboard users: a clear ring on whatever has focus */
 :focus-visible{outline:3px solid #fff;outline-offset:2px;box-shadow:0 0 0 5px var(--a)}
+
+.clipbox{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.cliptext{width:100%;box-sizing:border-box;resize:vertical;min-height:64px}

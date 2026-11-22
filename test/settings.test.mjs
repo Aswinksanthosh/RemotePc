@@ -401,3 +401,24 @@ test('the Windows list: a paired phone gets it, an unknown caller does not', asy
   assert.equal((await post('wrong-key')).status, 401)
   assert.equal((await post('')).status, 401)
 })
+
+test('the clipboard route: a paired phone can send text to the PC and read it back; others cannot; big bodies are refused', async (t) => {
+  const dir = tempDir(t)
+  const auth = createAuth({ file: join(dir, 'p.json') })
+  const { key } = auth.add('Phone')
+  let clip = ''
+  const srv = await startServer({
+    port: 0, host: '127.0.0.1', auth, pin: createPin({ file: join(dir, 'pin.json') }), config: normalizeConfig({}), webDir,
+    actions: { info: async () => ({ name: 'PC' }), run: async () => 'ok', clipboardSet: async (x) => ((clip = x), `Copied ${x.length} characters.`), clipboardGet: async () => clip, avatar: async () => null, gameArt: async () => null },
+  })
+  t.after(() => srv.close())
+  const post = (k, body) => fetch(`http://127.0.0.1:${srv.port}/api/clipboard`, { method: 'POST', headers: { 'content-type': 'application/json', ...(k ? { authorization: `Bearer ${k}` } : {}) }, body: JSON.stringify(body) })
+  const sent = await post(key, { text: 'line one\nline "two" é 你好' })
+  assert.equal(sent.status, 200)
+  assert.match((await sent.json()).message, /Copied/)
+  assert.equal((await (await post(key, {})).json()).text, 'line one\nline "two" é 你好')
+  assert.equal((await post('wrong-key', { text: 'x' })).status, 401)
+  assert.equal((await post('', {})).status, 401)
+  const big = await post(key, { text: 'x'.repeat(20_000) }).then((r) => r.status, () => 413)
+  assert.equal(big, 413, 'a body over the clipboard limit is refused')
+})

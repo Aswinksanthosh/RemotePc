@@ -160,6 +160,13 @@ export function runLaunch(target) {
 
 const encode = (script) => Buffer.from(script, 'utf16le').toString('base64')
 const psArgs = (script) => ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encode(script)]
+// -- clipboard (phone <-> this PC): text only, at most CLIP_MAX characters; the text travels as base64 so no quote can change the script --
+export const CLIP_MAX = 2000
+export const CLIP_GET = String.raw`$t = Get-Clipboard -Raw -ErrorAction SilentlyContinue
+if ($t) { [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes([string]$t)) }`
+export const clipSetScript = (text) => String.raw`Set-Clipboard -Value ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${Buffer.from(String(text), 'utf8').toString('base64')}')))
+'ok'`
+
 const psQuote = (s) => `'${String(s).replace(/'/g, "''")}'`
 
 const keyScript = (vk, times) =>
@@ -824,6 +831,18 @@ export function createActions({
   // The sound level of the default speaker, read for the page's slider (cached a few seconds) and set from it.
   // Windows open on this PC. A window can only be switched to or closed if it was in the list this PC showed in the last 5 minutes.
   const shownWindows = { at: -Infinity, byId: new Map() }
+  async function clipboardSet(text) {
+    winOnly()
+    if (typeof text !== 'string' || !text.length) throw new Error('There is nothing to copy.')
+    if (text.length > CLIP_MAX) throw new Error(`That text is too long (limit ${CLIP_MAX} characters).`)
+    if (!/ok\s*$/.test(await ps(clipSetScript(text), { timeout: 15_000 }))) throw new Error('Windows would not take the text.')
+    return `Copied ${text.length} characters to this PC's clipboard.`
+  }
+  async function clipboardGet() {
+    winOnly()
+    const b64 = (await ps(CLIP_GET, { timeout: 15_000 })).trim()
+    return /^[A-Za-z0-9+/=]*$/.test(b64) ? Buffer.from(b64, 'base64').toString('utf8').slice(0, CLIP_MAX) : ''
+  }
   async function listWindows() {
     winOnly()
     const out = await ps(windowsScript('list'), { timeout: 15_000 })
@@ -1211,6 +1230,8 @@ export function createActions({
     },
     /** The windows open on this PC (for the page's Windows list). */
     windows: listWindows,
+    clipboardSet,
+    clipboardGet,
     media: async () => (await mediaNow()) ?? null,
     cover: mediaCover,
     /** Windows questions that failed lately, for Diagnostics: [{ what, message, seconds }]. */
@@ -1258,6 +1279,8 @@ export function createActions({
 
 /** The PowerShell snippets, so a Windows machine can check that every one of them parses (test/powershell.test.mjs). */
 export const POWERSHELL_SNIPPETS = {
+  clipboardGet: CLIP_GET,
+  clipboardSet: clipSetScript('hello'),
   mediaInfo: MEDIA_INFO,
   mediaCover: MEDIA_COVER,
   handsFreeState: HF_STATE,

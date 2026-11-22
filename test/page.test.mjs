@@ -137,3 +137,7 @@ test('accessibility: the player bar buttons, mute, slider and song progress have
   assert.ok(js.includes("b.setAttribute('aria-label', label)") && js.includes("'Media and volume'") && js.includes("'progressbar'") && js.includes('aria-valuetext'))
   assert.ok(css.includes(':focus-visible'))
 })
+
+test('clipboard box: paste then send to the PC, and get the PC clipboard to copy on the phone', () => {
+  assert.ok(js.includes("call('/api/clipboard', { text: inbox.value })") && js.includes("call('/api/clipboard', {})") && js.includes('sys.append(clipboardBox())') && js.includes("copyText(outbox.value)"))
+})

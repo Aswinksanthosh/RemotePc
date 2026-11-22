@@ -372,6 +372,54 @@ function gameManager(pc) {
   drawGameManager(pc)
   return gameMgrBox
 }
+// -- clipboard: paste here, send to the PC; or read the PC's clipboard and copy it on the phone --------
+function clipboardBox() {
+  const box = el('div', 'clipbox')
+  const inbox = el('textarea', 'field cliptext')
+  inbox.rows = 3
+  inbox.maxLength = 2000
+  inbox.placeholder = 'Tap here, then tap Paste (up to 2000 characters)'
+  inbox.setAttribute('aria-label', 'Text to send to the PC clipboard')
+  const send = btn('Send to PC clipboard', async () => {
+    if (!inbox.value) return say('Paste something first.', true)
+    send.disabled = true
+    try {
+      const j = await call('/api/clipboard', { text: inbox.value })
+      say(j.message || 'Copied.')
+      inbox.value = ''
+    } catch (err) {
+      say(err.message, true)
+    }
+    send.disabled = false
+  }, false, undefined, 'go')
+  const outbox = el('textarea', 'field cliptext')
+  outbox.rows = 3
+  outbox.readOnly = true
+  outbox.placeholder = "The PC's clipboard will show here"
+  outbox.setAttribute('aria-label', "Text from the PC's clipboard")
+  const get = btn("Get PC clipboard", async () => {
+    get.disabled = true
+    try {
+      const j = await call('/api/clipboard', {})
+      outbox.value = j.text || ''
+      if (!j.text) say('The PC clipboard has no text.', true)
+    } catch (err) {
+      say(err.message, true)
+    }
+    get.disabled = false
+  })
+  const copy = btn('Copy on phone', async () => {
+    if (!outbox.value) return say('Get the PC clipboard first.', true)
+    say((await copyText(outbox.value)) ? 'Copied on your phone.' : 'Could not copy. Hold the text and choose Copy.', false)
+  })
+  const r1 = el('div', 'row')
+  r1.append(send)
+  const r2 = el('div', 'row')
+  r2.append(get, copy)
+  box.append(el('div', 'note', 'Phone to PC'), inbox, r1, el('div', 'note', 'PC to phone'), outbox, r2)
+  return box
+}
+
 async function changeGames(action, arg) {
   await act(action, arg)
   lastSig = ''
@@ -1226,6 +1274,7 @@ function render() {
     }, { cls: 'small' })
     g.append(dt)
     sys.append(g)
+    sys.append(clipboardBox())
     sys.append(gameManager(pc))
     if (lastReport) {
       const box = el('div', 'sensor-out', lastReport)

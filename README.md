@@ -1,6 +1,6 @@
 # RemotePc
 
-**Control your Windows PC from your phone.** Lock it, put the screen off, restart it, open Steam and start a game (installed games are found automatically, on any drive), see what is playing, change the volume and sound output, connect your earbuds (and keep their sound clear when the mic is on), open apps, and more. Three steps to install, one QR code to pair. No account with us, no cloud, no subscription.
+**Control your Windows PC from your phone.** Lock it, put the screen off, restart it, open Steam and start a game (installed games are found automatically, on any drive), see what is playing, change the volume and sound output, connect your earbuds (and keep their sound clear when the mic is on), open apps, copy text between your phone and PC, and more. Three steps to install, one QR code to pair. No account with us, no cloud, no subscription.
 
 <p>
 <img src="docs/img/phone-home.png" alt="The phone page: power menu, Lock, Screen off, Steam with game picker" width="260">

@@ -6,6 +6,7 @@
  *   GET  /manifest.webmanifest  makes "Add to Home Screen" keep the pairing key (see page)
  *   POST /api/state             everything the page shows              (needs a paired phone)
  *   POST /api/do                {action, arg, pc}: one button          (needs a paired phone)
+ *   POST /api/clipboard         {text} copies to this PC; {} reads it   (needs a paired phone)
  *   POST /api/avatar | /api/gameart   small pictures                   (needs a paired phone)
  *
  * Who can connect: only the networks in config.allow (this PC, Tailscale, optionally your home
@@ -23,6 +24,7 @@ import { ACTIONS } from './actions.mjs'
 import { classifyAddress, isAllowedAddress } from './net.mjs'
 
 const MAX_BODY = 2048
+const MAX_CLIPBOARD_BODY = 16 * 1024 // the clipboard route only: up to 2000 characters, escaped
 
 // The home-screen icon takes the colour of this PC's theme (pink neon, amber tactical, blue clean), picked the same way the page picks it:
 // the PC's own theme setting, then its accent, then what its name suggests (ROG: neon, TUF: tactical).
@@ -94,13 +96,13 @@ const isLocalPage = (req, ip) =>
 
 const CSP = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 
-function readBody(req) {
+function readBody(req, limit = MAX_BODY) {
   return new Promise((resolve, reject) => {
     let size = 0
     const chunks = []
     req.on('data', (c) => {
       size += c.length
-      if (size > MAX_BODY) {
+      if (size > limit) {
         reject(Object.assign(new Error('Too large.'), { status: 413 }))
         req.destroy()
         return
@@ -259,7 +261,7 @@ export async function startServer({
       const bearer = /^Bearer (.+)$/.exec(req.headers.authorization ?? '')?.[1]
       const who = !bearer && localOnly(path) && isLocalPage(req, ip) ? { ok: true, id: 'local', local: true } : auth.verify(ip, bearer)
       if (!who.ok) return json(res, who.status, { error: who.error })
-      const body = await readBody(req)
+      const body = await readBody(req, path === '/api/clipboard' ? MAX_CLIPBOARD_BODY : MAX_BODY)
 
       if (path === '/api/unlock') {
         if (!pin?.isSet()) return json(res, 200, { token: '' })
@@ -370,6 +372,16 @@ export async function startServer({
         return json(res, 404, { error: 'Not found.' })
       }
 
+      if (path === '/api/clipboard') {
+        // Text between the phone and this PC's clipboard. It may hold private things, so it is never logged or kept.
+        if (!actions?.clipboardGet) return json(res, 404, { error: 'The clipboard is not available here.' })
+        try {
+          if (typeof body.text === 'string') return json(res, 200, { message: await actions.clipboardSet(body.text) })
+          return json(res, 200, { text: await actions.clipboardGet() })
+        } catch (err) {
+          return json(res, 502, { error: String(err?.message ?? err).slice(0, 200) })
+        }
+      }
       if (path === '/api/media') return json(res, 200, { media: actions?.media ? await actions.media().catch(() => null) : null })
       if (path === '/api/cover') return sendPicture(res, actions?.cover ? await actions.cover().catch(() => null) : null, 30)
       if (path === '/api/avatar') return sendPicture(res, actions ? await actions.avatar() : null, 60)

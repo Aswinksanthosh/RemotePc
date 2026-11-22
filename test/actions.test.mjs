@@ -702,3 +702,20 @@ test('problems: a Windows question that fails is remembered for Diagnostics, and
     console.log = log
   }
 })
+
+test('clipboard: text goes to Windows as base64 (no quote can change the script), is limited, and reads back', async (t) => {
+  const { CLIP_MAX, clipSetScript } = await import('../src/actions.mjs')
+  const nasty = `it's "x"; calc.exe $(Get-Date)\nnew line é 你好`
+  assert.ok(!clipSetScript(nasty).includes('calc.exe'), 'the text is not in the script, only its base64')
+  assert.equal(Buffer.from(/FromBase64String\('([^']+)'\)/.exec(clipSetScript(nasty))[1], 'base64').toString('utf8'), nasty)
+  let got = ''
+  const { actions } = lab(t, { ps: { FromBase64String: (s) => ((got = Buffer.from(/FromBase64String\('([^']+)'\)/.exec(s)[1], 'base64').toString('utf8')), 'ok\n'), 'Get-Clipboard': Buffer.from('from the PC é').toString('base64') + '\n' } })
+  assert.match(await actions.clipboardSet(nasty), /Copied \d+ characters/)
+  assert.equal(got, nasty)
+  assert.equal(await actions.clipboardGet(), 'from the PC é')
+  await assert.rejects(actions.clipboardSet(''), /nothing to copy/)
+  await assert.rejects(actions.clipboardSet('x'.repeat(CLIP_MAX + 1)), /too long/)
+  await assert.rejects(actions.clipboardSet(undefined), /nothing to copy/)
+  const linux = lab(t, { platform: 'linux' })
+  await assert.rejects(linux.actions.clipboardGet(), /Windows only/)
+})

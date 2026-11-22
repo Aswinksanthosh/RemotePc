@@ -39,3 +39,7 @@ If you find a security problem, please use GitHub's **private vulnerability repo
 ## Updates and installs are checked
 
 The installer and the Update button take the newest **release** of the project (made by pushing a tag like `v0.2.0`, see `.github/workflows/release.yml`). The release has the program zip and a `SHASUMS256.txt` file; the zip is installed only if its SHA-256 matches. This stops a damaged or swapped download and means half-finished work on the `main` branch never reaches your PC. It does not help if the repository owner's own GitHub account is taken over, because that person can publish a new release. A project with no release yet is still updated from the `main` branch.
+
+## The clipboard
+
+The Clipboard box in the System card sends text (up to 2000 characters) from the phone to this PC's clipboard, and can read this PC's clipboard back to the phone. Only a paired phone (and its PIN, if set) can do it, the text is never written to the log or kept, and it travels only over Tailscale. Remember that a PC clipboard may hold a password or other private text: anyone who holds a paired phone can read it.
