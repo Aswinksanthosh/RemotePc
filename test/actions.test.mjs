@@ -542,3 +542,22 @@ test('Fix-It lists every Steam library folder with its game count', async (t) =>
   assert.match(line.detail, /\(2 games\)/)
   assert.match(line.detail, /folder not found/)
 })
+
+test('games added by Steam number: saved in games.json, in the list at once, and only in the fixed shape', async (t) => {
+  const { actions, files, launched } = lab(t)
+  assert.deepEqual((await actions.info()).customGames, [])
+  assert.equal(await actions.run('game_add', '578080|PUBG: BATTLEGROUNDS'), 'PUBG: BATTLEGROUNDS added. It is in the game list now.')
+  assert.deepEqual(JSON.parse(readFileSync(files.games, 'utf8')), { 'PUBG: BATTLEGROUNDS': '578080' })
+  const info = await actions.info()
+  assert.ok(info.games.includes('PUBG: BATTLEGROUNDS'), 'in the drop-down at once')
+  assert.deepEqual(info.customGames, [{ name: 'PUBG: BATTLEGROUNDS', appid: '578080' }])
+  await actions.run('steam_game', 'pubg: battlegrounds')
+  assert.ok(launched.includes('steam://rungameid/578080'))
+  // The same name again replaces the number; a bad shape is refused before anything is written.
+  await actions.run('game_add', '1|pubg: battlegrounds')
+  assert.deepEqual(JSON.parse(readFileSync(files.games, 'utf8')), { 'pubg: battlegrounds': '1' })
+  for (const bad of ['abc|Name', '578080|', '|Name', '', undefined, '5; calc|X', '12345678901|Name', `1|${'a'.repeat(81)}`]) await assert.rejects(actions.run('game_add', bad), /Steam number/, String(bad))
+  assert.match(await actions.run('game_remove', 'PUBG: BATTLEGROUNDS'), /removed from the list/)
+  assert.deepEqual(JSON.parse(readFileSync(files.games, 'utf8')), {})
+  await assert.rejects(actions.run('game_remove', 'Hades'), /not one you added/)
+})

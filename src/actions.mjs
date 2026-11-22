@@ -64,6 +64,8 @@ export const ACTIONS = [
   'status',
   'update',
   'restart_remote',
+  'game_add',
+  'game_remove',
   'favorite_set',
   'timer_set',
   'mode_saver',
@@ -521,7 +523,7 @@ export function createActions({
     return guesses.find((p) => exists(join(p, 'steam.exe'))) ?? ''
   }, now)
 
-  const gameList = memo(60_000, async () => {
+  const gameList = swr(60_000, async () => {
     const path = await steamPath()
     const scanned = path ? scanGames(path, { readText, readdir }) : []
     const byName = new Map()
@@ -693,6 +695,38 @@ export function createActions({
     await run('powercfg.exe', ['/change', t.dc, String(minutes)])
     timers.set({ ...((await timers()) ?? {}), [m[1]]: minutes })
     return t.text(minutes)
+  }
+
+  // Games Steam's files do not show (a library on a drive Steam does not list, or a non-Steam shortcut): added by their Steam number into
+  // games.json. The same file you could write by hand; the phone can only add or remove entries of this one fixed shape.
+  const gamesFile = () => {
+    if (!files.games) throw new Error('Games cannot be saved here.')
+    return Object.fromEntries(extraGames(files.games, readText).map((g) => [g.name, g.appid]))
+  }
+  async function addGame(arg) {
+    winOnly()
+    const m = /^(\d{1,10})\|([\s\S]{1,80})$/.exec(String(arg ?? ''))
+    // eslint-disable-next-line no-control-regex -- control characters are removed on purpose
+    const name = m ? m[2].replace(/[\u0000-\u001f]/g, '').trim() : ''
+    if (!m || !name) throw new Error('Type the Steam number (digits only) and the name of the game.')
+    const cur = gamesFile()
+    for (const k of Object.keys(cur)) if (k.toLowerCase() === name.toLowerCase()) delete cur[k]
+    if (Object.keys(cur).length >= 100) throw new Error('That is plenty of games: remove one first.')
+    cur[name] = m[1]
+    writeAtomic(files.games, `${JSON.stringify(cur, null, 2)}\n`)
+    await gameList.fresh()
+    return `${name} added. It is in the game list now.`
+  }
+  async function removeGame(arg) {
+    winOnly()
+    const name = String(arg ?? '').trim().toLowerCase()
+    const cur = gamesFile()
+    const key = Object.keys(cur).find((k) => k.toLowerCase() === name)
+    if (!key) throw new Error('That game is not one you added.')
+    delete cur[key]
+    writeAtomic(files.games, `${JSON.stringify(cur, null, 2)}\n`)
+    await gameList.fresh()
+    return `${key} removed from the list.`
   }
 
   // Favourites (stars): a device or output can be starred only if it is in the list this PC shows right now. Saved in favorites.json.
@@ -905,6 +939,10 @@ export function createActions({
         return update()
       case 'restart_remote':
         return restart()
+      case 'game_add':
+        return addGame(arg)
+      case 'game_remove':
+        return removeGame(arg)
       case 'favorite_set':
         return setFavorite(arg)
       case 'timer_set':
@@ -1071,6 +1109,7 @@ export function createActions({
         buttons: Object.keys(buttons()),
         mode: readMode(),
         favorites: knownFavorites(files.favorites, readText),
+        customGames: extraGames(files.games, readText).map((g) => ({ name: g.name, appid: g.appid })),
         timers: tm,
         timerChoices: platform === 'win32' ? { screen: TIMERS.screen.choices, sleep: TIMERS.sleep.choices } : null,
         volume: vol,

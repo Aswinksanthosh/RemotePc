@@ -362,6 +362,73 @@ function drawAppResults(box) {
   if (appMgr.names && !found.length) box.append(el('div', 'empty', q ? 'Nothing matches. Games belong in the Steam list, not here.' : 'No more apps to add.'))
 }
 
+// -- add a game Steam's files do not show (by its Steam number) --------------------------------------------------------------
+// For a game that is installed but missing from the Steam drop-down (for example a library on a drive Steam does not list). The Steam number
+// is in the address of the game's store page: store.steampowered.com/app/578080.
+const gameMgr = { open: false, name: '', id: '' }
+let gameMgrBox = null
+function gameManager(pc) {
+  gameMgrBox = el('div', 'gamemgr')
+  drawGameManager(pc)
+  return gameMgrBox
+}
+async function changeGames(action, arg) {
+  await act(action, arg)
+  lastSig = ''
+  refresh()
+}
+function drawGameManager(pc) {
+  if (!gameMgrBox) return
+  gameMgrBox.textContent = ''
+  gameMgrBox.append(btn(gameMgr.open ? 'Hide add a game' : 'Game missing? Add it', () => {
+    gameMgr.open = !gameMgr.open
+    drawGameManager(pc)
+  }, false, undefined, gameMgr.open ? '' : 'go'))
+  if (!gameMgr.open) return
+  gameMgrBox.append(el('div', 'note', 'Steam shows the game as installed but it is not in the list? Add it by its Steam number (in the web address of its store page: store.steampowered.com/app/578080).'))
+  gameMgrBox.append(btn('Add PUBG (578080)', () => changeGames('game_add', '578080|PUBG: BATTLEGROUNDS'), false, undefined, 'go'))
+  const name = el('input', 'field')
+  name.type = 'text'
+  name.maxLength = 80
+  name.placeholder = 'Name of the game'
+  name.value = gameMgr.name
+  name.addEventListener('input', () => {
+    gameMgr.name = name.value
+  })
+  const id = el('input', 'field')
+  id.type = 'text'
+  id.inputMode = 'numeric'
+  id.maxLength = 10
+  id.placeholder = 'Steam number, for example 578080'
+  id.value = gameMgr.id
+  id.addEventListener('input', () => {
+    gameMgr.id = id.value.replace(/\D/g, '')
+    id.value = gameMgr.id
+  })
+  gameMgrBox.append(name, id, btn('Add this game', async () => {
+    await changeGames('game_add', gameMgr.id + '|' + gameMgr.name)
+    gameMgr.name = ''
+    gameMgr.id = ''
+    drawGameManager(pc)
+  }))
+  const mine = (pc && pc.customGames) || []
+  if (mine.length) {
+    gameMgrBox.append(el('div', 'note', 'Games you added:'))
+    const list = el('div', 'list')
+    for (const g of mine) {
+      const item = el('div', 'item stack')
+      const nm = el('div', 'nm', g.name)
+      nm.append(el('small', '', 'Steam number ' + g.appid))
+      item.append(nm)
+      const acts = el('div', 'acts')
+      acts.append(btn('Remove', () => confirmBox('Remove ' + g.name + '?', 'It disappears from the game list. The game itself stays installed.', 'Remove', () => changeGames('game_remove', g.name), true)))
+      item.append(acts)
+      list.append(item)
+    }
+    gameMgrBox.append(list)
+  }
+}
+
 // -- the Windows list: what is open on the PC, switch to it or close it ------------------------------------------------
 // Loaded only when the drop-down is opened (asking Windows takes a moment), kept here so a redraw of the page does not lose it.
 const winState = { list: null, loading: false, error: '' }
@@ -1038,6 +1105,7 @@ function render() {
     }, { cls: 'small' })
     g.append(dt)
     sys.append(g)
+    sys.append(gameManager(pc))
     if (lastReport) {
       const box = el('div', 'sensor-out', lastReport)
       sys.append(box, rowOf(

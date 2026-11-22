@@ -122,3 +122,8 @@ test('favourites: stars in the Bluetooth and sound output lists, and a one-tap s
 test('battery: the laptop charge is under the name in the header and the earbud charge in the Bluetooth list and favourites', () => {
   assert.ok(js.includes("'Battery ' + pc.battery.percent") && js.includes("' · battery ' + pct") && js.includes("pct ? ' · ' + pct"))
 })
+
+test('a missing game can be added from the phone by its Steam number, with a PUBG shortcut', () => {
+  assert.ok(js.includes("'Game missing? Add it'") && js.includes("'578080|PUBG: BATTLEGROUNDS'") && js.includes("changeGames('game_add'") && js.includes("changeGames('game_remove'"))
+  assert.ok(js.includes('sys.append(gameManager(pc))'))
+})
