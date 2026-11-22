@@ -7,6 +7,7 @@
  * encoded command, so no quoting of the text can change what runs.
  */
 
+import { HF_STATE, hfCommand, hfSetupScript, TASK_OFF, TASK_ON } from './handsfree.mjs'
 import { execFile, spawn } from 'node:child_process'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { hostname as osHostname, uptime } from 'node:os'
@@ -80,6 +81,7 @@ export const ACTIONS = [
   'mute_set',
   'bt_connect',
   'bt_disconnect',
+  'handsfree_set',
   'audio_set',
   ...Object.keys(KEYS),
 ]
@@ -886,6 +888,13 @@ export function createActions({
   const bluetooth = swr(30_000, () => (platform === 'win32' ? loadBluetooth() : []), now)
   const listBluetooth = async (fresh = false) => (await (fresh ? bluetooth.fresh() : bluetooth())) ?? []
   const listHeadphones = async () => (await listBluetooth()).map((d) => d.name)
+  // "Clear sound": the Hands-Free devices of the earbuds. { found, cleared, ready } (ready = the one-time admin setup was done).
+  const handsFree = swr(15_000, async () => {
+    if (platform !== 'win32') return null
+    const out = (await ps(HF_STATE, { timeout: 15_000 })).trim().split(/\r?\n/).at(-1)
+    const ready = await run('schtasks.exe', ['/query', '/tn', TASK_OFF]).then(() => true, () => false)
+    return { found: out === 'enabled' || out === 'disabled', cleared: out === 'disabled', ready }
+  }, now)
   const outputs = swr(30_000, () => (platform === 'win32' ? listLines(AUDIO_LIST, 80) : []), now)
   const listOutputs = async () => (await outputs()) ?? []
 
@@ -1007,6 +1016,23 @@ export function createActions({
         if (connect) return now2 ? `${name} is connected.` : `Asked Windows to connect ${name}, but it is not connected yet. Open its case or take it out; it must not be busy with another device.`
         return now2 ? `${name} is disconnected. It is free for your phone or another device now.` : `Asked Windows to disconnect ${name}; it still shows as connected.`
       }
+      case 'handsfree_set': {
+        if (arg !== 'on' && arg !== 'off') throw new Error('Clear sound is on or off.')
+        const want = arg === 'on'
+        const before = await handsFree.fresh()
+        if (!before?.ready) throw new Error('Run Bluetooth-Sound-Setup once on this PC (it asks for administrator rights), then try again.')
+        await run('schtasks.exe', ['/run', '/tn', want ? TASK_OFF : TASK_ON])
+        let now2 = false
+        for (let i = 0; i < 8; i++) {
+          await sleep(1000)
+          if ((await handsFree.fresh())?.cleared === want) {
+            now2 = true
+            break
+          }
+        }
+        if (now2) return want ? 'Clear sound is on. Earbuds keep music quality; their own mic is not used.' : 'Clear sound is off. The earbuds mic works again (call quality).'
+        return 'Asked Windows, but it did not change yet. Reconnect the earbuds and look again.'
+      }
       case 'audio_set': {
         const name = (await listOutputs()).find((n) => n.toLowerCase() === String(arg ?? '').toLowerCase().trim())
         if (!name) throw new Error('That audio output is not available on this PC right now.')
@@ -1102,7 +1128,7 @@ export function createActions({
       let timer
       // One part failing never blanks the page: it just comes back empty and the rest is shown.
       const safe = (promise, empty) => Promise.resolve(promise).catch(() => empty)
-      const [modelName, steam, games, art, vol, bt, outs, apps, tm, bat] = await Promise.all([
+      const [modelName, steam, games, art, vol, bt, outs, apps, tm, bat, hf] = await Promise.all([
         safe(Promise.race([model(), new Promise((r) => (timer = setTimeout(() => r(''), 1500)))]), ''),
         safe(steamInfo(), null),
         safe(gameList(), []),
@@ -1113,6 +1139,7 @@ export function createActions({
         safe(appChoices(), new Map()),
         safe(timers(), null),
         safe(laptopBattery(), null),
+        safe(handsFree(), null),
       ])
       clearTimeout(timer)
       return {
@@ -1131,6 +1158,7 @@ export function createActions({
         volume: vol,
         headphones: (bt ?? []).map((d) => d.name),
         btConnected: (bt ?? []).filter((d) => d.connected).map((d) => d.name),
+        handsFree: hf ?? null,
         btBattery: Object.fromEntries((bt ?? []).filter((d) => d.connected && d.battery).map((d) => [d.name, d.battery])),
         battery: bat,
         outputs: outs ?? [],
@@ -1189,6 +1217,10 @@ export function createActions({
 
 /** The PowerShell snippets, so a Windows machine can check that every one of them parses (test/powershell.test.mjs). */
 export const POWERSHELL_SNIPPETS = {
+  handsFreeState: HF_STATE,
+  handsFreeSetup: hfSetupScript(),
+  handsFreeOff: hfCommand(true),
+  handsFreeOn: hfCommand(false),
   keys: keyScript(175, 5),
   screenOff: SCREEN_OFF,
   sleep: SLEEP,

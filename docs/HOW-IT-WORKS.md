@@ -22,6 +22,7 @@
 | `Fix-It.cmd`, `bin/doctor.mjs`, `src/doctor.mjs` | Check everything and explain |
 | `Update.cmd`, `bin/update.mjs`, `src/updater.mjs`, `src/unzip.mjs` | Download the newest version as a zip and swap it in |
 | `Uninstall.cmd`, `bin/uninstall.mjs` | Remove it |
+| `Bluetooth-Sound-Setup.cmd`, `bin/handsfree-setup.mjs`, `src/handsfree.mjs` | One-time admin setup of the "Clear sound" switch (two fixed Windows tasks that turn earbuds' Hands-Free mode off or on) |
 | `Wake-on-LAN-Setup.cmd`, `bin/wake-setup.mjs`, `src/wol.mjs`, `src/wake.mjs` | Get a PC ready to be started, send the magic packet |
 | `src/server.mjs`, `src/auth.mjs`, `src/net.mjs` | The server, the phone keys, which networks are allowed |
 | `src/actions.mjs`, `src/steam.mjs` | The buttons and everything that reads Steam's files |

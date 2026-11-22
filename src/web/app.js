@@ -976,6 +976,14 @@ function render() {
         item.append(acts)
         list.append(item)
       }
+      // Clear sound: keeps the earbuds in music quality when a program turns the mic on (the earbuds' own mic is then not used).
+      const hf = pc.handsFree
+      if (hf && hf.found) {
+        const row = el('div', 'hfrow')
+        row.append(el('div', 'nm', 'Clear sound' + (hf.cleared ? ': on' : ': off')), btn(hf.cleared ? 'Turn off' : 'Turn on', () => act('handsfree_set', hf.cleared ? 'off' : 'on'), false, undefined, hf.cleared ? '' : 'go'))
+        btIn.append(row)
+        btIn.append(el('div', 'note', hf.ready ? 'On: no more bad sound when the mic is used. The earbuds own mic stops working. Turn off for calls.' : 'First run Bluetooth-Sound-Setup on this PC once (Start menu, asks for administrator rights).'))
+      }
       btIn.append(list)
       btIn.append(el('div', 'note', 'Earbuds must be in range and not busy with another device. Disconnect frees them for your phone.'))
     }

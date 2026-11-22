@@ -227,3 +227,8 @@ Tests: swr sharing/parallel/stale, timings, volume coalescing, gzip+ETag+304, pr
 - NOT_GAME_NAME filters tools (Steamworks Common, Proton, Linux Runtime, dedicated servers, redistributables).
 - gameList is an swr cache (60 s); a failed lookup returns undefined, so info() keeps `?? []` defaults (tested).
 - Diagnostics has a "Games found" line (count per source). The manual "Game missing? Add it" form stays as a last resort.
+
+## Clear sound switch (owner, 2026-11-22: "turn off the hands-free thing in Bluetooth properties, it fixes the audio quality when I turn on the mic")
+- Owner chose: ONE switch for all earbuds, in the Bluetooth card; one-time admin setup (Bluetooth-Sound-Setup.cmd -> bin/handsfree-setup.mjs -> src/handsfree.mjs). Earbuds' own mic stops working while it is on (told to the owner); toggle off for calls.
+- Windows needs admin to disable the Hands-Free PnP devices (BTHENUM\{0000111E/F...} or name "*Hands-Free*"). Setup creates two scheduled tasks RemotePc-HandsFree-On/Off (current user, RunLevel Highest, FIXED encoded command). The phone action handsfree_set (arg on/off only) just runs `schtasks /run /tn <task>`, then polls up to 8 s for the real state. info.handsFree = { found, cleared, ready }.
+- NOT tested on real Windows (Linux mock only). Uninstall does not remove the two tasks (needs admin): hfRemoveScript exists for that. Owner to check: run setup on a laptop, press Update icon, Bluetooth card shows Clear sound.

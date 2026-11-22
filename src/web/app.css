@@ -270,3 +270,6 @@ select.field{max-width:190px}
 .optrow .opt{width:auto}
 .item.stack>.nm{padding-right:38px}
 .item.stack>.acts{padding-right:0}
+
+.hfrow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+.hfrow .b{flex:0 0 auto;min-height:40px;padding:8px 16px}

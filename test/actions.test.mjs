@@ -625,3 +625,41 @@ test('a failing game lookup leaves an empty list, never a blank page', async (t)
   assert.deepEqual(info.games, [])
   assert.ok(actions)
 })
+
+test('clear sound: needs the one-time setup, then switches only through the two fixed tasks and reports the real state', async (t) => {
+  const { hfCommand, hfSetupScript } = await import('../src/handsfree.mjs')
+  assert.match(hfCommand(true), /Disable-PnpDevice/)
+  assert.match(hfCommand(false), /Enable-PnpDevice/)
+  assert.match(hfSetupScript(), /RunLevel Highest/)
+  let cleared = false
+  let setup = false
+  const calls = []
+  const home = tempDir(t)
+  const actions = createActions({
+    files: { buttons: join(home, 'b'), apps: join(home, 'a'), games: join(home, 'g'), switchLog: join(home, 's'), mode: join(home, 'm') },
+    platform: 'win32', sleep: async () => {}, hostname: () => 'PC',
+    run: async (file, args) => {
+      calls.push([file, ...args])
+      if (file === 'schtasks.exe' && args[0] === '/query') {
+        if (!setup) throw new Error('not found')
+        return ''
+      }
+      if (file === 'schtasks.exe' && args[0] === '/run') {
+        cleared = args[2] === 'RemotePc-HandsFree-Off'
+        return ''
+      }
+      if (file === 'powershell.exe') return decode(args).includes("'enabled'") ? (cleared ? 'disabled\n' : 'enabled\n') : ''
+      return ''
+    },
+  })
+  let info = await actions.info()
+  assert.deepEqual(info.handsFree, { found: true, cleared: false, ready: false })
+  await assert.rejects(actions.run('handsfree_set', 'on'), /Bluetooth-Sound-Setup/)
+  setup = true
+  assert.match(await actions.run('handsfree_set', 'on'), /Clear sound is on/)
+  assert.ok(calls.some((c) => c[0] === 'schtasks.exe' && c[1] === '/run' && c[3] === 'RemotePc-HandsFree-Off'))
+  info = await actions.info()
+  assert.equal(info.handsFree.cleared, true)
+  assert.match(await actions.run('handsfree_set', 'off'), /Clear sound is off/)
+  for (const bad of ['x', '', undefined, 'on; calc']) await assert.rejects(actions.run('handsfree_set', bad), /on or off/)
+})

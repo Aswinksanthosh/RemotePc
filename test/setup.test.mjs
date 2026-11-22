@@ -50,7 +50,7 @@ test('the Windows scripts name the right things', () => {
   assert.match(registerTaskScript('C:\\x\\start.ps1'), /-LogonType Interactive -RunLevel Limited/)
   assert.match(registerTaskScript('C:\\x\\start.ps1'), /-WindowStyle Hidden -File/)
   assert.match(stopRemoteScript, /remortstartpc\.\*remote\\\.mjs/)
-  assert.match(shortcutsScript('C:\\a'), /'Settings', 'Pair-Phone', 'Set-PIN', 'Fix-It', 'Update', 'Uninstall', 'Wake-on-LAN-Setup'/)
+  assert.match(shortcutsScript('C:\\a'), /'Settings', 'Pair-Phone', 'Set-PIN', 'Fix-It', 'Update', 'Uninstall', 'Wake-on-LAN-Setup', 'Bluetooth-Sound-Setup'/)
   const args = psArgs('Write-Output 1')
   assert.deepEqual(args.slice(0, 4), ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass'])
   assert.equal(decode(args), 'Write-Output 1')
