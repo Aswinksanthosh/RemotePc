@@ -61,7 +61,8 @@ test('when nothing is new, nothing is downloaded or replaced', async (t) => {
   writeFileSync(paths.installed, JSON.stringify({ sha: SHA }))
   const f = fakeFetch()
   assert.deepEqual(await installUpdate({ repo: 'me/proj', paths, fetchFn: f }), { installed: false, message: 'Already up to date.' })
-  assert.equal(f.urls.length, 1)
+  assert.equal(f.urls.length, 2, "only the release question and the version question, no download")
+  assert.ok(!f.urls.some((u) => u.includes("codeload")))
   assert.ok(existsSync(join(paths.app, 'old-file.txt')))
   assert.equal((await installUpdate({ repo: 'me/proj', paths, fetchFn: fakeFetch(), force: true })).installed, true)
 })
@@ -83,4 +84,63 @@ test('plain-language errors: private project, GitHub down, offline, no repositor
   await assert.rejects(installUpdate({ repo: 'me/proj', paths, fetchFn: async (u) => { if (String(u).includes('api.')) return { ok: false }; throw new Error('offline') } }), /cannot reach GitHub/)
   await assert.rejects(installUpdate({ repo: null, paths }), /does not know where/)
   assert.ok(existsSync(join(paths.app, 'old-file.txt')))
+})
+
+// -- releases: the zip must match the checksum file ---------------------------------------
+import { createHash } from 'node:crypto'
+import { checksumFor, latestRelease, latestVersionId } from '../src/updater.mjs'
+
+function releaseFetch({ zip = goodZip(), sums, tag = 'v0.2.0', hasRelease = true } = {}) {
+  const urls = []
+  const hash = createHash('sha256').update(zip).digest('hex')
+  const fn = async (url) => {
+    const u = String(url)
+    urls.push(u)
+    if (u.endsWith('/releases/latest')) {
+      if (!hasRelease) return { ok: false, status: 404 }
+      return { ok: true, json: async () => ({ tag_name: tag, assets: [{ name: 'remortstartpc.zip', browser_download_url: 'https://github.com/me/proj/releases/download/v/remortstartpc.zip' }, { name: 'SHASUMS256.txt', browser_download_url: 'https://github.com/me/proj/releases/download/v/SHASUMS256.txt' }] }) }
+    }
+    if (u.endsWith('SHASUMS256.txt')) return { ok: true, text: async () => sums ?? `${hash}  remortstartpc.zip\n` }
+    if (u.includes('api.github.com')) return { ok: true, text: async () => SHA }
+    return { ok: true, status: 200, arrayBuffer: async () => zip.buffer.slice(zip.byteOffset, zip.byteOffset + zip.length) }
+  }
+  fn.urls = urls
+  return fn
+}
+
+test('checksumFor reads the checksum of one file name', () => {
+  const h = 'b'.repeat(64)
+  assert.equal(checksumFor(`${h}  remortstartpc.zip\n${'c'.repeat(64)}  other.zip`, 'remortstartpc.zip'), h)
+  assert.equal(checksumFor(`${h} *remortstartpc.zip`, 'remortstartpc.zip'), h)
+  assert.equal(checksumFor('nothing here', 'remortstartpc.zip'), '')
+  assert.equal(checksumFor(undefined, 'x'), '')
+})
+
+test('a release is preferred and installed only when its checksum matches', async (t) => {
+  const paths = setup(t)
+  const f = releaseFetch()
+  const r = await installUpdate({ repo: 'me/proj', paths, fetchFn: f })
+  assert.deepEqual(r, { installed: true, sha: 'v0.2.0' })
+  assert.equal(JSON.parse(readFileSync(paths.installed, 'utf8')).sha, 'v0.2.0')
+  assert.ok(!f.urls.some((u) => u.includes('codeload.github.com')), 'the branch is not used when there is a release')
+  assert.equal(await latestVersionId('me/proj', 'main', f), 'v0.2.0')
+})
+
+test('a release whose checksum does not match is refused and the old copy is kept', async (t) => {
+  const paths = setup(t)
+  for (const sums of ['0'.repeat(64) + '  remortstartpc.zip\n', 'garbage', '']) {
+    await assert.rejects(installUpdate({ repo: 'me/proj', paths, fetchFn: releaseFetch({ sums }) }), /checksum/)
+    assert.ok(existsSync(join(paths.app, 'old-file.txt')), 'the working copy is untouched')
+  }
+})
+
+test('with no release yet, the branch is used as before; odd release data is ignored', async (t) => {
+  const paths = setup(t)
+  const f = releaseFetch({ hasRelease: false })
+  assert.equal(await latestRelease('me/proj', f), null)
+  const r = await installUpdate({ repo: 'me/proj', paths, fetchFn: f })
+  assert.equal(r.installed, true)
+  assert.ok(f.urls.some((u) => u.includes('codeload.github.com')))
+  const odd = async () => ({ ok: true, json: async () => ({ tag_name: 'v1', assets: [{ name: 'remortstartpc.zip', browser_download_url: 'https://evil.example/remortstartpc.zip' }, { name: 'SHASUMS256.txt', browser_download_url: 'https://github.com/x' }] }) })
+  assert.equal(await latestRelease('me/proj', odd), null, 'a download link outside github.com is not trusted')
 })

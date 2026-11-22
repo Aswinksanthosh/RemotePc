@@ -18,7 +18,7 @@ import { connect } from './probe.mjs'
 import { dataPaths, RESTART_CODE } from './paths.mjs'
 import { startServer } from './server.mjs'
 import { runDoctor } from './doctor.mjs'
-import { installUpdate, latestSha, repoSlug } from './updater.mjs'
+import { installUpdate, latestVersionId, repoSlug } from './updater.mjs'
 import { qrToSvg } from './qr.mjs'
 import { newPairing } from './setup.mjs'
 import { networkInterfaces } from 'node:os'
@@ -163,7 +163,7 @@ export async function startApp({
       } catch {
         return // Not installed by the updater (for example a developer copy): nothing to compare.
       }
-      const sha = await latestSha(repoSlug(pkg), 'main', fetchFn)
+      const sha = await latestVersionId(repoSlug(pkg), 'main', fetchFn)
       updateState.available = Boolean(sha && current && sha !== current)
     }
     // A little after start, so a boot with no network yet still gets an answer, and tried again once.

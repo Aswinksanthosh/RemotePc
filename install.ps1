@@ -121,7 +121,31 @@ if ($PSScriptRoot -and (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'bin\set
   try {
     $tmp = Join-Path $env:TEMP ('remortstartpc-' + [Guid]::NewGuid().ToString('N').Substring(0, 8))
     $zip = $tmp + '.zip'
-    Invoke-WebRequest -UseBasicParsing -Uri "https://codeload.github.com/$Repo/zip/refs/heads/$Branch" -OutFile $zip
+    # A published release is checked against its checksum file. A project with no release yet is taken from the branch.
+    $zipUrl = $null
+    $sumsUrl = $null
+    try {
+      $rel = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases/latest" -Headers @{ 'User-Agent' = 'remortstartpc-installer' }
+      foreach ($a in $rel.assets) {
+        if ($a.name -eq 'remortstartpc.zip') { $zipUrl = $a.browser_download_url }
+        if ($a.name -eq 'SHASUMS256.txt') { $sumsUrl = $a.browser_download_url }
+      }
+    } catch {
+      $zipUrl = $null
+    }
+    if ($zipUrl -and $sumsUrl) {
+      Invoke-WebRequest -UseBasicParsing -Uri $zipUrl -OutFile $zip
+      $sums = (Invoke-WebRequest -UseBasicParsing -Uri $sumsUrl).Content
+      if ($sums -is [byte[]]) { $sums = [Text.Encoding]::UTF8.GetString($sums) }
+      $line = ($sums -split "`n" | Where-Object { $_ -match 'remortstartpc\.zip' } | Select-Object -First 1)
+      $want = ($line.Trim() -split '\s+')[0]
+      if ((Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash -ne $want) {
+        Remove-Item -LiteralPath $zip -Force
+        throw 'the download did not match its checksum'
+      }
+    } else {
+      Invoke-WebRequest -UseBasicParsing -Uri "https://codeload.github.com/$Repo/zip/refs/heads/$Branch" -OutFile $zip
+    }
     Expand-Archive -LiteralPath $zip -DestinationPath $tmp -Force
     $inner = Get-ChildItem -LiteralPath $tmp -Directory | Select-Object -First 1
     $src = $inner.FullName

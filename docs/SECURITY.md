@@ -34,3 +34,8 @@ This program lets a phone control a PC, so it is worth knowing exactly how it is
 ## Reporting a problem
 
 If you find a security problem, please use GitHub's **private vulnerability reporting** (the repository's *Security* tab) rather than a public issue. Everything else: a normal issue is fine.
+
+
+## Updates and installs are checked
+
+The installer and the Update button take the newest **release** of the project (made by pushing a tag like `v0.2.0`, see `.github/workflows/release.yml`). The release has the program zip and a `SHASUMS256.txt` file; the zip is installed only if its SHA-256 matches. This stops a damaged or swapped download and means half-finished work on the `main` branch never reaches your PC. It does not help if the repository owner's own GitHub account is taken over, because that person can publish a new release. A project with no release yet is still updated from the `main` branch.

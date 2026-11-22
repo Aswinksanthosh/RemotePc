@@ -7,6 +7,7 @@
  * Fork the project and change "repository" in package.json to follow your own copy.
  */
 
+import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { writeAtomic } from './fsutil.mjs'
@@ -36,19 +37,57 @@ export async function latestSha(repo, branch = 'main', fetchFn = globalThis.fetc
 }
 
 /**
+ * The newest published release: { tag, zipUrl, sumsUrl } when the project has one with the two files the release workflow
+ * attaches (remortstartpc.zip and SHASUMS256.txt); null when there is none (or GitHub cannot be asked).
+ */
+export async function latestRelease(repo, fetchFn = globalThis.fetch) {
+  try {
+    const res = await fetchFn(`https://api.github.com/repos/${repo}/releases/latest`, {
+      headers: { accept: 'application/vnd.github+json', 'user-agent': 'remortstartpc-updater' },
+      signal: AbortSignal.timeout(10_000),
+    })
+    if (!res.ok) return null
+    const j = await res.json()
+    const asset = (name) => (j.assets ?? []).find((a) => a?.name === name && /^https:\/\/github\.com\//.test(String(a.browser_download_url)))?.browser_download_url
+    const tag = String(j.tag_name ?? '')
+    const zipUrl = asset('remortstartpc.zip')
+    const sumsUrl = asset('SHASUMS256.txt')
+    return /^v?\d[\w.-]{0,30}$/.test(tag) && zipUrl && sumsUrl ? { tag, zipUrl, sumsUrl } : null
+  } catch {
+    return null
+  }
+}
+
+/** What identifies the newest version: the release tag when there is a release, otherwise the newest commit of the branch. */
+export async function latestVersionId(repo, branch = 'main', fetchFn = globalThis.fetch) {
+  return (await latestRelease(repo, fetchFn))?.tag ?? (await latestSha(repo, branch, fetchFn))
+}
+
+/** The sha256 a SHASUMS256.txt ("<hash>  <file>" per line) lists for a file name, or ''. */
+export function checksumFor(text, name) {
+  for (const line of String(text ?? '').split(/\r?\n/)) {
+    const m = /^([0-9a-fA-F]{64})\s+\*?(.+?)\s*$/.exec(line)
+    if (m && m[2] === name) return m[1].toLowerCase()
+  }
+  return ''
+}
+
+/**
  * Downloads and installs. Returns { installed: false, message } when there is nothing to do, or
  * { installed: true, sha } after the swap. Throws a plain-language error when something goes wrong
  * (and leaves the working copy exactly as it was).
  */
 export async function installUpdate({ repo, branch = 'main', paths, fetchFn = globalThis.fetch, force = false, sleep = (ms) => new Promise((r) => setTimeout(r, ms)) }) {
   if (!repo) throw new Error('This copy does not know where to update from.')
-  const sha = await latestSha(repo, branch, fetchFn)
+  // A published release (checked against its checksum file) is preferred; only a project with no release yet is updated from the branch.
+  const release = await latestRelease(repo, fetchFn)
+  const sha = release ? release.tag : await latestSha(repo, branch, fetchFn)
   const current = readJsonSafe(paths.installed)?.sha ?? ''
   if (!force && sha && sha === current) return { installed: false, message: 'Already up to date.' }
 
   let res
   try {
-    res = await fetchFn(`https://codeload.github.com/${repo}/zip/refs/heads/${encodeURIComponent(branch)}`, {
+    res = await fetchFn(release ? release.zipUrl : `https://codeload.github.com/${repo}/zip/refs/heads/${encodeURIComponent(branch)}`, {
       headers: { 'user-agent': 'remortstartpc-updater' },
       signal: AbortSignal.timeout(60_000),
     })
@@ -59,6 +98,17 @@ export async function installUpdate({ repo, branch = 'main', paths, fetchFn = gl
   if (!res.ok) throw new Error(`GitHub answered ${res.status}.`)
   const zip = Buffer.from(await res.arrayBuffer())
   if (zip.length > MAX_ZIP) throw new Error('The download is larger than expected, so it was not installed.')
+  if (release) {
+    let sums = ''
+    try {
+      const r = await fetchFn(release.sumsUrl, { headers: { 'user-agent': 'remortstartpc-updater' }, signal: AbortSignal.timeout(20_000) })
+      sums = r.ok ? await r.text() : ''
+    } catch {
+      // Handled below: no checksum means no install.
+    }
+    const want = checksumFor(sums, 'remortstartpc.zip')
+    if (!want || createHash('sha256').update(zip).digest('hex') !== want) throw new Error('The download did not match its checksum, so it was not installed.')
+  }
 
   const fresh = `${paths.app}.new`
   const old = `${paths.app}.old`

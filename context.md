@@ -248,3 +248,8 @@ Tests: swr sharing/parallel/stale, timings, volume coalescing, gzip+ETag+304, pr
 - #4 actions.mjs: `failures` map + `track(name, fn)` wraps the swr/memo Windows questions (drives, games, Start menu apps, timers, now playing, sound outputs, Bluetooth, battery, Clear sound state; volume records its own failure and still returns null). actions.problems() -> Diagnostics lines "Could not read X (n s ago): why"; first failure of each name also goes to the service log. A later success clears it.
 - #6 page: aria-labels on player buttons/mute (aria-pressed), region label on the bar, progressbar role + valuetext for the song, slider valuetext, global :focus-visible ring.
 - HEALTH-CHECK.md = the reusable checklist (copy it into any project; ask "do the health check").
+
+## Verified updates (owner, 2026-11-22: fix #2 of the health check)
+- Release flow: pushing a tag v* runs .github/workflows/release.yml (tests, `git archive` zip named remortstartpc.zip with prefix remortstartpc/, SHASUMS256.txt, `gh release create`). src/updater.mjs: latestRelease() (assets only from https://github.com/), checksumFor(), latestVersionId(); installUpdate prefers the release and refuses the zip unless sha256 matches; no release (404) -> old branch behaviour. installed.json `sha` field now holds the tag (e.g. v0.2.0) or a commit id. install.ps1 does the same (Get-FileHash; byte[] content handled). Update-available check uses latestVersionId.
+- Honest limit (docs/SECURITY.md): a hijacked owner account can still publish a release. OWNER MUST create the first release: `git tag v0.1.0 && git push origin v0.1.0` (or via GitHub), otherwise PCs keep using main.
+- install.ps1 release path not run on real Windows (CI only parses it).
