@@ -6,12 +6,12 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 const read = (f) => readFileSync(fileURLToPath(new URL(`../src/web/${f}`, import.meta.url)), 'utf8')
-const js = read('common.js') + '\n' + read('app.js') + '\n' + read('settings.js')
+const js = ['common.js', 'player.js', 'managers.js', 'cards.js', 'app.js', 'settings.js'].map(read).join('\n')
 const html = read('index.html') + read('settings.html')
 const css = read('app.css')
 
 test('the page scripts are valid JavaScript', () => {
-  for (const f of ['common.js', 'app.js', 'settings.js']) execFileSync(process.execPath, ['--check', fileURLToPath(new URL(`../src/web/${f}`, import.meta.url))])
+  for (const f of ['common.js', 'player.js', 'managers.js', 'cards.js', 'app.js', 'settings.js']) execFileSync(process.execPath, ['--check', fileURLToPath(new URL(`../src/web/${f}`, import.meta.url))])
 })
 
 test('text from the PC is never put on the page as HTML', () => {
@@ -101,7 +101,7 @@ test('the Windows list and the app manager are drawn even before they are on the
 })
 
 test('the player bar (previous, play, next, mute, volume slider) is pinned at the top and sound output is a drop-down', () => {
-  assert.ok(js.indexOf('p.append(playerBar(pc))') > 0 && js.indexOf('p.append(playerBar(pc))') < js.indexOf("const steam = el('div', 'steam')"), 'the bar comes before Steam')
+  assert.ok(js.indexOf('p.append(playerBar(pc))') > 0 && js.indexOf('p.append(playerBar(pc))') < js.indexOf('const steam = steamCard(pc, run)'), 'the bar comes before Steam')
   assert.ok(js.includes("acc('sound', "), 'sound output is a drop-down like the Bluetooth one')
   assert.ok(!js.includes("section('play', 'Media')"), 'the old big Media card is gone')
   assert.ok(css.includes('.player{position:sticky'), 'the bar stays on screen while scrolling')
@@ -112,10 +112,12 @@ test('the Power mode card has the Screen off and Sleep timers, and an open drop-
   assert.ok(css.includes('.card:has(.dd.open)'))
 })
 
-test('favourites: stars in the Bluetooth and sound output lists, and a one-tap strip under the player bar', () => {
+test('favourites: stars in the Bluetooth and sound output lists, and a one-tap row right above each drop-down', () => {
   assert.ok(js.includes('function starBtn') && js.includes("act('favorite_set'") && js.includes("starBtn('bt', name") && js.includes("starBtn('out', name"))
-  const call = js.indexOf('const favBox = favoritesStrip(pc)')
-  assert.ok(js.indexOf('p.append(playerBar(pc))') < call && call < js.indexOf("const steam = el('div', 'steam')"), 'the strip is under the player bar and above Steam')
+  const bt = js.indexOf("favChips('bt', pc)")
+  const sound = js.indexOf("favChips('out', pc)")
+  assert.ok(bt > 0 && sound > 0 && !js.includes('favoritesStrip'), 'Bluetooth favourites and sound favourites each sit in their own card; the old combined strip is gone')
+  assert.ok(js.indexOf("bt.append(favs)") < js.indexOf("bt.append(acc('bt'") && js.indexOf("snd.append(favs)") < js.indexOf("snd.append(acc('sound'"), 'the chips come before (above) the drop-down')
   assert.ok(js.includes("act(isOn ? 'bt_disconnect' : 'bt_connect', name)") && js.includes("act('audio_set', name)"))
 })
 

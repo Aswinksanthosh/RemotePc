@@ -76,6 +76,9 @@ function sendBody(req, res, headers, body, compress) {
 const STATIC = {
   '/': ['index.html', 'text/html; charset=utf-8', 'no-cache'],
   '/app.js': ['app.js', 'text/javascript; charset=utf-8', 'no-cache'],
+  '/player.js': ['player.js', 'text/javascript; charset=utf-8', 'no-cache'],
+  '/managers.js': ['managers.js', 'text/javascript; charset=utf-8', 'no-cache'],
+  '/cards.js': ['cards.js', 'text/javascript; charset=utf-8', 'no-cache'],
   '/app.css': ['app.css', 'text/css; charset=utf-8', 'no-cache'],
   '/settings': ['settings.html', 'text/html; charset=utf-8', 'no-cache'],
   '/settings.js': ['settings.js', 'text/javascript; charset=utf-8', 'no-cache'],

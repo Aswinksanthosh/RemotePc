@@ -60,8 +60,8 @@ html = html.replace(/<link rel="(icon|apple-touch-icon)"[^>]*>\n?/g, '')
 // The preview is already "paired": give the page a key without reading the address or storage.
 const fakeKey = (code) => code.replace('if (key) {\n  // The home-screen shortcut', "key = 'preview-key-0123456789abcdef0123'\nif (key) {\n  // The home-screen shortcut")
 const common = fakeKey(read('common.js'))
-const js = read('app.js').replace("location.href = '/settings?k=' + encodeURIComponent(key)", "location.href = 'RemotePc-settings-preview.html'")
-html = html.replace('<script src="/common.js"></script>\n<script src="/app.js" defer></script>', `${stub}\n<script>${common}</script>\n<script>${js}</script>`)
+const js = ['player.js', 'managers.js', 'cards.js', 'app.js'].map(read).join('\n').replace("location.href = '/settings?k=' + encodeURIComponent(key)", "location.href = 'RemotePc-settings-preview.html'")
+html = html.replace(/<script src="\/common.js"><\/script>\n(<script src="\/[a-z]+.js" defer><\/script>\n?)+/, `${stub}\n<script>${common}</script>\n<script>${js}</script>`)
 writeFileSync(join(outDir, 'RemotePc-preview.html'), html)
 
 // The Settings page, with pretend settings kept in memory.
