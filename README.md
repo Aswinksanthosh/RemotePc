@@ -8,6 +8,28 @@
 <img src="docs/img/phone-settings.png" alt="The Settings page: startup, apps, PIN" width="260">
 </p>
 
+## Demo
+
+<p align="center">
+<img src="docs/img/remotepc-demo.gif" alt="A short demo: drag the volume, start a Steam game, connect earbuds and turn on Clear sound, switch to Performance mode" width="300">
+</p>
+
+*The clip uses a pretend PC (no real data). Every tap shows what the real page would do.*
+
+### Try it yourself (no PC, no install)
+
+Open the live demo in your phone or computer browser: **[aswinksanthosh.github.io/RemotePc](https://aswinksanthosh.github.io/RemotePc/)**. It is the real page with a pretend laptop. Press buttons, drag the volume, open the drop-downs. Nothing is sent anywhere.
+
+Or run it yourself (needs [Node.js](https://nodejs.org) 20 or newer):
+
+```bash
+git clone https://github.com/Aswinksanthosh/RemotePc.git
+cd RemotePc
+node bin/demo.mjs
+```
+
+It prints an address to open in your browser.
+
 ## What you need
 
 A **Windows 10 or 11 PC**, an **iPhone or Android phone**, and a **Google account**. About 10 minutes.

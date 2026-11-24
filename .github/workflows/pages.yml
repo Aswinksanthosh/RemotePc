@@ -1,0 +1,38 @@
+name: demo page
+
+# Publishes the pretend-PC demo (no PC, no data, nothing is sent anywhere) so anyone can try the phone page in a browser.
+# One-time switch for the owner: GitHub > Settings > Pages > Source: "GitHub Actions".
+on:
+  push:
+    branches: [main]
+    paths: ['src/web/**', 'scripts/make-preview.mjs', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/make-preview.mjs site
+      - run: printf '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=RemotePc-preview.html"><a href="RemotePc-preview.html">Open the demo</a>' > site/index.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4

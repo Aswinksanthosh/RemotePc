@@ -49,6 +49,15 @@ window.fetch = function (url, opts) {
   if (String(url).indexOf('/api/media') >= 0) return json({ media: { title: 'Blinding Lights', artist: 'The Weeknd', playing: true, pos: 84, end: 200 } })
   if (String(url).indexOf('/api/cover') >= 0) return Promise.resolve(new Response('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff4fa3"/><stop offset="1" stop-color="#6a5cff"/></linearGradient></defs><rect width="10" height="10" fill="url(#g)"/><circle cx="5" cy="5" r="2.2" fill="#0b0b12"/></svg>', { status: 200, headers: { 'content-type': 'image/svg+xml' } }))
   if (String(url).indexOf('/api/do') >= 0) {
+    // The pretend PC remembers what you press, so the page shows the result (power mode, earbuds, Clear sound, game, volume).
+    var me = previewPcs[previewSelf]
+    var arg = String(body.arg || '')
+    if (/^mode_(saver|balanced|gaming)$/.test(body.action)) me.mode = body.action.slice(5)
+    if (body.action === 'handsfree_set' && me.handsFree) me.handsFree.cleared = arg === 'on'
+    if (body.action === 'bt_connect' && me.btConnected.indexOf(arg) < 0) me.btConnected.push(arg)
+    if (body.action === 'bt_disconnect') me.btConnected = me.btConnected.filter(function (n) { return n !== arg })
+    if (body.action === 'volume_set' && me.volume) me.volume.level = Number(arg)
+    if (body.action === 'steam_game' && me.steam) me.steam.playing = arg
     return json({ message: 'Preview: ' + body.action + (body.arg ? ' (' + body.arg + ')' : '') + '. Nothing was really done.' })
   }
   return Promise.resolve(new Response(null, { status: 204 }))
