@@ -11,10 +11,10 @@
 ## Demo
 
 <p align="center">
-<img src="docs/img/remotepc-demo.gif" alt="A short demo: drag the volume, start a Steam game, connect earbuds and turn on Clear sound, switch to Performance mode" width="300">
+<a href="https://aswinksanthosh.github.io/RemotePc/"><img src="docs/img/remotepc-demo.gif" alt="A short demo: drag the volume, start a Steam game, connect earbuds and turn on Clear sound, switch to Performance mode" width="300"></a>
 </p>
 
-*The clip uses a pretend PC (no real data). Every tap shows what the real page would do.*
+*Tap the clip to open the live demo, where you can press the buttons yourself. It uses a pretend PC (no real data).*
 
 ### Try it yourself (no PC, no install)
 
