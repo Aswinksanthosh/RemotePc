@@ -1,6 +1,9 @@
 'use strict'
 // The main phone page. Shared helpers (key, calls, icons, themes) are in common.js.
 let data = null
+// The cards slide in once when the page opens, not on every refresh (see body.intro in app.css).
+document.body.classList.add('intro')
+setTimeout(() => document.body.classList.remove('intro'), 1500)
 let timer = 0
 let lastSig = ''
 let offline = false

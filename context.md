@@ -272,3 +272,9 @@ Tests: swr sharing/parallel/stale, timings, volume coalescing, gzip+ETag+304, pr
 
 ## Demo footer link (owner, 2026-11-25: "Add a ... redirect link at the footer of demo")
 - Owner chose: link to the GitHub project, demo page only. make-preview.mjs injects a `.demo-foot` button "Like it? Get RemotePc on GitHub →" (https://github.com/Aswinksanthosh/RemotePc, target _blank, rel noopener) before </body> of RemotePc-preview.html only (not the real page). The Pages workflow redeploys when make-preview.mjs changes.
+
+## Demo fixes (owner screenshot, 2026-11-25: faded page, "{{NAME}}" tab title, footer link missing)
+- Cause 1 (my bug): the card slide-in animation (.card{animation:up}) replayed on EVERY re-render, so the page faded in again after each refresh/press. Now only under `body.intro` (class added at page start, removed after 1.5 s). Checked with Playwright: animation-name up while opening, none after a refresh.
+- Cause 2: preview pages showed the literal "{{NAME}}" as tab title: make-preview.mjs now replaces it with "RemotePc demo".
+- Cause 3: Pages deploy failed with "Found 0 artifacts" (upload finalized 1 s before deploy looked for it; runs 1, 3, 4 failed, 2 happened to work). pages.yml is now two jobs (build, then deploy needs: build), the recommended pattern.
+- Lesson: any CSS entrance animation on elements that are re-created on refresh must be gated to the first load.

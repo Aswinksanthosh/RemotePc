@@ -65,7 +65,7 @@ window.fetch = function (url, opts) {
 </script>`
 let html = read('index.html')
 html = html.replace('<link rel="stylesheet" href="/app.css">', `<style>${read('app.css')}</style>`)
-html = html.replace(/<link rel="(icon|apple-touch-icon)"[^>]*>\n?/g, '')
+html = html.replace(/<link rel="(icon|apple-touch-icon)"[^>]*>\n?/g, '').replaceAll('{{NAME}}', 'RemotePc demo')
 // The preview is already "paired": give the page a key without reading the address or storage.
 const fakeKey = (code) => code.replace('if (key) {\n  // The home-screen shortcut', "key = 'preview-key-0123456789abcdef0123'\nif (key) {\n  // The home-screen shortcut")
 const common = fakeKey(read('common.js'))

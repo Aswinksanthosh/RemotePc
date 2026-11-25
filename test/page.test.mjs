@@ -143,3 +143,8 @@ test('accessibility: the player bar buttons, mute, slider and song progress have
 test('clipboard box: paste then send to the PC, and get the PC clipboard to copy on the phone', () => {
   assert.ok(js.includes("call('/api/clipboard', { text: inbox.value })") && js.includes("call('/api/clipboard', {})") && js.includes('sys.append(clipboardBox())') && js.includes("copyText(outbox.value)"))
 })
+
+test('the card slide-in plays once when the page opens, never again on a refresh', () => {
+  assert.ok(css.includes('body.intro .card{animation:up') && !css.includes('\n.card{animation:up'))
+  assert.ok(js.includes("document.body.classList.add('intro')") && js.includes("classList.remove('intro')"))
+})
