@@ -71,6 +71,8 @@ const fakeKey = (code) => code.replace('if (key) {\n  // The home-screen shortcu
 const common = fakeKey(read('common.js'))
 const js = ['player.js', 'managers.js', 'cards.js', 'app.js'].map(read).join('\n').replace("location.href = '/settings?k=' + encodeURIComponent(key)", "location.href = 'RemotePc-settings-preview.html'")
 html = html.replace(/<script src="\/common.js"><\/script>\n(<script src="\/[a-z]+.js" defer><\/script>\n?)+/, `${stub}\n<script>${common}</script>\n<script>${js}</script>`)
+// Only in the online demo: a link at the very bottom that sends visitors to the project.
+html = html.replace('</body>', `<style>.demo-foot{max-width:560px;margin:8px auto 28px;padding:0 16px;text-align:center}.demo-foot a{display:block;padding:14px 16px;border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,0)),#ff4fa3;color:#06121c;font-weight:700;text-decoration:none;font-family:inherit}.demo-foot small{display:block;margin-top:6px;opacity:.7;color:#fff}</style><div class="demo-foot"><a href="https://github.com/Aswinksanthosh/RemotePc" target="_blank" rel="noopener">Like it? Get RemotePc on GitHub →</a><small>This demo uses a pretend PC. Free and open source.</small></div></body>`)
 writeFileSync(join(outDir, 'RemotePc-preview.html'), html)
 
 // The Settings page, with pretend settings kept in memory.
