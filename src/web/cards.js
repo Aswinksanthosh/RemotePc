@@ -199,7 +199,7 @@ function bluetoothCard(pc) {
       const row = el('div', 'hfrow')
       row.append(el('div', 'nm', 'Clear sound' + (hf.cleared ? ': on' : ': off')), btn(hf.cleared ? 'Turn off' : 'Turn on', () => act('handsfree_set', hf.cleared ? 'off' : 'on'), false, undefined, hf.cleared ? '' : 'go'))
       btIn.append(row)
-      btIn.append(el('div', 'note', hf.ready ? 'On: no more bad sound when the mic is used. The earbuds own mic stops working. Turn off for calls.' : 'First run Bluetooth-Sound-Setup on this PC once (Start menu, asks for administrator rights).'))
+      btIn.append(el('div', 'note', hf.ready ? 'On: no more bad sound when the mic is used. The earbuds own mic stops working. Turn off for calls.' : 'First run Admin-Setup on this PC once (Start menu, asks for administrator rights).'))
     }
     btIn.append(list)
     btIn.append(el('div', 'note', 'Earbuds must be in range and not busy with another device. Disconnect frees them for your phone.'))
@@ -277,7 +277,33 @@ function modeCard(pc, run) {
     }
     mode.append(el('div', 'note', 'These are the Windows timers. A sleeping PC cannot be reached from the phone.'))
   }
+  const gpuBox = gpuRow(pc)
+  if (gpuBox) mode.append(gpuBox)
   return mode
+}
+
+// The NVIDIA GPU switch (only on a PC that has one). Off = the laptop uses its integrated GPU. It is refused unless another working GPU exists.
+function gpuRow(pc) {
+  const g = pc.gpu
+  if (!g || !g.nvidia) return null
+  const box = el('div', 'gpubox')
+  const row = el('div', 'hfrow')
+  const canOff = g.ready && g.otherOk
+  const button = g.on
+    ? btn('Turn off', () => confirmBox('Turn off the NVIDIA GPU?', 'The laptop uses its integrated GPU instead. Games run slower or may not start, and the screen may blink for a moment.', 'Turn off', () => act('gpu_set', 'off')), !canOff)
+    : btn('Turn on', () => act('gpu_set', 'on'), !g.ready, undefined, 'go')
+  row.append(el('div', 'nm', 'NVIDIA GPU: ' + (g.on ? 'on' : 'off')), button)
+  box.append(row)
+  const note = !g.ready
+    ? 'First run Admin-Setup on this PC once (Start menu, asks for administrator rights).'
+    : g.on && !g.otherOk
+      ? 'No other working GPU was found, so it cannot be turned off safely.'
+      : g.on
+        ? 'Off = the laptop uses its integrated GPU (cooler, slower games). It only turns off while another GPU works.'
+        : 'The laptop is using its integrated GPU. Turn on before playing games.'
+  box.append(el('div', 'note', note))
+  if (g.version) box.append(el('div', 'note' + (g.suspect ? ' warn' : ''), g.suspect ? 'Driver ' + g.version + ' is one of those reported to write a lot to the SSD while idle (not confirmed by NVIDIA). Turning the GPU off stops it.' : 'NVIDIA driver ' + g.version))
+  return box
 }
 
 function windowsCard() {

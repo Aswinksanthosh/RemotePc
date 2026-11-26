@@ -148,3 +148,8 @@ test('the card slide-in plays once when the page opens, never again on a refresh
   assert.ok(css.includes('body.intro .card{animation:up') && !css.includes('\n.card{animation:up'))
   assert.ok(js.includes("document.body.classList.add('intro')") && js.includes("classList.remove('intro')"))
 })
+
+test('NVIDIA GPU switch: in the Power mode card, asks before turning off, and warns about the reported drivers', () => {
+  assert.ok(js.includes('function gpuRow') && js.includes('gpuRow(pc)') && js.includes("act('gpu_set', 'off')") && js.includes("act('gpu_set', 'on')"))
+  assert.ok(js.includes("confirmBox('Turn off the NVIDIA GPU?'") && js.includes('not confirmed by NVIDIA'))
+})

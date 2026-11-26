@@ -12,7 +12,7 @@ const outDir = process.argv[2] || '.'
 mkdirSync(outDir, { recursive: true })
 
 const base = {
-  version: '0.1.0', control: true, customGames: [{ name: 'PUBG: BATTLEGROUNDS', appid: '578080' }], battery: { percent: 78, onBattery: false }, btBattery: { 'OnePlus Buds Pro': 85 }, favorites: { bt: ['OnePlus Buds Pro'], out: ['Speakers (Realtek Audio)', 'OnePlus Buds Pro Stereo'] }, handsFree: { found: true, cleared: false, ready: true }, mode: 'balanced', timers: { screen: 10, sleep: 30 }, timerChoices: { screen: [1, 2, 3, 5, 10, 15, 20, 30, 60, 0], sleep: [5, 10, 15, 20, 30, 45, 60, 120, 0] }, volume: { level: 62, muted: false }, gameArt: [], buttons: ['my tests', 'open code'],
+  version: '0.1.0', control: true, customGames: [{ name: 'PUBG: BATTLEGROUNDS', appid: '578080' }], battery: { percent: 78, onBattery: false }, btBattery: { 'OnePlus Buds Pro': 85 }, favorites: { bt: ['OnePlus Buds Pro'], out: ['Speakers (Realtek Audio)', 'OnePlus Buds Pro Stereo'] }, handsFree: { found: true, cleared: false, ready: true }, gpu: { nvidia: true, on: true, otherOk: true, ready: true, version: '621.24', suspect: true }, mode: 'balanced', timers: { screen: 10, sleep: 30 }, timerChoices: { screen: [1, 2, 3, 5, 10, 15, 20, 30, 60, 0], sleep: [5, 10, 15, 20, 30, 45, 60, 120, 0] }, volume: { level: 62, muted: false }, gameArt: [], buttons: ['my tests', 'open code'],
   headphones: ['OnePlus Buds Pro', 'AirPods Pro'], btConnected: ['OnePlus Buds Pro'], outputs: ['Speakers (Realtek Audio)', 'OnePlus Buds Pro Stereo', 'Monitor (HDMI)'],
   apps: ['Spotify'],
 }
@@ -56,6 +56,7 @@ window.fetch = function (url, opts) {
     if (body.action === 'handsfree_set' && me.handsFree) me.handsFree.cleared = arg === 'on'
     if (body.action === 'bt_connect' && me.btConnected.indexOf(arg) < 0) me.btConnected.push(arg)
     if (body.action === 'bt_disconnect') me.btConnected = me.btConnected.filter(function (n) { return n !== arg })
+    if (body.action === 'gpu_set' && me.gpu) me.gpu.on = arg === 'on'
     if (body.action === 'volume_set' && me.volume) me.volume.level = Number(arg)
     if (body.action === 'steam_game' && me.steam) me.steam.playing = arg
     return json({ message: 'Preview: ' + body.action + (body.arg ? ' (' + body.arg + ')' : '') + '. Nothing was really done.' })

@@ -314,3 +314,6 @@ body.intro .content .card:nth-child(2){animation-delay:.05s}body.intro .content 
 
 .clipbox{display:flex;flex-direction:column;gap:8px;margin-top:10px}
 .cliptext{width:100%;box-sizing:border-box;resize:vertical;min-height:64px}
+
+.gpubox{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.note.warn{color:#ffd27a}

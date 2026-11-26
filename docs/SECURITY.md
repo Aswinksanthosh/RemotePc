@@ -43,3 +43,7 @@ The installer and the Update button take the newest **release** of the project (
 ## The clipboard
 
 The Clipboard box in the System card sends text (up to 2000 characters) from the phone to this PC's clipboard, and can read this PC's clipboard back to the phone. Only a paired phone (and its PIN, if set) can do it, the text is never written to the log or kept, and it travels only over Tailscale. Remember that a PC clipboard may hold a password or other private text: anyone who holds a paired phone can read it.
+
+## Switches that need administrator rights (Clear sound, NVIDIA GPU)
+
+Admin-Setup.cmd (run once, asks for administrator rights) creates four scheduled tasks: `RemotePc-HandsFree-On/Off` and `RemotePc-GPU-On/Off`. Each runs as you with the highest rights and runs **one fixed command**; the phone can only start a task by name, it can never send a command. The NVIDIA GPU task refuses to turn the GPU off unless another working GPU (Intel or AMD) exists, so a wrong tap cannot leave the laptop with no picture. Uninstall deletes the tasks.

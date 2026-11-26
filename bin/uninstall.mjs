@@ -7,6 +7,7 @@ import { ask, run } from '../src/system.mjs'
 import { createUi, supportsColor } from '../src/ui.mjs'
 import { limiterDir } from '../src/paths.mjs'
 import { removeOldLimiter } from '../src/setup.mjs'
+import { GPU_TASK_OFF, GPU_TASK_ON } from '../src/gpu.mjs'
 import { TASK_OFF, TASK_ON } from '../src/handsfree.mjs'
 import { firewallDeleteArgs, psArgs, removeTaskScript, stopRemoteScript } from '../src/windows.mjs'
 
@@ -18,8 +19,8 @@ if (process.platform === 'win32') {
   // An old temperature limiter (removed from the program) is cleaned up too: speed restored, task and folder deleted.
   await removeOldLimiter({ run, ps: (script) => run('powershell.exe', psArgs(script)), dir: limiterDir(), ui })
   await run('powershell.exe', psArgs(removeTaskScript)).then(() => ui.ok('Automatic start and shortcuts removed.'), (e) => ui.warn(`Could not remove the automatic start: ${e.message}`))
-  // The two "Clear sound" tasks (only exist after Bluetooth-Sound-Setup).
-  for (const task of [TASK_ON, TASK_OFF]) await run('schtasks.exe', ['/delete', '/tn', task, '/f']).catch(() => {})
+  // The "Clear sound" and "NVIDIA GPU" tasks (only exist after Admin-Setup).
+  for (const task of [TASK_ON, TASK_OFF, GPU_TASK_ON, GPU_TASK_OFF]) await run('schtasks.exe', ['/delete', '/tn', task, '/f']).catch(() => {})
   await run('netsh.exe', firewallDeleteArgs).then(() => ui.ok('Firewall rule removed.'), () => ui.warn('No firewall rule to remove (or administrator rights are needed).'))
 }
 // The PIN is always removed (owner decision): a reinstall never brings an old PIN back, even when the rest is kept.

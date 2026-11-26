@@ -14,6 +14,7 @@ import { WILDCARD, knownButtons, knownCustomApps, knownFavorites } from './known
 export { BT_LIST, BT_NAMES, CLIP_GET, CLIP_MAX, cleanModel, clipSetScript } from './ps-scripts.mjs'
 export { knownButtons, knownCustomApps, knownFavorites } from './known.mjs'
 import { MEDIA_COVER, MEDIA_INFO } from './media.mjs'
+import { GPU_STATE, GPU_TASK_OFF, GPU_TASK_ON, gpuCommand, gpuSetupScript, parseGpu, REPORTED_BAD_DRIVERS } from './gpu.mjs'
 import { HF_STATE, hfCommand, hfSetupScript, TASK_OFF, TASK_ON } from './handsfree.mjs'
 import { execFile, spawn } from 'node:child_process'
 import { existsSync, readFileSync, statSync } from 'node:fs'
@@ -89,6 +90,7 @@ export const ACTIONS = [
   'bt_connect',
   'bt_disconnect',
   'handsfree_set',
+  'gpu_set',
   'audio_set',
   ...Object.keys(KEYS),
 ]
@@ -517,6 +519,17 @@ export function createActions({
     const ready = await run('schtasks.exe', ['/query', '/tn', TASK_OFF]).then(() => true, () => false)
     return { found: out === 'enabled' || out === 'disabled', cleared: out === 'disabled', ready }
   }), now)
+  // The NVIDIA GPU switch: { nvidia, on, otherOk, version, ready, suspect } (ready = the one-time admin setup was done). The version is
+  // remembered, because Windows stops listing the driver while the GPU is off.
+  let lastNvidiaVersion = ''
+  const gpu = swr(15_000, track('GPU', async () => {
+    if (platform !== 'win32') return null
+    const g = parseGpu(await ps(GPU_STATE, { timeout: 20_000 }))
+    if (g.version) lastNvidiaVersion = g.version
+    const version = g.version || lastNvidiaVersion
+    const ready = g.nvidia ? await run('schtasks.exe', ['/query', '/tn', GPU_TASK_OFF]).then(() => true, () => false) : false
+    return { ...g, version, ready, suspect: REPORTED_BAD_DRIVERS.includes(version) }
+  }), now)
   const outputs = swr(30_000, track('sound outputs', () => (platform === 'win32' ? listLines(AUDIO_LIST, 80) : [])), now)
   const listOutputs = async () => (await outputs()) ?? []
 
@@ -642,7 +655,7 @@ export function createActions({
         if (arg !== 'on' && arg !== 'off') throw new Error('Clear sound is on or off.')
         const want = arg === 'on'
         const before = await handsFree.fresh()
-        if (!before?.ready) throw new Error('Run Bluetooth-Sound-Setup once on this PC (it asks for administrator rights), then try again.')
+        if (!before?.ready) throw new Error('Run Admin-Setup once on this PC (it asks for administrator rights), then try again.')
         await run('schtasks.exe', ['/run', '/tn', want ? TASK_OFF : TASK_ON])
         let now2 = false
         for (let i = 0; i < 8; i++) {
@@ -654,6 +667,22 @@ export function createActions({
         }
         if (now2) return want ? 'Clear sound is on. Earbuds keep music quality; their own mic is not used.' : 'Clear sound is off. The earbuds mic works again (call quality).'
         return 'Asked Windows, but it did not change yet. Reconnect the earbuds and look again.'
+      }
+      case 'gpu_set': {
+        if (arg !== 'on' && arg !== 'off') throw new Error('The NVIDIA GPU is on or off.')
+        const want = arg === 'on'
+        const before = await gpu.fresh()
+        if (!before?.nvidia) throw new Error('This PC has no NVIDIA GPU that Windows lists.')
+        if (!before.ready) throw new Error('Run Admin-Setup once on this PC (it asks for administrator rights), then try again.')
+        if (!want && !before.otherOk) throw new Error('No other working GPU was found, so the NVIDIA GPU stays on. Turning it off could leave the screen black.')
+        if (before.on === want) return want ? 'The NVIDIA GPU is already on.' : 'The NVIDIA GPU is already off.'
+        await run('schtasks.exe', ['/run', '/tn', want ? GPU_TASK_ON : GPU_TASK_OFF])
+        // Windows needs a few seconds to switch (the screen may blink): look until it really changed (up to about 20 seconds).
+        for (let i = 0; i < 10; i++) {
+          await sleep(2000)
+          if ((await gpu.fresh())?.on === want) return want ? 'The NVIDIA GPU is on. Games can use it again.' : 'The NVIDIA GPU is off. The laptop uses its integrated GPU now.'
+        }
+        return 'Asked Windows, but the GPU did not change yet. Wait a little and look again.'
       }
       case 'audio_set': {
         const name = (await listOutputs()).find((n) => n.toLowerCase() === String(arg ?? '').toLowerCase().trim())
@@ -750,7 +779,7 @@ export function createActions({
       let timer
       // One part failing never blanks the page: it just comes back empty and the rest is shown.
       const safe = (promise, empty) => Promise.resolve(promise).catch(() => empty)
-      const [modelName, steam, games, art, vol, bt, outs, apps, tm, bat, hf] = await Promise.all([
+      const [modelName, steam, games, art, vol, bt, outs, apps, tm, bat, hf, gp] = await Promise.all([
         safe(Promise.race([model(), new Promise((r) => (timer = setTimeout(() => r(''), 1500)))]), ''),
         safe(steamInfo(), null),
         safe(gameList(), []),
@@ -762,6 +791,7 @@ export function createActions({
         safe(timers(), null),
         safe(laptopBattery(), null),
         safe(handsFree(), null),
+        safe(gpu(), null),
       ])
       clearTimeout(timer)
       return {
@@ -781,6 +811,7 @@ export function createActions({
         headphones: (bt ?? []).map((d) => d.name),
         btConnected: (bt ?? []).filter((d) => d.connected).map((d) => d.name),
         handsFree: hf ?? null,
+        gpu: gp ?? null,
         btBattery: Object.fromEntries((bt ?? []).filter((d) => d.connected && d.battery).map((d) => [d.name, d.battery])),
         battery: bat,
         outputs: outs ?? [],

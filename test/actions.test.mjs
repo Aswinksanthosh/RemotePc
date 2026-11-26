@@ -654,7 +654,7 @@ test('clear sound: needs the one-time setup, then switches only through the two 
   })
   let info = await actions.info()
   assert.deepEqual(info.handsFree, { found: true, cleared: false, ready: false })
-  await assert.rejects(actions.run('handsfree_set', 'on'), /Bluetooth-Sound-Setup/)
+  await assert.rejects(actions.run('handsfree_set', 'on'), /Admin-Setup/)
   setup = true
   assert.match(await actions.run('handsfree_set', 'on'), /Clear sound is on/)
   assert.ok(calls.some((c) => c[0] === 'schtasks.exe' && c[1] === '/run' && c[3] === 'RemotePc-HandsFree-Off'))
@@ -718,4 +718,59 @@ test('clipboard: text goes to Windows as base64 (no quote can change the script)
   await assert.rejects(actions.clipboardSet(undefined), /nothing to copy/)
   const linux = lab(t, { platform: 'linux' })
   await assert.rejects(linux.actions.clipboardGet(), /Windows only/)
+})
+
+test('NVIDIA GPU switch: version, safety checks (setup done, another GPU working), and the real state is reported', async (t) => {
+  const { gpuCommand, gpuSetupScript, nvidiaVersion, parseGpu } = await import('../src/gpu.mjs')
+  assert.equal(nvidiaVersion('32.0.16.2124'), '621.24')
+  assert.equal(nvidiaVersion('31.0.15.5186'), '551.86')
+  assert.equal(nvidiaVersion('garbage'), '')
+  const both = ['GPU\tNVIDIA GeForce RTX 4060\tOK', 'GPU\tAMD Radeon(TM) Graphics\tOK', 'GPU\tMicrosoft Basic Display Adapter\tOK', 'VER\t32.0.16.2124'].join('\n')
+  assert.deepEqual(parseGpu(both), { nvidia: true, on: true, otherOk: true, version: '621.24' })
+  assert.equal(parseGpu('GPU\tNVIDIA GeForce RTX 4060\tOK').otherOk, false, 'no other working GPU: not safe')
+  assert.equal(parseGpu('GPU\tNVIDIA GeForce RTX 4060\tError\nGPU\tIntel(R) UHD Graphics\tOK').on, false)
+  assert.equal(parseGpu('GPU\tMicrosoft Basic Display Adapter\tOK').otherOk, false, 'the basic adapter does not count')
+  assert.match(gpuCommand(true), /\$other\.Count -gt 0/, 'the administrator task itself refuses to turn the only GPU off')
+  assert.match(gpuCommand(false), /Enable-PnpDevice/)
+  assert.match(gpuSetupScript(), /RemotePc-GPU-Off/)
+  let nvOn = true
+  let setup = false
+  let otherOk = true
+  const calls = []
+  const home = tempDir(t)
+  const actions = createActions({
+    files: { buttons: join(home, 'b'), apps: join(home, 'a'), games: join(home, 'g'), switchLog: join(home, 's'), mode: join(home, 'm') },
+    platform: 'win32', sleep: async () => {}, hostname: () => 'PC',
+    run: async (file, args) => {
+      calls.push([file, ...args])
+      if (file === 'schtasks.exe' && args[0] === '/query') {
+        if (!setup) throw new Error('not found')
+        return ''
+      }
+      if (file === 'schtasks.exe' && args[0] === '/run') {
+        nvOn = args[2] === 'RemotePc-GPU-On'
+        return ''
+      }
+      if (file === 'powershell.exe' && decode(args).includes("Get-PnpDevice -Class Display")) return ['GPU\tNVIDIA GeForce RTX 4060\t' + (nvOn ? 'OK' : 'Error'), 'GPU\tAMD Radeon(TM) Graphics\t' + (otherOk ? 'OK' : 'Error'), nvOn ? 'VER\t32.0.16.2124' : ''].join('\n')
+      return ''
+    },
+  })
+  let info = await actions.info()
+  assert.equal(info.gpu.version, '621.24')
+  assert.equal(info.gpu.suspect, true)
+  assert.equal(info.gpu.ready, false)
+  await assert.rejects(actions.run('gpu_set', 'off'), /Admin-Setup/)
+  setup = true
+  otherOk = false
+  await assert.rejects(actions.run('gpu_set', 'off'), /No other working GPU/)
+  assert.ok(!calls.some((c) => c[0] === 'schtasks.exe' && c[1] === '/run'), 'nothing is started when it is not safe')
+  otherOk = true
+  assert.match(await actions.run('gpu_set', 'off'), /integrated GPU now/)
+  assert.ok(calls.some((c) => c[0] === 'schtasks.exe' && c[1] === '/run' && c[3] === 'RemotePc-GPU-Off'))
+  info = await actions.info()
+  assert.equal(info.gpu.on, false)
+  assert.equal(info.gpu.version, '621.24', 'the version is remembered while the GPU is off')
+  assert.match(await actions.run('gpu_set', 'on'), /is on/)
+  assert.match(await actions.run('gpu_set', 'on'), /already on/)
+  for (const bad of ['x', '', undefined, 'off; calc']) await assert.rejects(actions.run('gpu_set', bad), /on or off/)
 })

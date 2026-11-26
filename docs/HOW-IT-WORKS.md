@@ -25,7 +25,7 @@
 | `src/ps-scripts.mjs`, `src/cache.mjs`, `src/known.mjs`, `src/pc-features.mjs` | Split out of `actions.mjs`: the PowerShell snippets, the slow-answer caches, the readers of your own files, and the clipboard / windows list / now playing features |
 | `src/web/app.js`, `cards.js`, `player.js`, `managers.js` | The phone page: `app.js` draws and refreshes the page, `cards.js` has one function per card, `player.js` the pinned player bar, `managers.js` the apps / games / clipboard / windows managers |
 | `src/media.mjs` | Now playing (title, artist, cover, progress) read from Windows media controls, read only |
-| `Bluetooth-Sound-Setup.cmd`, `bin/handsfree-setup.mjs`, `src/handsfree.mjs` | One-time admin setup of the "Clear sound" switch (two fixed Windows tasks that turn earbuds' Hands-Free mode off or on) |
+| `Admin-Setup.cmd`, `bin/admin-setup.mjs`, `src/admin-tasks.mjs`, `src/handsfree.mjs`, `src/gpu.mjs` | One-time admin setup of the two switches that need administrator rights: "Clear sound" (earbuds Hands-Free mode) and the NVIDIA GPU switch. Each is a scheduled task that runs one fixed command |
 | `Wake-on-LAN-Setup.cmd`, `bin/wake-setup.mjs`, `src/wol.mjs`, `src/wake.mjs` | Get a PC ready to be started, send the magic packet |
 | `src/server.mjs`, `src/auth.mjs`, `src/net.mjs` | The server, the phone keys, which networks are allowed |
 | `src/actions.mjs`, `src/steam.mjs` | The buttons and everything that reads Steam's files |
