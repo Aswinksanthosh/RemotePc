@@ -200,6 +200,11 @@ function bluetoothCard(pc) {
       row.append(el('div', 'nm', 'Clear sound' + (hf.cleared ? ': on' : ': off')), btn(hf.cleared ? 'Turn off' : 'Turn on', () => act('handsfree_set', hf.cleared ? 'off' : 'on'), false, undefined, hf.cleared ? '' : 'go'))
       btIn.append(row)
       btIn.append(el('div', 'note', hf.ready ? 'On: no more bad sound when the mic is used. The earbuds own mic stops working. Turn off for calls.' : 'First run Admin-Setup on this PC once (Start menu, asks for administrator rights).'))
+      // A way out whatever state the page thinks it is in: turns every Hands-Free device back on (earbuds without sound or that will not connect).
+      if (hf.ready) {
+        btIn.append(el('div', 'note', 'Earbuds have no sound or will not connect? Restore turns Hands-Free back on, then disconnect and connect the earbuds.'))
+        btIn.append(btn('Restore Hands-Free', () => act('handsfree_set', 'off'), false, undefined, 'small'))
+      }
     } else {
       // Never silently hidden: say why the switch is not here.
       btIn.append(el('div', 'note', hf ? 'Clear sound: Windows lists no Hands-Free device for your Bluetooth devices, so the switch cannot work here. Open Diagnostics (System card) and send the "Clear sound" line.' : 'Clear sound: could not read from Windows. Open Diagnostics (System card) for the reason.'))

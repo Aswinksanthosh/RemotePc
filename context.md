@@ -291,3 +291,7 @@ Tests: swr sharing/parallel/stale, timings, volume coalescing, gzip+ETag+304, pr
 - The row is never silently hidden any more: the Bluetooth card says why (no Hands-Free device listed / could not read from Windows). Diagnostics has a "Clear sound" line listing the devices Windows lists + [off/OK] + whether Admin-Setup was done (actions.handsFreeInfo).
 - The elevated task command changed (broader search), so every laptop must re-run Admin-Setup once after updating.
 - Owner to send the Diagnostics "Clear sound" line if the row still says no device found: it shows what Windows really calls the Hands-Free devices of his earbuds.
+
+## Restore Hands-Free (owner, 2026-11-27: OnePlus Buds 3 lost sound / would not connect after Clear sound; "Can you enable them")
+- Symptom: Windows listed the buds only as a microphone (Hands-Free), no playback endpoint. Suspect: Hands-Free devices left turned off. Claude cannot reach the laptop, so the Bluetooth card now has a "Restore Hands-Free" button (only when Admin-Setup is done) that always runs the enable task (handsfree_set off), whatever state the page shows. Manual fallback given: Device Manager > show hidden devices > enable "Hands-Free" devices, remove and re-pair, restart Bluetooth Support Service.
+- TODO if confirmed: make Clear sound safer (after turning on, check each connected Bluetooth device still has a playback endpoint; otherwise switch back off by itself).

@@ -157,3 +157,7 @@ test('NVIDIA GPU switch: in the Power mode card, asks before turning off, and wa
 test('clear sound is never silently hidden: the page says why the switch is missing', () => {
   assert.ok(js.includes('Windows lists no Hands-Free device') && js.includes('could not read from Windows'))
 })
+
+test('clear sound has a Restore button that always turns Hands-Free back on', () => {
+  assert.ok(js.includes("'Restore Hands-Free'") && js.includes("act('handsfree_set', 'off')"))
+})
