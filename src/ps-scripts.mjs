@@ -38,7 +38,13 @@ if ($g.Count) {
 // Bluetooth headphones. Paired devices are listed from Windows; connecting or disconnecting asks Windows to
 // switch the audio services (music, calls) of ONE device, found by its exact name. Nothing else is touched.
 // One line per paired device: its name, a tab, and whether Windows says it is connected right now (any of its entries counts).
-export const BT_LIST = String.raw`Get-PnpDevice -Class Bluetooth -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -match '^(BTHENUM|BTHLE)\\DEV_' -and $_.FriendlyName } | ForEach-Object { $c = (Get-PnpDeviceProperty -InstanceId $_.InstanceId -KeyName '{83DA6326-97A6-4088-9453-A1923F573B29} 15' -ErrorAction SilentlyContinue).Data; $b = ''; if ($c) { $b = (Get-PnpDeviceProperty -InstanceId $_.InstanceId -KeyName '{104EA319-6EE2-4701-BD47-8DDBF425BBE5} 2' -ErrorAction SilentlyContinue).Data }; $_.FriendlyName + [char]9 + [string]([bool]$c) + [char]9 + $b } | Sort-Object -Unique`
+export const BT_LIST = String.raw`$devs = @(Get-PnpDevice -Class Bluetooth -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -match '^(BTHENUM|BTHLE)\\DEV_' -and $_.FriendlyName })
+if ($devs.Count -eq 0) { return }
+$props = @(Get-PnpDeviceProperty -InstanceId @($devs | ForEach-Object { $_.InstanceId }) -KeyName @('{83DA6326-97A6-4088-9453-A1923F573B29} 15', '{104EA319-6EE2-4701-BD47-8DDBF425BBE5} 2') -ErrorAction SilentlyContinue)
+$conn = @{}
+$bat = @{}
+foreach ($p in $props) { if ($p.KeyName -like '*83DA6326*') { $conn[$p.InstanceId] = $p.Data } elseif ($p.KeyName -like '*104EA319*') { $bat[$p.InstanceId] = $p.Data } }
+$devs | ForEach-Object { $c = $conn[$_.InstanceId]; $b = ''; if ($c -and $bat[$_.InstanceId]) { $b = $bat[$_.InstanceId] }; $_.FriendlyName + [char]9 + [string]([bool]$c) + [char]9 + $b } | Sort-Object -Unique`
 
 // The simple older check (names only, no connection state): used when the first one finds nothing, so the list is never empty by accident.
 export const BT_NAMES = String.raw`Get-PnpDevice -Class Bluetooth -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -match '^(BTHENUM|BTHLE)\\DEV_' -and $_.FriendlyName } | ForEach-Object { $_.FriendlyName } | Sort-Object -Unique`

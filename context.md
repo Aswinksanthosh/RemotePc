@@ -299,3 +299,9 @@ Tests: swr sharing/parallel/stale, timings, volume coalescing, gzip+ETag+304, pr
 ## Diagnostics: Bluetooth and sound devices (owner, 2026-11-27: Buds 3 still no sound output after Restore)
 - Claude has no computer attached (list_computer_folders returned nothing), so it cannot look at the laptop. Diagnostics now prints "Bluetooth and sound devices Windows lists": every AudioEndpoint (OUTPUT / input + status) and every BTHENUM/BTHHFENUM/BTHLE node (class, name, status, problem code, 22 = turned off), at most 60 lines (BT_AUDIO_REPORT in ps-scripts.mjs, actions.btAudioReport, app.mjs). Owner to send the report (Copy report button).
 - What to look for: a "Stereo"/A2DP playback endpoint for the buds (sound OUTPUT: ... Stereo). If only "input: ... Hands-Free" exists, the A2DP/audio sink service is off or not connected; check the nodes with problem 22.
+
+## Real Diagnostics from the owner's laptop (2026-11-27): findings
+- The OnePlus Buds 3 were NOT among the 16 paired devices and had no sound entries; only 1 device was connected (a game controller). All 13 Hands-Free devices were [OK] (none turned off), so Clear sound / Restore were not blocking anything. Advice given: pair the Buds 3 again (earbuds in the case, hold the case button, pair in Windows) and check it is the same laptop as when it worked.
+- Page speed: the Bluetooth listing took 16.7 s (26.6 s once) because BT_LIST called Get-PnpDeviceProperty once per device (about 30 calls for 16 devices); first page loads were logged as "slow page data 11-15 s". BT_LIST is now ONE batched Get-PnpDeviceProperty call (same output format, BT_NAMES fallback kept). Owner to check the new "Page speed" Bluetooth number.
+- The remote log showed "ready on port" three times in 8 minutes (probably Update pressed repeatedly or a restart loop; not investigated).
+- Privacy reminder: never copy the Windows user name, device names of people, or addresses from pasted Diagnostics into this file.

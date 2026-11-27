@@ -804,3 +804,10 @@ test('Diagnostics can list the sound and Bluetooth devices Windows reports (shor
   const linux = lab(t, { platform: 'linux' })
   await assert.rejects(linux.actions.btAudioReport(), /Windows only/)
 })
+
+test('the Bluetooth list asks Windows about all paired devices in ONE call (a call per device took 17 s with 16 devices)', async () => {
+  const { BT_LIST } = await import('../src/actions.mjs')
+  assert.equal(BT_LIST.split('Get-PnpDeviceProperty').length - 1, 1)
+  assert.match(BT_LIST, /83DA6326/)
+  assert.match(BT_LIST, /104EA319/)
+})
