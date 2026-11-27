@@ -7,7 +7,7 @@
  * encoded command, so no quoting of the text can change what runs.
  */
 
-import { AUDIO_LIST, BATTERY, BT_LIST, BT_NAMES, CLIP_GET, CLOSE_GAME, DRIVES, MODEL, MODES, SCREEN_OFF, SLEEP, START_NAMES, TOGGLE_DESKTOP, audioScript, btScript, cleanModel, clipSetScript, duration, keyScript, psArgs, startAppScript, volumeScript, windowsScript } from './ps-scripts.mjs'
+import { AUDIO_LIST, BT_AUDIO_REPORT, BATTERY, BT_LIST, BT_NAMES, CLIP_GET, CLOSE_GAME, DRIVES, MODEL, MODES, SCREEN_OFF, SLEEP, START_NAMES, TOGGLE_DESKTOP, audioScript, btScript, cleanModel, clipSetScript, duration, keyScript, psArgs, startAppScript, volumeScript, windowsScript } from './ps-scripts.mjs'
 import { memo, swr } from './cache.mjs'
 import { createClipboard, createMedia, createWindows } from './pc-features.mjs'
 import { WILDCARD, knownButtons, knownCustomApps, knownFavorites } from './known.mjs'
@@ -831,6 +831,18 @@ export function createActions({
     clipboardGet: clipboard.get,
     /** What Windows lists as Hands-Free devices (for Diagnostics): { found, cleared, ready, devices: [{ name, status, code }] } or null. */
     handsFreeInfo: async () => (await handsFree()) ?? null,
+    /** For Diagnostics: what Windows lists for sound and Bluetooth, as short text lines (at most 60). */
+    async btAudioReport() {
+      winOnly()
+      const lines = []
+      for (const raw of (await ps(BT_AUDIO_REPORT, { timeout: 20_000 })).split(/\r?\n/)) {
+        const [kind, a, b, c, d] = raw.split('\t')
+        const clip = (v) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, 60)
+        if (kind === 'AUDIO' && b) lines.push(`sound ${a === 'out' ? 'OUTPUT' : 'input '}: ${clip(b)} [${clip(c) || '?'}]`)
+        if (kind === 'BT' && b) lines.push(`bluetooth ${clip(a) || '-'}: ${clip(b)} [${clip(c) || '?'}${Number(d) ? ', problem ' + Number(d) + (Number(d) === 22 ? ' = turned off' : '') : ''}]`)
+      }
+      return lines.slice(0, 60)
+    },
     media: async () => (await media.now()) ?? null,
     cover: media.cover,
     /** Windows questions that failed lately, for Diagnostics: [{ what, message, seconds }]. */
@@ -882,6 +894,7 @@ export const POWERSHELL_SNIPPETS = {
   clipboardSet: clipSetScript('hello'),
   mediaInfo: MEDIA_INFO,
   mediaCover: MEDIA_COVER,
+  btAudioReport: BT_AUDIO_REPORT,
   handsFreeState: HF_STATE,
   handsFreeSetup: hfSetupScript(),
   handsFreeOff: hfCommand(true),

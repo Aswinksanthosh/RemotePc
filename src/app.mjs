@@ -135,6 +135,15 @@ export async function startApp({
           // No Clear sound line.
         }
       }
+      // What Windows lists for sound and Bluetooth (to find out why earbuds have no sound output).
+      if (actions?.btAudioReport) {
+        try {
+          const rep = await actions.btAudioReport()
+          if (rep.length) lines.push('Bluetooth and sound devices Windows lists (send these lines if earbuds have no sound):', ...rep.map((l) => `  ${l}`))
+        } catch {
+          // No Bluetooth and sound lines.
+        }
+      }
       // How long the slow Windows questions take right now (the page waits for the slowest one the first time it asks).
       if (actions?.timings) {
         try {

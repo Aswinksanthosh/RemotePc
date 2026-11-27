@@ -272,3 +272,7 @@ export const duration = (seconds) => {
   return d ? `${d}d ${h}h` : h ? `${h}h ${m % 60}m` : `${m}m`
 }
 
+
+/** For Diagnostics: every sound device Windows lists (out = playback, in = microphone, with its state) and every Bluetooth device node (class, name, state, problem code; 22 = turned off). */
+export const BT_AUDIO_REPORT = String.raw`Get-PnpDevice -Class AudioEndpoint -ErrorAction SilentlyContinue | ForEach-Object { 'AUDIO' + [char]9 + $(if ($_.InstanceId -match '\{0\.0\.0\.') { 'out' } else { 'in' }) + [char]9 + $_.FriendlyName + [char]9 + $_.Status }
+Get-PnpDevice -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -match '^(BTHENUM|BTHHFENUM|BTHLE|BTHLEDEVICE|BTH)\\' } | Sort-Object FriendlyName | ForEach-Object { 'BT' + [char]9 + $_.Class + [char]9 + $_.FriendlyName + [char]9 + $_.Status + [char]9 + $_.ConfigManagerErrorCode }`

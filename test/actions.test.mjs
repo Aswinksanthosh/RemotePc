@@ -790,3 +790,17 @@ test('clear sound: the Hands-Free devices are parsed, "on" means every one is tu
   const none = lab(t, { ps: { "'HFD'": '' } })
   assert.equal((await none.actions.handsFreeInfo()).found, false)
 })
+
+test('Diagnostics can list the sound and Bluetooth devices Windows reports (short lines, problem code 22 = turned off)', async (t) => {
+  const out = ['AUDIO\tout\tSpeakers (Realtek)\tOK', 'AUDIO\tin\tHeadset (OnePlus Buds 3 Hands-Free)\tOK', 'BT\tBluetooth\tOnePlus Buds 3 Hands-Free AG Audio\tError\t22', 'BT\tBluetooth\tOnePlus Buds 3\tOK\t0', 'noise'].join('\n')
+  const { actions } = lab(t, { ps: { "'AUDIO'": out } })
+  const lines = await actions.btAudioReport()
+  assert.deepEqual(lines, [
+    'sound OUTPUT: Speakers (Realtek) [OK]',
+    'sound input : Headset (OnePlus Buds 3 Hands-Free) [OK]',
+    'bluetooth Bluetooth: OnePlus Buds 3 Hands-Free AG Audio [Error, problem 22 = turned off]',
+    'bluetooth Bluetooth: OnePlus Buds 3 [OK]',
+  ])
+  const linux = lab(t, { platform: 'linux' })
+  await assert.rejects(linux.actions.btAudioReport(), /Windows only/)
+})
