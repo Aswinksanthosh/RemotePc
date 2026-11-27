@@ -153,3 +153,7 @@ test('NVIDIA GPU switch: in the Power mode card, asks before turning off, and wa
   assert.ok(js.includes('function gpuRow') && js.includes('gpuRow(pc)') && js.includes("act('gpu_set', 'off')") && js.includes("act('gpu_set', 'on')"))
   assert.ok(js.includes("confirmBox('Turn off the NVIDIA GPU?'") && js.includes('not confirmed by NVIDIA'))
 })
+
+test('clear sound is never silently hidden: the page says why the switch is missing', () => {
+  assert.ok(js.includes('Windows lists no Hands-Free device') && js.includes('could not read from Windows'))
+})

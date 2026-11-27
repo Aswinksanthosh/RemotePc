@@ -10,12 +10,24 @@ import { taskSetupScript } from './admin-tasks.mjs'
 export const TASK_ON = 'RemotePc-HandsFree-On'
 export const TASK_OFF = 'RemotePc-HandsFree-Off'
 
-/** The Hands-Free devices of paired Bluetooth devices (profile ids 111E and 111F). */
-const FIND = String.raw`Get-PnpDevice -Class Bluetooth -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -match '^BTHENUM\\\{0000111[ef]-' -or $_.FriendlyName -like '*Hands-Free*' }`
+/** The Hands-Free devices of paired Bluetooth devices (profile ids 111E and 111F, or "Hands-Free" in the name), in any device class. */
+const FIND = String.raw`Get-PnpDevice -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -match '^(BTHENUM|BTHHFENUM)\\' -and ($_.InstanceId -match '\{0000111[ef]-' -or $_.FriendlyName -match 'Hands-?free') }`
 
-/** Prints none, enabled or disabled. */
-export const HF_STATE = String.raw`$d = @(${FIND})
-if ($d.Count -eq 0) { 'none' } elseif (@($d | Where-Object { $_.Status -eq 'OK' }).Count -gt 0) { 'enabled' } else { 'disabled' }`
+/** One line per Hands-Free device: HFD, name, status, Windows problem code (22 = turned off). */
+export const HF_STATE = String.raw`${FIND} | ForEach-Object { 'HFD' + [char]9 + $_.FriendlyName + [char]9 + $_.Status + [char]9 + $_.ConfigManagerErrorCode }`
+
+/** [{ name, status, code }] from HF_STATE output. */
+export function parseHandsFree(text) {
+  const out = []
+  for (const line of String(text ?? '').split(/\r?\n/)) {
+    const [kind, name, status, code] = line.split('\t')
+    if (kind === 'HFD' && name) out.push({ name: name.trim().slice(0, 80), status: String(status ?? '').trim(), code: Number(code) || 0 })
+  }
+  return out
+}
+
+/** Clear sound is "on" when every Hands-Free device is turned off (Windows problem code 22). */
+export const handsFreeCleared = (devices) => devices.length > 0 && devices.every((d) => d.code === 22)
 
 /** What each task runs (as administrator). "clear" = Hands-Free off. */
 export const hfCommand = (clear) =>

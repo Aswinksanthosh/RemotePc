@@ -15,7 +15,7 @@ export { BT_LIST, BT_NAMES, CLIP_GET, CLIP_MAX, cleanModel, clipSetScript } from
 export { knownButtons, knownCustomApps, knownFavorites } from './known.mjs'
 import { MEDIA_COVER, MEDIA_INFO } from './media.mjs'
 import { GPU_STATE, GPU_TASK_OFF, GPU_TASK_ON, gpuCommand, gpuSetupScript, parseGpu, REPORTED_BAD_DRIVERS } from './gpu.mjs'
-import { HF_STATE, hfCommand, hfSetupScript, TASK_OFF, TASK_ON } from './handsfree.mjs'
+import { HF_STATE, handsFreeCleared, hfCommand, parseHandsFree, hfSetupScript, TASK_OFF, TASK_ON } from './handsfree.mjs'
 import { execFile, spawn } from 'node:child_process'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { hostname as osHostname, uptime } from 'node:os'
@@ -515,9 +515,9 @@ export function createActions({
   // "Clear sound": the Hands-Free devices of the earbuds. { found, cleared, ready } (ready = the one-time admin setup was done).
   const handsFree = swr(15_000, track('Clear sound state', async () => {
     if (platform !== 'win32') return null
-    const out = (await ps(HF_STATE, { timeout: 15_000 })).trim().split(/\r?\n/).at(-1)
+    const devices = parseHandsFree(await ps(HF_STATE, { timeout: 15_000 }))
     const ready = await run('schtasks.exe', ['/query', '/tn', TASK_OFF]).then(() => true, () => false)
-    return { found: out === 'enabled' || out === 'disabled', cleared: out === 'disabled', ready }
+    return { found: devices.length > 0, cleared: handsFreeCleared(devices), ready, devices }
   }), now)
   // The NVIDIA GPU switch: { nvidia, on, otherOk, version, ready, suspect } (ready = the one-time admin setup was done). The version is
   // remembered, because Windows stops listing the driver while the GPU is off.
@@ -810,7 +810,7 @@ export function createActions({
         volume: vol,
         headphones: (bt ?? []).map((d) => d.name),
         btConnected: (bt ?? []).filter((d) => d.connected).map((d) => d.name),
-        handsFree: hf ?? null,
+        handsFree: hf ? { found: hf.found, cleared: hf.cleared, ready: hf.ready } : null,
         gpu: gp ?? null,
         btBattery: Object.fromEntries((bt ?? []).filter((d) => d.connected && d.battery).map((d) => [d.name, d.battery])),
         battery: bat,
@@ -829,6 +829,8 @@ export function createActions({
     windows: windowsFeature.list,
     clipboardSet: clipboard.set,
     clipboardGet: clipboard.get,
+    /** What Windows lists as Hands-Free devices (for Diagnostics): { found, cleared, ready, devices: [{ name, status, code }] } or null. */
+    handsFreeInfo: async () => (await handsFree()) ?? null,
     media: async () => (await media.now()) ?? null,
     cover: media.cover,
     /** Windows questions that failed lately, for Diagnostics: [{ what, message, seconds }]. */

@@ -648,7 +648,7 @@ test('clear sound: needs the one-time setup, then switches only through the two 
         cleared = args[2] === 'RemotePc-HandsFree-Off'
         return ''
       }
-      if (file === 'powershell.exe') return decode(args).includes("'enabled'") ? (cleared ? 'disabled\n' : 'enabled\n') : ''
+      if (file === 'powershell.exe') return decode(args).includes("'HFD'") ? `HFD\tBuds Hands-Free AG Audio\t${cleared ? 'Error' : 'OK'}\t${cleared ? 22 : 0}\nHFD\tBuds Hands-Free Telephony\t${cleared ? 'Error' : 'OK'}\t${cleared ? 22 : 0}\n` : ''
       return ''
     },
   })
@@ -773,4 +773,20 @@ test('NVIDIA GPU switch: version, safety checks (setup done, another GPU working
   assert.match(await actions.run('gpu_set', 'on'), /is on/)
   assert.match(await actions.run('gpu_set', 'on'), /already on/)
   for (const bad of ['x', '', undefined, 'off; calc']) await assert.rejects(actions.run('gpu_set', bad), /on or off/)
+})
+
+test('clear sound: the Hands-Free devices are parsed, "on" means every one is turned off, and Diagnostics can list them', async (t) => {
+  const { handsFreeCleared, parseHandsFree } = await import('../src/handsfree.mjs')
+  const devs = parseHandsFree('noise\nHFD\tBuds Hands-Free AG Audio\tOK\t0\nHFD\tBuds Hands-Free Telephony\tUnknown\t22\n')
+  assert.equal(devs.length, 2)
+  assert.equal(handsFreeCleared(devs), false, 'one is still on')
+  assert.equal(handsFreeCleared(devs.map((d) => ({ ...d, code: 22 }))), true)
+  assert.equal(handsFreeCleared([]), false, 'no devices is not "on"')
+  assert.deepEqual(parseHandsFree(undefined), [])
+  const { actions } = lab(t, { ps: { "'HFD'": 'HFD\tBuds Hands-Free AG Audio\tOK\t0\n' } })
+  const h = await actions.handsFreeInfo()
+  assert.equal(h.found, true)
+  assert.equal(h.devices[0].name, 'Buds Hands-Free AG Audio')
+  const none = lab(t, { ps: { "'HFD'": '' } })
+  assert.equal((await none.actions.handsFreeInfo()).found, false)
 })

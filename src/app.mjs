@@ -123,6 +123,18 @@ export async function startApp({
           // No games line.
         }
       }
+      // Clear sound: which Hands-Free devices Windows lists (the switch can only work when it lists some).
+      if (actions?.handsFreeInfo) {
+        try {
+          const h = await actions.handsFreeInfo()
+          if (h) {
+            const names = h.devices.map((d) => `${d.name} [${d.code === 22 ? 'off' : d.status || 'listed'}]`).join(', ')
+            lines.push(h.found ? `[ OK ] Clear sound: ${h.devices.length} Hands-Free device${h.devices.length === 1 ? '' : 's'} found (${names}); administrator setup ${h.ready ? 'done' : 'NOT done: run Admin-Setup once'}` : '[ !! ] Clear sound: Windows lists no Hands-Free device for your Bluetooth devices, so the switch cannot work. Send this line to the developer.')
+          }
+        } catch {
+          // No Clear sound line.
+        }
+      }
       // How long the slow Windows questions take right now (the page waits for the slowest one the first time it asks).
       if (actions?.timings) {
         try {
